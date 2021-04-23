@@ -175,7 +175,7 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
 
 def process_dataset(operation, model_name, batch_size,
                     dataset, dataset_folder, img_extension, preprocessing_method, crop_size,
-                    result_sample_path, feature_file):
+                    result_sample_path, feature_file, gpu):
 
     if dataset.upper() == 'LFW':
         dataset = LFW(LFW_GENERAL_DATA_DIR, dataset_folder, img_extension, preprocessing_method, crop_size)
@@ -195,7 +195,7 @@ def process_dataset(operation, model_name, batch_size,
 
     if operation == 'extract_features':
         # extract the features for a WHOLE DATASET
-        features = extract_features(model_name, dataloader,
+        features = extract_features(model_name, dataloader, gpu,
                                     save_img_results=(False if result_sample_path is None else True))
         assert feature_file is not None
         scipy.io.savemat(feature_file, features)
@@ -206,7 +206,7 @@ def process_dataset(operation, model_name, batch_size,
     elif operation == 'extract_generate_rank':
         if feature_file is None:
             # extract the features for a WHOLE DATASET...
-            features = extract_features(model_name, dataloader,
+            features = extract_features(model_name, dataloader, gpu,
                                         save_img_results=(False if result_sample_path is None else True))
         else:
             # ...OR load the previous saved features, if possible
