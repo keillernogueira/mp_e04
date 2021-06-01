@@ -1,5 +1,6 @@
 import time
 import scipy.io
+import numpy as np
 
 import torch.utils.data
 
@@ -54,28 +55,31 @@ def extract_features(model_name, dataloader, gpu=True, save_img_results=False):
 
         if features is None:
             features = feature
-            classes = cls
             images = imgl_list
             names = people
+            bbs = bb
             if save_img_results is True:
+                classes = cls
                 cropped_images = crop_img
-                bbs = bb
         else:
             names = np.concatenate((names, people), 0)
             features = np.concatenate((features, feature), 0)
-            classes = np.concatenate((classes, cls), 0)
             images = np.concatenate((images, imgl_list), 0)
+            bbs = np.concatenate((bbs, bb), 0)
             if save_img_results is True:
+                classes = np.concatenate((classes, cls), 0)
                 cropped_images = np.concatenate((cropped_images, crop_img), 0)
-                bbs = np.concatenate((bbs, bb), 0)
 
-    print(features.shape, classes.shape, names.shape, images.shape)
+    print(features.shape, bbs.shape, names.shape, images.shape)
     if save_img_results is True:
         print(cropped_images.shape)
-        print(bbs.shape)
+        print(classes.shape)
 
-    result = {'name': names, 'feature': features, 'class': classes, 'image': images,
-              'cropped_image': cropped_images, 'bb': bbs}
+    if save_img_results is True:
+        result = {'name': names, 'feature': features, 'class': classes, 'image': images,
+                  'cropped_image': cropped_images, 'bbs': bbs}
+    else:
+        result = {'name': names, 'feature': features, 'image': images, 'bbs': bbs}
 
     return result
 
@@ -99,7 +103,7 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
     images = result['image']
     people = result['name']
     cropped_images = result['cropped_image']
-    bbs = result['bb']
+    bbs = result['bbs']
 
     all_cmc = None
     aps = np.zeros((len(features), len(features)-1))
@@ -207,7 +211,7 @@ def process_dataset(operation, model_name, batch_size,
         if feature_file is None:
             # extract the features for a WHOLE DATASET...
             features = extract_features(model_name, dataloader, gpu,
-                                        save_img_results=(False if result_sample_path is None else True))
+                                        save_img_results=(False if result_sample_path is None else True))  # TRUE?
         else:
             # ...OR load the previous saved features, if possible
             features = scipy.io.loadmat(feature_file)

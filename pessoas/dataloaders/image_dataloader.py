@@ -19,14 +19,12 @@ class ImageDataLoader(object):
         """
 
         self.image = image
-        self.image_label = 0  # dummy value
         self.preprocessing_method = preprocessing_method
         self.crop_size = crop_size
         self.will_save_features = will_save_features
 
     def __getitem__(self, index):
         imgl = read_image(self.image)
-        cl = self.image_label
 
         # if image is grayscale, transform into rgb by repeating the image 3 times
         if len(imgl.shape) == 2:
@@ -51,7 +49,7 @@ class ImageDataLoader(object):
             imglist[i] = imglist[i].transpose(0, 3, 1, 2)
         imgs = [torch.from_numpy(i).float() for i in imglist]
 
-        return imgs, cl, bb
+        return imgs, bb, self.image
 
     def __len__(self):
         return 1
