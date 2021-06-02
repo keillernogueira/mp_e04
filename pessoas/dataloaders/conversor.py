@@ -2,6 +2,7 @@ import os
 import io
 import base64
 from imageio import imread, imwrite
+import validators
 
 
 def process_base64(base64_img):
@@ -31,7 +32,10 @@ def read_image(image):
             else:
                 img = imread(image)
         else:
-            img = process_base64(image)
+            if validators.url(image):
+                img = imread(image)
+            else:
+                img = process_base64(image)
     except:
         raise NotImplementedError("Could not identify and read probably base64 image")
 
