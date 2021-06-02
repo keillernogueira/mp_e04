@@ -87,7 +87,7 @@ def preprocess(img, preprocessing_method, crop_size=(96, 112),
 
         img_res = np.asarray([img[starty:starty + cropy, startx:startx + cropx]])
 
-    if return_only_largest_bb is True:
+    if len(bounding_boxes) != 0 and return_only_largest_bb is True:
         # select the largest BB if it is processing dataset
         # this is because dataset processing expects to receive only ONE image and bb
         largest_bb_area = -999999999.9
