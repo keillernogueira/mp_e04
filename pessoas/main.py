@@ -1,12 +1,10 @@
 import os
 import scipy.io
-
+import numpy as np
 import torch
 
 from utils import *
-
 from dataloaders.image_dataloader import ImageDataLoader
-
 from networks.load_network import load_net
 from dataset_processor import process_dataset
 
@@ -194,7 +192,7 @@ if __name__ == '__main__':
         process_dataset(args.operation, args.model_name, args.batch_size,
                         args.dataset, args.specific_dataset_folder_name,
                         args.img_extension, args.preprocessing_method, crop_size,
-                        args.result_sample_path, args.feature_file)
+                        args.result_sample_path, args.feature_file, args.gpu)
     elif args.image_query is not None:
         # process unique image
         dataset = ImageDataLoader(args.image_query, args.preprocessing_method,
