@@ -14,7 +14,6 @@ def plot_top15_face_retrieval(query_image, query_person, scores, query_num,
     """
     Function to plot the top 15 visual results of the queries.
     Face retrieval considers the most similar images, including images of the same person.
-
     query_image: adress to the query image.
     query_person: name of the person in query image.
     scores: ranked list containing the information of the images.
@@ -97,7 +96,6 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
     """
     Function to plot the top 15 visual results of the queries.
     Person retrieval considers the most similar persons, not repeating the images of the same person.
-
     query_image: adress to the query image.
     query_person: name of the person in query image.
     scores: ranked list containing the information of the images.
@@ -127,7 +125,7 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
     ax[0].imshow(img)
 
     ax[1].imshow(img)
-    if not np.array_equal(bb, [0, 0, 0, 0]):
+    if bb is not None:
         ax[1].set_title('| Bounding Box |')
         rect = patches.Rectangle((bb[0], bb[1]), bb[2] - bb[0], bb[3] - bb[1],
                                  linewidth=1, edgecolor='r', facecolor='none')
@@ -135,13 +133,16 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
     else:
         ax[1].set_title('| NO Bounding Box |')
 
-    ax[2].set_title('| Cropped Face |')
-    shift = 75  # this shift is only used to center the cropped image into de subplot
-    ax[2].imshow(cropped_image, extent=(shift, shift + cropped_image.shape[1], shift + cropped_image.shape[0], shift))
+    if cropped_image is not None:
+        ax[2].set_title('| Cropped Face |')
+        shift = 75  # this shift is only used to center the cropped image into de subplot
+        ax[2].imshow(cropped_image, extent=(shift, shift + cropped_image.shape[1], shift + cropped_image.shape[0], shift))
+    else:
+        ax[2].set_title('| NO Cropped Face |')
 
     unique_persons = []
     i = j = 0
-    while i < 15:
+    while i < 10:
         if unique_persons:
             if scores[j][3] not in unique_persons:
                 if scores[j][2].endswith("txt"):
