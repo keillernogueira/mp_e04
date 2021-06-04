@@ -28,11 +28,11 @@ def extract_features_from_image(model_name, dataloader, query_label, gpu):
     net.eval()
 
     feature = None
-    img = None
+    img_name = None
     bbs = None
 
     # forward
-    for imgs, cls, imgl, bb in dataloader:
+    for imgs, img_nm, imgl, bb in dataloader:
         if not imgs:
             # no face detected
             return None
@@ -42,12 +42,12 @@ def extract_features_from_image(model_name, dataloader, query_label, gpu):
 
         res = [net(d.view(-1, d.shape[2], d.shape[3], d.shape[4])).data.cpu().numpy() for d in imgs]
         feature = np.concatenate((res[0], res[1]), 1)
-        img = imgs
+        img_name = img_nm
         bbs = bb
 
     # plot_bbs(bbs[0].cpu().numpy())
 
-    result = {'feature': feature, 'name': [query_label], 'image': img[0][0].cpu().numpy(), 'bbs': bbs[0].cpu().numpy(), 'cropped_image': imgl}
+    result = {'feature': feature, 'name': [query_label], 'image': img_name, 'bbs': bbs[0].cpu().numpy(), 'cropped_image': imgl}
 
     return result
 
@@ -83,7 +83,7 @@ def generate_ranking_for_image(database_data, query_data, bib="numpy", gpu=False
     """
     Make a specific query and calculate the average precision.
 
-    :param database_data: features of the whole dataset.
+    :param database_data: features of the entire dataset.
     :param query_data: features of the image query.
     :param bib: library used to calculate the cosine distance.
     :param gpu: boolean to allow use gpu.
