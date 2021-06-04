@@ -1,6 +1,5 @@
 import os
 import scipy.io
-import numpy as np
 
 import torch
 
@@ -31,11 +30,11 @@ def extract_features_from_image(model_name, dataloader, query_label, gpu):
     net.eval()
 
     feature = None
-    img_name = None
+    img = None
     bbs = None
 
     # forward
-    for imgs, bb, img_nm in dataloader:
+    for imgs, cls, imgl, bb in dataloader:
         if not imgs:
             # no face detected
             return None
@@ -45,12 +44,12 @@ def extract_features_from_image(model_name, dataloader, query_label, gpu):
 
         res = [net(d.view(-1, d.shape[2], d.shape[3], d.shape[4])).data.cpu().numpy() for d in imgs]
         feature = np.concatenate((res[0], res[1]), 1)
-        img_name = img_nm
+        img = imgs
         bbs = bb
 
     # plot_bbs(bbs[0].cpu().numpy())
 
-    result = {'feature': feature, 'image': img_name, 'name': [query_label], 'bbs': bbs[0].cpu().numpy()}
+    result = {'feature': feature, 'name': [query_label], 'image': img[0][0].cpu().numpy(), 'bbs': bbs[0].cpu().numpy(), 'cropped_image': imgl}
 
     return result
 
@@ -70,13 +69,13 @@ def generate_rank(scores):
             # if the i person in the scores list is note in unique_persons
             if scores[j][1] not in unique_persons:
                 unique_persons.append(scores[j][1])
-                # append tuple with person id and score
-                persons_scores.append((scores[j][1].strip(), scores[j][0]))
+                # append tuple with person id, score and image path
+                persons_scores.append(("Name: ", scores[j][1].strip(), "Confidence: ", scores[j][0], "Image: ", scores[j][2].strip()))
 
                 i += 1
         else:
             unique_persons.append(scores[j][1])
-            persons_scores.append((scores[j][1].strip(), scores[j][0]))
+            persons_scores.append(("Name: ", scores[j][1].strip(), "Confidence: ", scores[j][0], "Image: ", scores[j][2].strip()))
             i += 1
         j += 1
     return persons_scores
@@ -86,7 +85,7 @@ def generate_ranking_for_image(database_data, query_data, bib="numpy", gpu=False
     """
     Make a specific query and calculate the average precision.
 
-    :param database_data: features of the entire dataset.
+    :param database_data: features of the whole dataset.
     :param query_data: features of the image query.
     :param bib: library used to calculate the cosine distance.
     :param gpu: boolean to allow use gpu.
@@ -127,10 +126,11 @@ def generate_ranking_for_image(database_data, query_data, bib="numpy", gpu=False
             scores_q = q @ np.transpose(database_features)
 
         # associate confidence score with the label of the dataset and sort based on the confidence
-        scores_q = list(zip(scores_q, database_data['name']))
+        scores_q = list(zip(scores_q, database_data['name'], database_data['image']))
         scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
-        persons_scores.append((query_bbs[i], generate_rank(scores_q)))
+        persons_scores.append((query_bbs[i]))
+        persons_scores.append((generate_rank(scores_q)))
 
     return persons_scores
 
@@ -194,7 +194,7 @@ if __name__ == '__main__':
         process_dataset(args.operation, args.model_name, args.batch_size,
                         args.dataset, args.specific_dataset_folder_name,
                         args.img_extension, args.preprocessing_method, crop_size,
-                        args.result_sample_path, args.feature_file, args.gpu)
+                        args.result_sample_path, args.feature_file)
     elif args.image_query is not None:
         # process unique image
         dataset = ImageDataLoader(args.image_query, args.preprocessing_method,
