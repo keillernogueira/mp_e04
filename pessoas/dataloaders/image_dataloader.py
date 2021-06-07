@@ -49,7 +49,7 @@ class ImageDataLoader(object):
             imglist[i] = imglist[i].transpose(0, 3, 1, 2)
         imgs = [torch.from_numpy(i).float() for i in imglist]
 
-        return imgs, self.image, imgl, bb
+        return imgs, cl, imgl, bb
 
     def __len__(self):
         return 1

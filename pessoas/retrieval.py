@@ -18,12 +18,10 @@ def retrieval(image_path):
     e as imagens e IDs do top 10 do ranking)
     """
     # processing variables
-    model_name = "mobilefacenet"
     preprocessing_method = "sphereface"
-    crop_size = (96, 112) 
-    feature_file = "features/featuresMMPS.mat"
-    save_dir = 'results/'
-    method = "image"
+    crop_size = (96, 112)  
+    feature_file = "/content/drive/MyDrive/mp_e04-master/pessoas/features/features.mat"
+    model_name = "mobilefacenet"
 
     # seting dataset and dataloader
     dataset = ImageDataLoader(image_path, preprocessing_method, crop_size)
@@ -43,57 +41,55 @@ def retrieval(image_path):
         print("No face detected in this image.")
     
     # exporting results
-
-    # if the method chosen was json
+    method = "imaGe"
     if(method.lower() == "json"):
         now = datetime.now()
         date = now.strftime("%d%m%Y-%H%M%S")
 
         data = {}
         data['Path'] = image_path
-        data['Ranking'] = str(ranking[1])
-        data['Bounding Boxes'] = ranking[0].tolist()
-        with open(save_dir + 'faces-' + date + '.json', 'w', encoding='utf-8') as f:
+        data['Ranking'] = str(ranking[0])
+        data['Bounding Boxes'] = ranking[1].tolist()
+        with open('faces-' + date + '.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4)
 
-    # if the method chosen was image
     elif(method.lower() == "image"):
         assert features is not None, 'To generate rank, use the flag --feature_file' \
                                          ' to load previously extracted faatures.'
         if feature is not None:
-            # defining dataset variables
-            specific_features = features['feature']
+            query_features = feature['feature']
+            database_features = features['feature']
+            num_features_query = query_features.shape[0]
+            query_bbs = feature['bbs']
+
+            features_stack = np.vstack((query_features, database_features))
+
             classes = features['class']
             if len(classes.shape) == 2:
                 classes = classes[0]
             images = features['image']
-            people = features['name']
-            cropped_images = features['cropped_image']
-            # normalizing features
-            mu = np.mean(specific_features, 0)
-            mu = np.expand_dims(mu, 0)
-            specific_features = specific_features - mu
-            specific_features = specific_features / np.expand_dims(np.sqrt(np.sum(np.power(specific_features, 2), 1)), 1)
-            scores_all = specific_features@np.transpose(specific_features)
+            cropped_image = np.array(feature["cropped_image"])
 
-            #persons_scores = []
-            for i, q in enumerate(feature["feature"]):
-                scores_q = q @ np.transpose(features["feature"])
+            # normalizing features
+            mu = np.mean(features_stack, 0)
+            mu = np.expand_dims(mu, 0)
+            features_stack = features_stack - mu
+            features_stack = features_stack / np.expand_dims(np.sqrt(np.sum(np.power(features_stack, 2), 1)), 1)
+
+            query_features = features_stack[0:num_features_query]
+            database_features = features_stack[num_features_query:]
+
+            for i, q in enumerate(query_features):
+                scores_q = q @ np.transpose(database_features)
+
                 scores_q = list(zip(scores_q, classes, images, features['name']))
                 scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
-                #persons_scores.append((feature["bbs"][i], generate_rank(scores_q))) 
-            #print(feature["bbs"][0])
-            person_name = list(ranking[1][0])
-            plot_top15_person_retrieval(image_path, person_name[1], scores_q, i + 1, bb = feature["bbs"][0], save_dir = save_dir)
-            #plot_top15_person_retrieval(image_path, "Vladimir Putin", scores=features, bb=ranking[1], query_num=10)
+                plot_top15_person_retrieval(image_path, "Arnold Schwarzenegger", scores_q, i+1, cropped_image = cropped_image[0][i], bb = feature["bbs"][i], save_dir = "/content/drive/MyDrive/mp_e04-master/pessoas/test7")
         else:
             print("No face detected in this image.")
-            
-    # in case the user didn't chose neither json nor image
     else:
         raise NotImplementedError("Method " + method + " not implemented")
 
 if __name__ == '__main__':
-    image_path = "images/test3.jpg"
-    retrieval(image_path)
+    retrieval("/content/sample_data/WhatsApp Image 2021-06-05 at 20.26.25.jpeg")

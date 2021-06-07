@@ -136,7 +136,7 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
     if cropped_image is not None:
         ax[2].set_title('| Cropped Face |')
         shift = 75  # this shift is only used to center the cropped image into de subplot
-        ax[2].imshow(cropped_image, extent=(shift, shift + cropped_image.shape[1], shift + cropped_image.shape[0], shift))
+        ax[2].imshow(cropped_image.astype('uint8'), extent=(shift, shift + cropped_image.shape[1], shift + cropped_image.shape[0], shift))
     else:
         ax[2].set_title('| NO Cropped Face |')
 
