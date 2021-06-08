@@ -3,7 +3,7 @@ import os
 import scipy.io
 import torch
 import numpy as np
-import glob
+import urllib.request
 
 from PIL import Image
 from datetime import datetime
@@ -27,8 +27,28 @@ def retrieval(image_path):
     save_dir = 'results/'
     method = "image"
 
+    image_name = None
+    now = datetime.now()
+    date = now.strftime("%d%m%Y-%H%M%S")
+    if image_path[:4] == "http":
+        image_name = 'images/faces-' + date + ".jpg"
+        urllib.request.urlretrieve(image_path, image_name)
+        img = Image.open(image_name)
+        basewidth = 250
+        wpercent = (basewidth / float(img.size[0]))
+        hsize = int((float(img.size[1]) * float(wpercent)))
+        img = img.resize((basewidth, hsize), Image.ANTIALIAS)
+        img.save(image_name)
+    else:
+        img = Image.open(image_path)
+        basewidth = 250
+        wpercent = (basewidth / float(img.size[0]))
+        hsize = int((float(img.size[1]) * float(wpercent)))
+        img = img.resize((basewidth, hsize), Image.ANTIALIAS)
+        img.save(image_path)
+    
     # seting dataset and dataloader
-    dataset = ImageDataLoader(image_path, preprocessing_method, crop_size)
+    dataset = ImageDataLoader(image_name if image_name != None else image_path, preprocessing_method, crop_size)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, drop_last=False)
     
     features = None
@@ -48,11 +68,8 @@ def retrieval(image_path):
 
     # if the method chosen was json
     if(method.lower() == "json"):
-        now = datetime.now()
-        date = now.strftime("%d%m%Y-%H%M%S")
-
         data = {}
-        data['Path'] = image_path
+        data['Path'] = image_name if image_name != None else image_path
         data['Ranking'] = str(ranking[1])
         data['Bounding Boxes'] = ranking[0].tolist()
         with open(save_dir + 'faces-' + date + '.json', 'w', encoding='utf-8') as f:
@@ -94,7 +111,7 @@ def retrieval(image_path):
 
                 #persons_scores.append((feature["bbs"][i], generate_rank(scores_q))) 
                 person_name = list(ranking[1][0])
-                plot_top15_person_retrieval(image_path, person_name, scores_q, i+1, cropped_image = cropped_image[0][i], bb = feature["bbs"][i], save_dir = save_dir)
+                plot_top15_person_retrieval(image_name if image_name != None else image_path, person_name, scores_q, i+1, cropped_image = cropped_image[0][i], bb = feature["bbs"][i], save_dir = save_dir)
         else:
             print("No face detected in this image.")
             
@@ -103,11 +120,5 @@ def retrieval(image_path):
         raise NotImplementedError("Method " + method + " not implemented")
 
 if __name__ == '__main__':
-    image_path = "images/test18-1.jpg"
-    basewidth = 300
-    img = Image.open(image_path)
-    wpercent = (basewidth / float(img.size[0]))
-    hsize = int((float(img.size[1]) * float(wpercent)))
-    img = img.resize((basewidth, hsize), Image.ANTIALIAS)
-    img.save(image_path)
+    image_path = "https://publisher-publish.s3.eu-central-1.amazonaws.com/pb-brasil247/swp/jtjeq9/media/20190830150812_6c55e3b5-c22c-4b41-a48e-3038c5088f31.jpeg"
     retrieval(image_path)
