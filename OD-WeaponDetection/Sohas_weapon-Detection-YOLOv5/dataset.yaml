@@ -1,8 +1,0 @@
-train: Sohas_weapon-Detection-YOLOv5/obj_train_data/images/train/
-val: Sohas_weapon-Detection-YOLOv5/obj_train_data/images/test/
-
-# number of classes
-nc: 6
-
-# class names
-names: ['pistol', 'smartphone', 'knife', 'monedero', 'billete', 'tarjeta']
