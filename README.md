@@ -19,7 +19,7 @@ def train(dataset_path, **kwargs):
     - chamar a função pronta da yolov5 para treino: train(hyp, opt, device, logger)
 ```
 
-### retrieval()
+### detect_obj()
 ```
 def retrieval(img_path, model_path, output_path, format):
     - abrir imagem (seja local, ou por download)
