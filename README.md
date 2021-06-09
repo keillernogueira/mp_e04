@@ -21,7 +21,7 @@ def train(dataset_path, **kwargs):
 
 ### detect_obj()
 ```
-def retrieval(img_path, model_path, output_path, format):
+def detect_obj(img_path, model_path, output_path, format):
     - abrir imagem (seja local, ou por download)
     
     - inferencia usando o modelo salvo
