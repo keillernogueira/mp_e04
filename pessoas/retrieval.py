@@ -110,7 +110,7 @@ def retrieval(image_path):
                 scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
                 #persons_scores.append((feature["bbs"][i], generate_rank(scores_q))) 
-                person_name = list(ranking[1][0])
+                person_name = scores_q[1][3].strip()
                 plot_top15_person_retrieval(image_name if image_name != None else image_path, person_name, scores_q, i+1, cropped_image = cropped_image[0][i], bb = feature["bbs"][i], save_dir = save_dir)
         else:
             print("No face detected in this image.")
