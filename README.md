@@ -2,6 +2,24 @@
 
 ## Face Recognition
 
+### train()
+
+Method definition:
+```
+train(dataset_path, save_dir, resume_path=None)
+```
+where:
+
+1. ```dataset_path``` is the path to the dataset used to train.
+2. ```save_dir``` is the path to the dir used to save the trained model.
+3. ```resume_path``` is the path to a previously trained model (for fine-tuning)
+
+Test call:
+
+```
+python -W ignore train.py
+```
+
 ## Object Detection
 Possui duas funções `train` e `retrieval`
 
