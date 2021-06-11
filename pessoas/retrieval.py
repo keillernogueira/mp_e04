@@ -30,7 +30,7 @@ def retrieval(image_path):
     image_name = None
     now = datetime.now()
     date = now.strftime("%d%m%Y-%H%M%S")
-    if image_path[:4] == "http":
+    """if image_path[:4] == "http":
         image_name = 'images/faces-' + date + ".jpg"
         urllib.request.urlretrieve(image_path, image_name)
         img = Image.open(image_name)
@@ -46,7 +46,7 @@ def retrieval(image_path):
         hsize = int((float(img.size[1]) * float(wpercent)))
         img = img.resize((basewidth, hsize), Image.ANTIALIAS)
         img.save(image_path)
-    
+    """
     # seting dataset and dataloader
     dataset = ImageDataLoader(image_name if image_name != None else image_path, preprocessing_method, crop_size)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, drop_last=False)
@@ -110,7 +110,7 @@ def retrieval(image_path):
                 scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
                 #persons_scores.append((feature["bbs"][i], generate_rank(scores_q))) 
-                person_name = list(ranking[1][0])
+                person_name = scores_q[1][3].strip()
                 plot_top15_person_retrieval(image_name if image_name != None else image_path, person_name, scores_q, i+1, cropped_image = cropped_image[0][i], bb = feature["bbs"][i], save_dir = save_dir)
         else:
             print("No face detected in this image.")

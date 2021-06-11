@@ -5,6 +5,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import imageio
+import cv2
+from datetime import datetime
 
 from config import *
 
@@ -119,12 +121,28 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
             img = imageio.imread(io.BytesIO(base64.b64decode(base64_img)))    
     else:
         img = imageio.imread(query_image.strip())
+    
+    basewidth = 250
+    wpercent = (basewidth / float(img.shape[1]))
+    hsize = int((float(img.shape[0]) * float(wpercent)))
+    hpercent = (hsize / float(img.shape[0]))
+    img = cv2.resize(img, (basewidth, hsize))
+
+    now = datetime.now()
+    date = now.strftime("%d%m%Y-%H%M%S")
+    image_name = 'faces-' + date
         
     ax[0].set_title('| Query image |\nPerson: %s\nImage: %s' %
-                    (query_person, os.path.basename(os.path.splitext(query_image)[0])))
+                    (query_person, image_name))
     ax[0].imshow(img)
 
     ax[1].imshow(img)
+
+    bb[0] = bb[0]*wpercent
+    bb[2] = bb[2]*wpercent
+    bb[1] = bb[1]*hpercent
+    bb[3] = bb[3]*hpercent
+
     if bb is not None:
         ax[1].set_title('| Bounding Box |')
         rect = patches.Rectangle((bb[0], bb[1]), bb[2] - bb[0], bb[3] - bb[1],
@@ -179,6 +197,6 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    fig.savefig(os.path.join(save_dir, os.path.basename(os.path.splitext(query_image)[0]) +
+    fig.savefig(os.path.join(save_dir, image_name +
                              "_" + str(query_num) + "_person_retrieval.jpg"))
     plt.close(fig)
