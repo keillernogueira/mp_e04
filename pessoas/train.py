@@ -2,38 +2,57 @@ import os
 import numpy as np
 import logging
 import time
+import urllib.request
+import tarfile
 
 import torch
 from torch import nn
 import torch.optim as optim
 
+from dataloaders.LFW_dataloader import LFW
 from dataloaders.generic_dataloader import GenericDataLoader
 from networks.mobilefacenet import MobileFacenet, ArcMarginProduct
+from dataset_processor import extract_features, evaluate_dataset
 
 
-def train(dataset_path, save_dir):
+def train(dataset_path, save_dir, resume_path=None):
     """
-    Train a new model.
+    Train a model.
 
     :param dataset_path: Path to the dataset used to train.
     :param save_dir: Path to the dir used to save the trained model.
+    :param resume_path: Path to a previously trained model.
     """
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.INFO)
 
     # create dataset
     train_dataset = GenericDataLoader(dataset_path, preprocessing_method='sphereface', crop_size=(96, 112))
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=8,
                                                    shuffle=True, num_workers=4, drop_last=False)
 
+    # validation dataset
+    lfw_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets', 'LFW')
+    if not os.path.exists(lfw_path):  # if folder does not exist
+        os.mkdir(lfw_path)  # create folder
+        # download data
+        urllib.request.urlretrieve('http://vis-www.cs.umass.edu/lfw/lfw.tgz', os.path.join(lfw_path, 'lfw.tgz'))
+        urllib.request.urlretrieve('http://vis-www.cs.umass.edu/lfw/people.txt', os.path.join(lfw_path, 'people.txt'))
+        # unzip
+        tar = tarfile.open(os.path.join(lfw_path, 'lfw.tgz'))
+        tar.extractall(lfw_path)
+        tar.close()
+
+    validate_dataset = LFW(lfw_path, specific_folder='lfw', img_extension='jpg',
+                           preprocessing_method='sphereface', crop_size=(96, 112))
+    validate_dataloader = torch.utils.data.DataLoader(validate_dataset, batch_size=8, shuffle=False,
+                                                      num_workers=2, drop_last=False)
+
     net = MobileFacenet()
     arc_margin = ArcMarginProduct(128, train_dataset.num_classes)
     net = net.cuda()
     arc_margin = arc_margin.cuda()
-    criterion = torch.nn.CrossEntropyLoss()
-
-    # if RESUME:
-    #     ckpt = torch.load(RESUME)
-    #     net.load_state_dict(ckpt['net_state_dict'])
-    #     start_epoch = ckpt['epoch'] + 1
+    criterion = torch.nn.CrossEntropyLoss().cuda()
 
     # define optimizers
     ignored_params = list(map(id, net.linear1.parameters()))
@@ -54,11 +73,17 @@ def train(dataset_path, save_dir):
 
     exp_lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer_ft, milestones=[36, 52, 58], gamma=0.1)
 
-    best_acc = 0.0
-    best_epoch = 0
     TOTAL_EPOCH = 71
     SAVE_FREQ = 10
-    for epoch in range(1, TOTAL_EPOCH):
+    TEST_FREQ = 3
+    start_epoch = 1
+
+    if resume_path:
+        ckpt = torch.load(resume_path)
+        net.load_state_dict(ckpt['net_state_dict'])
+        start_epoch = ckpt['epoch'] + 1
+
+    for epoch in range(start_epoch, TOTAL_EPOCH):
         # train model
         logging.info('Train Epoch: {}/{} ...'.format(epoch, TOTAL_EPOCH))
         net.train()
@@ -89,31 +114,9 @@ def train(dataset_path, save_dir):
         logging.info(loss_msg)
 
         # test model on lfw
-        # if epoch % TEST_FREQ == 0:
-        #     net.eval()
-        #     featureLs = None
-        #     featureRs = None
-        #     logging.info('Test Epoch: {} ...'.format(epoch))
-        #     for data in testloader:
-        #         for i in range(len(data)):
-        #             data[i] = data[i].cuda()
-        #         res = [net(d).data.cpu().numpy() for d in data]
-        #         featureL = np.concatenate((res[0], res[1]), 1)
-        #         featureR = np.concatenate((res[2], res[3]), 1)
-        #         if featureLs is None:
-        #             featureLs = featureL
-        #         else:
-        #             featureLs = np.concatenate((featureLs, featureL), 0)
-        #         if featureRs is None:
-        #             featureRs = featureR
-        #         else:
-        #             featureRs = np.concatenate((featureRs, featureR), 0)
-        #
-        #     result = {'fl': featureLs, 'fr': featureRs, 'fold': folds, 'flag': flags}
-        #     # save tmp_result
-        #     scipy.io.savemat('./result/tmp_result.mat', result)
-        #     accs = evaluation_10_fold('./result/tmp_result.mat')
-        #     logging.info('    ave: {:.4f}'.format(np.mean(accs) * 100))
+        if epoch % TEST_FREQ == 0:
+            features = extract_features(validate_dataloader, model=net, gpu=True, save_img_results=True)
+            evaluate_dataset(features)
 
         # save model
         if epoch % SAVE_FREQ == 0:
@@ -129,4 +132,4 @@ if __name__ == '__main__':
     """
     Testing purposes
     """
-    train('/home/kno/mp_e04/pessoas/datasets/CASIA-WebFace/', '/home/kno/mp_e04/pessoas/')
+    train('/home/kno/mp_e04/pessoas/datasets/CASIA-WebFace/', '/home/kno/mp_e04/pessoas/output/')

@@ -1,3 +1,4 @@
+import logging
 from PIL import Image
 
 from .mtcnn import mtcnn_crop_image
@@ -66,11 +67,11 @@ def preprocess(img, preprocessing_method, crop_size=(96, 112),
         except Exception as e:
             # if there is any error in the processing of the selected pre-process methods
             # active the default pre-processing
-            print('Error in ' + preprocessing_method + ': ' + str(e))
+            logging.error('Error in ' + preprocessing_method + ': ' + str(e))
             exception_in_pre_processing = True
 
     if preprocessing_method is None or (execute_default is True and exception_in_pre_processing is True):
-        print('Calling pre-processing default.')
+        logging.info('Calling pre-processing default.')
 
         bounding_boxes = np.array([[0., 0., 255., 255., 0.]]).astype(np.float64)
         # this happens when a bounding box of the face is not recognized

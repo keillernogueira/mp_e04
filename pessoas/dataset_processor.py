@@ -14,7 +14,7 @@ from dataloaders.LFW_dataloader import LFW
 from dataloaders.yale_dataloader import YALE
 
 
-def extract_features(model_name, dataloader, gpu=True, save_img_results=False):
+def extract_features(dataloader, model_name=None, model=None, gpu=True, save_img_results=False):
 
     """
     Function to extract features of images for a WHOLE dataset.
@@ -23,13 +23,19 @@ def extract_features(model_name, dataloader, gpu=True, save_img_results=False):
     :param dataloader: dataloader used to load the images.
     :param gpu: boolean to allow use gpu.
     :param save_img_results: boolean that indicates that we want to save image samples of the produced results.
+    :param model: a model to use instead of load. If set, then there is no need to set model_name.
     :return a dict composed of the extracted features, names, classes, images, cropped images, and bounding boxes.
     """
 
     # initialize the network
-    net = load_net(model_name, gpu)
-    if gpu:
-        net = net.cuda()
+    if model_name:
+        net = load_net(model_name, gpu)
+        if gpu:
+            net = net.cuda()
+    elif model:
+        net = model
+    else:
+        raise NotImplementedError("Model or Model_name should be set")
 
     net.eval()
 
@@ -199,7 +205,7 @@ def process_dataset(operation, model_name, batch_size,
 
     if operation == 'extract_features':
         # extract the features for a WHOLE DATASET
-        features = extract_features(model_name, dataloader, gpu,
+        features = extract_features(dataloader, model_name=model_name, gpu=gpu,
                                     save_img_results=(False if result_sample_path is None else True))
         assert feature_file is not None
         scipy.io.savemat(feature_file, features)
@@ -210,7 +216,7 @@ def process_dataset(operation, model_name, batch_size,
     elif operation == 'extract_generate_rank':
         if feature_file is None:
             # extract the features for a WHOLE DATASET...
-            features = extract_features(model_name, dataloader, gpu,
+            features = extract_features(dataloader, model_name=model_name, gpu=gpu,
                                         save_img_results=(False if result_sample_path is None else True))  # TRUE?
         else:
             # ...OR load the previous saved features, if possible
