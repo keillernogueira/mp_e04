@@ -40,13 +40,13 @@ python retrieval.py
 
 Method definition:
 ```
-update_dataset(img_path, img_ID, feature_file = None)
+update_dataset(img_path, img_ID, feature_file = "features.mat")
 ```
 where:
 
 1. ```img_path``` is the path to the analysed image.
 2. ```img_ID``` is the name of the person in the analysed image.
-3. ```feature_file``` is the path to a feature file that already exists, if there is any (add image info to an existing file).
+3. ```feature_file``` is the path to a feature file that already exists, if there is any (add image info to an existing file), or the path to create a new feature file, if there is no existing feature file in that path.
 
 Test call:
 
