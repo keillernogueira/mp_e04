@@ -36,6 +36,24 @@ Test call:
 python retrieval.py
 ```
 
+### update_dataset()
+
+Method definition:
+```
+update_dataset(img_path, img_ID, feature_file = None)
+```
+where:
+
+1. ```img_path``` is the path to the analysed image.
+2. ```img_ID``` is the name of the person in the analysed image.
+3. ```feature_file``` is the path to a feature file that already exists, if there is any (add image info to an existing file).
+
+Test call:
+
+```
+python update_dataset.py
+```
+
 ## Object Detection
 Possui duas funções `train` e `retrieval`
 
