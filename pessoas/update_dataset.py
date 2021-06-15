@@ -15,7 +15,7 @@ def update_dataset(img_path, img_ID, feature_file = "features.mat"):
     assert img_ID is not None
     assert img_path is not None
     preprocessing_method = "sphereface"
-    model_name = "sphereface"
+    model_name = "mobilefacenet"
     gpu = True
     crop_size = (96, 112)
     operation = "extract_features"
@@ -41,9 +41,10 @@ def update_dataset(img_path, img_ID, feature_file = "features.mat"):
         else:
             # otherwise, concatenate the existing features with the recently extracted ones
             features['feature'] = np.concatenate((features['feature'], feature['feature']), 0)
-            features['name'] = np.concatenate((features['name'], feature['name']), 0)
+            features['name'] = np.concatenate((features['name'], img_ID), 0)
             features['image'] = np.concatenate((features['image'], feature['image']), 0)
             features['bbs'] = np.concatenate((features['bbs'], feature['bbs']), 0)
+            features['cropped_image'] = np.concatenate((features['cropped_image'], feature['cropped_image'][0]), 0)
             # print(features['feature'].shape, features['name'].shape,
             # features['image'].shape, features['bbs'].shape)
         # save the current version of the features
