@@ -20,6 +20,22 @@ Test call:
 python -W ignore train.py
 ```
 
+### retrieval()
+
+Method definition:
+```
+retrieval(image_path)
+```
+where:
+
+1. ```image_path``` is the path to the analysed image.
+
+Test call:
+
+```
+python retrieval.py
+```
+
 ## Object Detection
 Possui duas funções `train` e `retrieval`
 
