@@ -80,3 +80,12 @@ def detect_obj(img_path, model_path, output_path, format):
     
     - gerar a saida de acordo com o formato
 ```
+
+Test call:
+
+```
+python detect_obj.py --weights path_to_model --source path_to_target_images --format format_output (json, images or both) --output-path output_folder_path
+```
+- The `weights` parameter can be yolov5m.pt, that will be downloaded if necessary (or any weight in this [table](https://github.com/ultralytics/yolov5#pretrained-checkpoints)) to pretrained COCO model, will detect objectcs from the 80 classes on COCO).
+- The `source` parameter can be a folder with image/video files, a single file (local or url), or a json with a list of files. The files url can also be youtube links.
+
