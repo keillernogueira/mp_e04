@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
 
-    parser.add_argument('--format', default='image', help='output format, options (img|json|both)')
+    parser.add_argument('--format', default='img', help='output format, options (img|json|both)')
     
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
 
