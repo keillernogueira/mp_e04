@@ -97,7 +97,7 @@ def check_url(url):
 class DetectLoadImages:  # for inference
     def __init__(self, path, img_size=640, stride=32, output_folder='tmp'):
         if isinstance(path, str):
-            p = str(Path(path).absolute)  # os-agnostic absolute path
+            p = str(Path(path).absolute())  # os-agnostic absolute path
             if '*' in p:
                 files = sorted(glob.glob(p, recursive=True))  # glob
             elif os.path.isdir(p):
