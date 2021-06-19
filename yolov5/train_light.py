@@ -428,6 +428,7 @@ def train(hyp, opt, device, tb_writer=None):
 
 
 if __name__ == '__main__':
+    # TODO a ideia é ter main mas, ao mesmo tempo, poder chamar o metodo usando a funcao diretamente
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='yolov5s.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='', help='model.yaml path')

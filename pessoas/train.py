@@ -4,6 +4,7 @@ import logging
 import time
 import urllib.request
 import tarfile
+import argparse
 
 import torch
 from torch import nn
@@ -15,13 +16,14 @@ from networks.mobilefacenet import MobileFacenet, ArcMarginProduct
 from dataset_processor import extract_features, evaluate_dataset
 
 
-def train(dataset_path, save_dir, resume_path=None):
+def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
     """
     Train a model.
 
     :param dataset_path: Path to the dataset used to train.
     :param save_dir: Path to the dir used to save the trained model.
     :param resume_path: Path to a previously trained model.
+    :param num_epoch: number of epochs to train
     """
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
@@ -73,7 +75,6 @@ def train(dataset_path, save_dir, resume_path=None):
 
     exp_lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer_ft, milestones=[36, 52, 58], gamma=0.1)
 
-    TOTAL_EPOCH = 71
     SAVE_FREQ = 10
     TEST_FREQ = 3
     start_epoch = 1
@@ -83,9 +84,9 @@ def train(dataset_path, save_dir, resume_path=None):
         net.load_state_dict(ckpt['net_state_dict'])
         start_epoch = ckpt['epoch'] + 1
 
-    for epoch in range(start_epoch, TOTAL_EPOCH):
+    for epoch in range(start_epoch, num_epoch):
         # train model
-        logging.info('Train Epoch: {}/{} ...'.format(epoch, TOTAL_EPOCH))
+        logging.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
         net.train()
 
         train_total_loss = 0.0
@@ -129,7 +130,18 @@ def train(dataset_path, save_dir, resume_path=None):
 
 
 if __name__ == '__main__':
-    """
-    Testing purposes
-    """
-    train('/home/kno/mp_e04/pessoas/datasets/CASIA-WebFace/', '/home/kno/mp_e04/pessoas/output/')
+    parser = argparse.ArgumentParser(description='main')
+    parser.add_argument('--dataset_path', type=str, required=True, help='Path to the dataset')
+    parser.add_argument('--save_dir', type=str, required=True,
+                        help='Path to to save outcomes (such as trained models) of the algorithm')
+
+    parser.add_argument('--resume_path', type=str, required=False, default=None,
+                        help='Path to to save outcomes (such as trained models) of the algorithm')
+    parser.add_argument('--num_epoch', type=int, required=False, default=71,
+                        help='Path to to save outcomes (such as trained models) of the algorithm')
+    args = parser.parse_args()
+    print(args)
+
+    train(args.dataset_path, args.save_dir, args.resume_path, args.num_epoch)
+
+    # train('/home/kno/mp_e04/pessoas/datasets/CASIA-WebFace/', '/home/kno/mp_e04/pessoas/output/')

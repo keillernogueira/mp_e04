@@ -1,11 +1,21 @@
 # mp_e04
 
+## Docker
+
+```buildoutcfg
+docker build -t mp/e04:v2 .
+```
+
+```buildoutcfg
+docker run -it -d --name keiller_mp_3 --gpus all --shm-size 20G --mount type=bind,source=/mnt/DADOS_PONTOISE_1/keiller,destination=/mnt/DADOS_PONTOISE_1/keiller mp/e04:v2 /bin/bash
+```
+
 ## Face Recognition
 
 ### train()
 
 Method definition:
-```
+```python
 train(dataset_path, save_dir, resume_path=None)
 ```
 where:
@@ -16,7 +26,7 @@ where:
 
 Test call:
 
-```
+```python
 python -W ignore train.py
 ```
 

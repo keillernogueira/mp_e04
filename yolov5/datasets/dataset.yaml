@@ -1,0 +1,8 @@
+train: datasets/obj_train_data/images/train/
+val: datasets/obj_train_data/images/test/
+
+# number of classes
+nc: 6
+
+# class names
+names: ['pistol', 'smartphone', 'knife', 'purse', 'bill', 'card']

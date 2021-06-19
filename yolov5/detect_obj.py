@@ -150,6 +150,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
 
 
 if __name__ == '__main__':
+    # TODO a ideia é ter main mas, ao mesmo tempo, poder chamar o metodo usando a funcao diretamente
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path')
     parser.add_argument('--source', type=str, default='data/images', help='Source of images/videos. Can be a folder, a single image/video file, a url to a image/video, or a json with a list of files (local or remote)')  # file/folder, 0 for webcam
