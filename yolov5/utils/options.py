@@ -21,3 +21,31 @@ class defaultOpt():
 
     def __repr__(self):
         return f"{x for x in self.__dict__.items()}"
+
+class defaultOptTrain():
+    def __init__(self):
+        self.weights = 'yolov5s.pt'
+        self.cfg = ''
+        self.data = 'dataset.yaml'
+        self.hyp = 'hyp.scratch.yaml'
+        self.epochs = 300
+        self.batch_size = 16
+        self.img_size = [640, 640]
+        self.resume = False
+        self.nosave = False
+        self.notest = False
+        self.cache_images = False
+        self.device = ''
+        self.multi_scale = False
+        self.single_cls = False
+        self.sync_bn = False
+        self.local_rank = -1
+        self.workers = 8
+        self.output_path = 'runs/train/exp'
+        self.save_period = -1
+
+    def __str__(self):
+        return f"{y for y in self.__dict__.items()}"
+
+    def __repr__(self):
+        return f"{y for y in self.__dict__.items()}"
