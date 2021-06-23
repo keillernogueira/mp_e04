@@ -17,32 +17,19 @@ from plots import plot_top15_person_retrieval
 def retrieval(image_path, feature_file, save_dir, method="image", model_name="mobilefacenet",
               preprocessing_method="sphereface", crop_size=(96, 112)):
     """
-    # TODO: documentacao de acordo com padrao PEP8. Da uma olhada como eu documentei a funcao de treino.
-    RETRIEVAL, que terá como parâmetros a imagem de entrada (que pode vir como URL ou como arquivo local) 
-    e gerará, como saída, um JSON (com o link/caminho para a imagem de entrada, os bounding boxes detectados,
-    e os IDs do ranking) OU uma imagem de ranking (que seria composto da imagem de entrada com os bounding boxes
-    e as imagens e IDs do top 10 do ranking)
+    Retrieving results from an image.
+
+    :param image_path: Path to the image analysed.
+    :param feature_file: Path to the file that contains extracted features from dataset images.
+    :param save_dir: Path to the dir used to save the results.
+    :param method: Method to export the results, json or image.
+    :param model_name: String with the name of the model used.
+    :param preprocessing_method: String with the name of the preprocessing method used.
+    :param crop_size: Size of the crop based on the model used.
     """
     image_name = None
     now = datetime.now()
     date = now.strftime("%d%m%Y-%H%M%S")
-    """if image_path[:4] == "http":
-        image_name = 'images/faces-' + date + ".jpg"
-        urllib.request.urlretrieve(image_path, image_name)
-        img = Image.open(image_name)
-        basewidth = 250
-        wpercent = (basewidth / float(img.size[0]))
-        hsize = int((float(img.size[1]) * float(wpercent)))
-        img = img.resize((basewidth, hsize), Image.ANTIALIAS)
-        img.save(image_name)
-    else:
-        img = Image.open(image_path)
-        basewidth = 250
-        wpercent = (basewidth / float(img.size[0]))
-        hsize = int((float(img.size[1]) * float(wpercent)))
-        img = img.resize((basewidth, hsize), Image.ANTIALIAS)
-        img.save(image_path)
-    """
     # seting dataset and dataloader
     dataset = ImageDataLoader(image_name if image_name != None else image_path, preprocessing_method, crop_size)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, drop_last=False)
