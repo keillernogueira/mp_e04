@@ -46,7 +46,7 @@ where:
 Test call:
 
 ```
-python retrieval.py --image_path x, --feature_file y, --save_dir z, --method image 
+python retrieval.py --image_path x --feature_file y --save_dir z --method image 
 ```
 ### update_dataset()
 
