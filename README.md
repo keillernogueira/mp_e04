@@ -34,18 +34,20 @@ python -W ignore train.py
 
 Method definition:
 ```
-retrieval(image_path)
+retrieval(image_path, feature_file, save_dir, method="image")
 ```
 where:
 
 1. ```image_path``` is the path to the analysed image.
+2. ```feature_file``` is the path to the file that contains extracted features from dataset images.
+3. ```save_dir``` is the path to the dir used to save the results.
+4. ```method``` is the method to export the results, json or image.
 
 Test call:
 
 ```
-python retrieval.py
+python retrieval.py --image_path x, --feature_file y, --save_dir z, --method image 
 ```
-
 ### update_dataset()
 
 Method definition:
