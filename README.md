@@ -70,18 +70,15 @@ python update_dataset.py
 Possui duas funções `train` e `retrieval`
 
 ### train_light()
+Method definition:
 ```
-def train_light(dataset_path, **kwargs):
-    - fazer um tratamento de parametros similar ao da __main__ em https://github.com/ultralytics/yolov5/blob/master/train.py
-
-    - tratamento dos **kwargs (parametros de treino: numero de epocas, learning_rate, etc)
-        - criar o arquivo .yaml dos hyperparametros de treino se nao existir
-
-    - processar (ou preprocessar) o dataset deixando no formato da yolo caso nao esteja (opcional, vamos assumir que esteja)
-        - criar o arquivo .yaml que eles usam se nao existir
-
-    - chamar a função pronta da yolov5 para treino: train(hyp, opt, device, logger)
+def train_light(hyp_path, data, output_path)
 ```
+where:
+
+1. ```hyp_path``` is the path to the hyperparameters .yaml file.
+2. ```data``` is the path to the dataset .yaml file.
+3. ```output_path``` is the path to the directory to save the train results.
 Test call:
 ```
 python train_light.py --data path_to_dataset.yaml
