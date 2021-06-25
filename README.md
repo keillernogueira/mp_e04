@@ -63,7 +63,7 @@ where:
 Test call:
 
 ```
-python update_dataset.py
+python -W ignore update_dataset.py --image_path x --image_id y --feature_file z
 ```
 
 ## Object Detection
