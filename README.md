@@ -62,7 +62,7 @@ where:
 
 Test call:
 
-```
+```python
 python -W ignore update_dataset.py --image_path x --image_id y --feature_file z
 ```
 
