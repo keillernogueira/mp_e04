@@ -12,7 +12,13 @@ from main import extract_features_from_image
 
 
 def update_dataset(img_path, img_ID, feature_file="features.mat"):
-    # TODO: documentacao. Olhar como foi feito para o train.py.
+    '''
+    Extracting features from image and saving it.
+
+    :param img_path: Path to the analysed image.
+    :param img_ID: Name associated to the image.
+    :param feature_file: Path to the file that contains extracted features from other images.
+    '''
     assert img_ID is not None
     assert img_path is not None
     preprocessing_method = "sphereface"
