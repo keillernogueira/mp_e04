@@ -24,6 +24,17 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
     - inferencia usando o modelo salvo
     - gerar a saida de acordo com o formato
     """
+    check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
+
+    assert save_as in ['img', 'json', 'both'], f"Output format <{save_as}> not supported. The available options are: ['img', 'json', 'both']."
+    if save_as == 'both': 
+        save_as = ['img', 'json']
+    else:
+        save_as = [save_as]
+
+    if '.json' in img_path: 
+        img_path = read_json(img_path)
+
     imgsz =  opt.img_size # Get Image size to resize inputs if necessary
 
     save_dir = Path(output_path)
@@ -178,11 +189,5 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     print(opt)
-    check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
-
-    assert opt.format in ['img', 'json', 'both'], f"Output format <{opt.format}> not supported. The available options are: ['img', 'json', 'both']."
-    if opt.format == 'both': opt.format = ['img', 'json']
-
-    if '.json' in opt.source: opt.source = read_json(opt.source)
 
     retrieval(opt.source, opt.weights, opt.output_path, opt.format, opt, output_file=opt.output_file)
