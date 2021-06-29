@@ -36,6 +36,7 @@ def create_dataset(save_dir, feature_file, model_name="mobilefacenet", preproces
         dataset_dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False,
                                              num_workers=2, drop_last=False)
     else:
+        assert image_path is not None
         dataset = ImageDataLoader(image_path, preprocessing_method, crop_size)
         image_dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, 
                         num_workers=2, drop_last=False)
