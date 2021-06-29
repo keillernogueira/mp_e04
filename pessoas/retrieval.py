@@ -17,7 +17,7 @@ from plots import plot_top15_person_retrieval
 def retrieval(image_path, feature_file, save_dir, method="image", model_name="mobilefacenet",
               preprocessing_method="sphereface", crop_size=(96, 112)):
     """
-    Retrieving results from an image.
+    Retrieving results from an specific image.
 
     :param image_path: Path to the image analysed.
     :param feature_file: Path to the file that contains extracted features from dataset images.
@@ -27,9 +27,11 @@ def retrieval(image_path, feature_file, save_dir, method="image", model_name="mo
     :param preprocessing_method: String with the name of the preprocessing method used.
     :param crop_size: Size of the crop based on the model used.
     """
+    assert image_path is not None
     image_name = None
     now = datetime.now()
     date = now.strftime("%d%m%Y-%H%M%S")
+
     # seting dataset and dataloader
     dataset = ImageDataLoader(image_name if image_name != None else image_path, preprocessing_method, crop_size)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, drop_last=False)
@@ -113,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_dir', type=str, required=True,
                         help='Path to to save outcomes (such as trained models) of the algorithm')
 
-    parser.add_argument('--method', type=str, required=False, default="image",
+    parser.add_argument('--method', type=str, required=True, default="image",
                         help='Method to read the data.')
     parser.add_argument('--model_name', type=str, required=False, default="mobilefacenet",
                         help='Name of the method.')
