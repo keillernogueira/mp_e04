@@ -12,12 +12,13 @@ from argparse import ArgumentParser
 from dataset_processor import extract_features
 
 def create_dataset(save_dir, feature_file, model_name="mobilefacenet", preprocessing_method="sphereface",
-                    crop_size=(96,112), image_path=None, dataset=None):
+                    crop_size=(96,112), image_path=None, dataset=None, dataset_path=None):
     """
     Creating a new features dataset.
 
     :param image_path: Path to the image that will have its features extracted.
-    :param dataset: Path to the dataset that will have its features extracted.
+    :param dataset: Name of the dataset that will have its features extracted.
+    :param dataset_path: Path to the dataset.
     :param save_dir: Path to the dir used to save the feature file.
     :param feature_file: String with the name of the feature file that will be created.
     :param model_name: String with the name of the model used.
@@ -30,7 +31,8 @@ def create_dataset(save_dir, feature_file, model_name="mobilefacenet", preproces
     dataset_dataloader = None
 
     if dataset is not None:
-        dataset = LFW(dataset, "images", "jpg", preprocessing_method, crop_size)
+        assert dataset_path is not None
+        dataset = LFW(dataset, dataset_path, "jpg", preprocessing_method, crop_size)
         dataset_dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False,
                                              num_workers=2, drop_last=False)
     else:
@@ -113,7 +115,9 @@ if __name__ == '__main__':
                         help='Image ID, **REQUIRED** if flag --operation is set as update_dataset.') 
     
     #dataset options
-    parser.add_argument('--dataset_path', type=str, default=None, help='Path to the dataset')
+    parser.add_argument('--dataset', type=str, default=None, help='Dataset name')
+    parser.add_argument('--dataset_path', type=str, default=None,
+                        help='Specific dataset folder. **REQUIRED** if flag --dataset is used.')
 
     #processing options
     parser.add_argument('--model_name', type=str, required=False, default="mobilefacenet",
@@ -128,10 +132,10 @@ if __name__ == '__main__':
     print(args)
 
     #processing whole dataset
-    if args.dataset_path is not None:
+    if args.dataset is not None:
         if args.operation == "create_dataset":
-            create_dataset(args.save_dir, args.feature_file, args.model_name,
-                            args.preprocessing_method, args.crop_size, dataset=args.dataset_path)
+            create_dataset(args.save_dir, args.feature_file, args.model_name, args.preprocessing_method, 
+                            args.crop_size, dataset=args.dataset, dataset_path=args.dataset_path)
         elif args.operation == "update_dataset":
             raise NotImplementedError("Datasets features files cannot be updated passing datasets as argument")
         else:
@@ -141,7 +145,7 @@ if __name__ == '__main__':
     if args.image_path is not None:
         if args.operation == "create_dataset":
             create_dataset(args.save_dir, args.feature_file, args.model_name,
-                            args.preprocessing_method, args.crop_size, image_path=args.image_path, )
+                            args.preprocessing_method, args.crop_size, image_path=args.image_path)
         elif args.operation == "update_dataset":
             update_dataset(args.image_path, args.save_dir, args.image_id, args.feature_file, 
                             args.model_name, args.preprocessing_method, args.crop_size)
