@@ -1,4 +1,5 @@
 import os
+import time
 import scipy.io
 import numpy as np
 import torch
@@ -8,6 +9,60 @@ from dataloaders.image_dataloader import ImageDataLoader
 from networks.load_network import load_net
 from dataset_processor import process_dataset
 
+def extract_features_from_video(model_name, dataloader, query_label, gpu):
+    """
+    Function to extract features for ONE specific image.
+
+    :param model_name: string with the name of the model used.
+    :param dataloader: dataloader used to load the images.
+    :param query_label: the image query label, i.e., the ID.
+    :param gpu: boolean to allow use gpu.
+    :return: a dict with the features, id, and cropped image of the current query.
+    """
+    
+    inicio_carregar_reconhecimento = time.time()
+    net = load_net(model_name, gpu)
+    if gpu:
+        # net to GPU
+        net = net.cuda()
+    # set network to evaluation, and not training
+    net.eval()
+    fim_carregar_reconhecimento = time.time()
+    print("carregar o modelo de reconhecimento: ", fim_carregar_reconhecimento-inicio_carregar_reconhecimento)
+    
+    feature = None
+    img_name = None
+    bbs = None
+
+    # forward
+    result = []
+    for imgs, img_nm, imgl, bb in dataloader:
+        inicio_iteracao_dataloader = time.time()
+        if not imgs:
+            # no face detected
+            continue
+        if gpu:
+            for i in range(len(imgs)):
+                imgs[i] = imgs[i].cuda()
+        inicio_mandar_reconhecimento = time.time()
+        res = [net(d.view(-1, d.shape[1], d.shape[2], d.shape[3])).data.cpu().numpy() for d in imgs]
+        fim_mandar_reconhecimento = time.time()
+        print("mandar para o reconhecimento: ", fim_mandar_reconhecimento-inicio_mandar_reconhecimento)
+
+        feature = np.concatenate((res[0], res[1]), 1)
+        img_name = img_nm
+        bbs = bb
+        print(bbs.shape)
+
+        if not result:
+            result = [{'feature': feature, 'name': [query_label], 'image': img_name, 'bbs': bbs, 'cropped_image': imgl}]
+        else:
+            result.append({'feature': feature, 'name': [query_label], 'image': img_name, 'bbs': bbs, 'cropped_image': imgl})
+        fim_iteracao_dataloader = time.time()
+        print("Uma iteracao dataloader: ", fim_iteracao_dataloader-inicio_iteracao_dataloader)
+    # plot_bbs(bbs[0].cpu().numpy())
+
+    return result
 
 def extract_features_from_image(model_name, dataloader, query_label, gpu):
     """
