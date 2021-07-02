@@ -27,7 +27,6 @@ def manipulate_dataset(save_dir, feature_file, model_name="mobilefacenet", prepr
     :param preprocessing_method: String with the name of the preprocessing method used.
     :param crop_size: Size of the crop based on the model used.
     """
-    feature_file = save_dir + feature_file
     image_dataloader = None 
     dataset_dataloader = None
     gpu = False
@@ -42,14 +41,15 @@ def manipulate_dataset(save_dir, feature_file, model_name="mobilefacenet", prepr
     else:
         assert image_path is not None
         dataset = ImageDataLoader(image_path, preprocessing_method, crop_size, operation == 'extract_features')
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, 
+        image_dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, 
                     num_workers=2, drop_last=False)
   
     # load current features
     features = None
-    feature_file = save_dir + feature_file
     if feature_file is not None and os.path.isfile(feature_file):
         features = scipy.io.loadmat(feature_file)
+    else:
+        feature_file = save_dir + feature_file
 
     # extracting features
     if image_dataloader is not None:
@@ -70,6 +70,5 @@ def manipulate_dataset(save_dir, feature_file, model_name="mobilefacenet", prepr
         scipy.io.savemat(feature_file, features)
 
 if __name__ == '__main__':
-    manipulate_dataset("features/", "featurestestando123.mat", dataset="datasets/LFW", 
-                    dataset_path="images")
+    manipulate_dataset("results/", "features/datasetnewfeaturesultramega.mat", image_path="images/test15.jpg", img_ID="JNDJ")
     
