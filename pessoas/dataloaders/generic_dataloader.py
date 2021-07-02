@@ -12,7 +12,6 @@ class GenericDataLoader(object):
     def __init__(self, root, preprocessing_method=None, crop_size=(96, 112)):
         """
         Dataloader of the LFW dataset.
-
         root: path to the dataset to be used.
         preprocessing_method: string with the name of the preprocessing method.
         crop_size: retrieval network specific crop size.
@@ -23,27 +22,27 @@ class GenericDataLoader(object):
         self.img_list = []
         self.labels = []
 
-        self.img_list, self.labels = self.read_directory(root)
+        self.img_list, self.labels, self.labels_string = self.read_directory(root)
 
         self.num_classes = len(np.unique(self.labels))
         print(self.num_classes)
 
     def read_directory(self, root):
         _files = []
-        _labels = []
+        _labels_string = []
 
         subfolders = os.listdir(root)  # read subfolders
         for subf in subfolders:
             files = os.listdir(os.path.join(root, subf))  # read files of each subfolder
             for f in files:
                 _files.append(os.path.join(root, subf, f))
-                _labels.append(subf)
+                _labels_string.append(subf)
 
         le = preprocessing.LabelEncoder()
-        _labels = le.fit_transform(_labels)
-        print(len(_files), len(_labels))
+        _labels = le.fit_transform(_labels_string)
+        print(len(_files), len(_labels), len(_labels_string))
 
-        return _files, _labels
+        return _files, _labels, _labels_string
 
     def __getitem__(self, index):
         img = imageio.imread(self.img_list[index])
@@ -53,7 +52,7 @@ class GenericDataLoader(object):
         if len(img.shape) == 2:
             img = np.stack([img] * 3, 2)
 
-        img, _ = preprocess(img, self.preprocessing_method, crop_size=self.crop_size,
+        img, bb = preprocess(img, self.preprocessing_method, crop_size=self.crop_size,
                             is_processing_dataset=True, return_only_largest_bb=True, execute_default=True)
 
         # basic data augmentation
@@ -65,7 +64,7 @@ class GenericDataLoader(object):
         img = img.transpose(2, 0, 1)
         img = torch.from_numpy(img).float()
 
-        return img, cl
+        return img, cl, img, bb, self.img_list[index], self.labels_string[index]
 
     def __len__(self):
         return len(self.img_list)
