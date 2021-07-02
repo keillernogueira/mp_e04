@@ -57,7 +57,8 @@ def retrieval(image_path, feature_file, save_dir, method="image", model_name="mo
         data['Path'] = image_name if image_name != None else image_path
         data['Ranking'] = str(ranking[1])
         data['Bounding Boxes'] = ranking[0].tolist()
-        with open(save_dir + 'faces-' + date + '.json', 'w', encoding='utf-8') as f:
+        file_name = "faces-" + date + ".json"
+        with open(os.path.join(save_dir, file_name), 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4)
 
     # if the method chosen was image
