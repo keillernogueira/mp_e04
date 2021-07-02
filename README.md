@@ -49,49 +49,25 @@ Test call:
 python -W ignore retrieval.py --image_path x --feature_file y --save_dir z --method image 
 ```
 
-### The following functions are inside ```manipulate_dataset.py```
-
-### update_dataset()
+### manipulate_dataset()
 
 Method definition:
 ```
-update_dataset(image_path, save_dir, img_ID, feature_file)
-```
-where:
-
-1. ```image_path``` is the path to the analysed image.
-2. ```save_dir``` is the path to the dir used to save the results.
-3. ```img_ID``` is the name of the person in the analysed image.
-4. ```feature_file``` is the path to a feature file that already exists, if there is any (add image info to an existing file), or the path to create a new feature file, if there is no existing feature file in that path.
-
-Test call:
-
-```python
-python -W ignore manipulate_dataset.py --operation update_dataset --save_dir w --image_path x --image_id y --feature_file z
-```
-### create_dataset()
-
-Method definition:
-```
-create_dataset(save_dir, feature_file, image_path=None, dataset=None, dataset_path=None)
+manipulate_dataset(save_dir, feature_file, image_path=None, img_ID=None, dataset=None, dataset_path=None)
 ```
 where:
 
 1. ```save_dir``` is the path to the dir used to save the results.
 2. ```feature_file``` is the path to a feature file that already exists, if there is any (add image info to an existing file), or the path to create a new feature file, if there is no existing feature file in that path.
 3. ```image_path``` is the path to the analysed image.
-4. ```dataset``` is the name of the analysed dataset.
-5. ```dataset_path``` is the path to the analysed dataset.
+4. ```img_ID``` is the name of the person in the analysed image. Necessary if the dataset is being updated.
+5. ```dataset``` is the name of the analysed dataset.
+6. ```dataset_path``` is the path to the analysed dataset.
 
 Test call:
 
-If a dataset is being passed:
 ```python
-python -W ignore manipulate_dataset.py --operation create_dataset --dataset w --dataset_path x --save_dir y --feature_file z
-```
-If a single image is being passed:
-```python
-python -W ignore manipulate_dataset.py --operation create_dataset --image_path x --save_dir y --feature_file z
+python -W ignore manipulate_dataset.py 
 ```
 
 ## Object Detection
