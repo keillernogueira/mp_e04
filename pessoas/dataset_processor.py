@@ -135,8 +135,7 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
         scores = scores_all[i]
         scores = np.delete(scores, i, 0)
 
-        scores = list(zip(scores, classes, images, people))
-
+        scores = list(zip(scores, people, images, classes))
         scores = sorted(scores, key=lambda x: x[0], reverse=True)
 
         # calculate metrics, cmc or map
@@ -161,7 +160,9 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
 
             # generate top15 rank images
             plot_top15_face_retrieval(images[i], people[i], scores, i + 1, metrics, cropped_images[i], bbs[i], save_dir)
-            plot_top15_person_retrieval(images[i], people[i], scores, i + 1, cropped_images[i], bbs[i], save_dir)
+            plot_top15_person_retrieval(images[i], people[i], scores, i + 1,
+                                        os.path.basename(os.path.splitext(images[i])[0]),
+                                        cropped_images[i], bbs[i], save_dir)
 
     end = time.time()
 

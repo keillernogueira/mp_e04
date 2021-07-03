@@ -33,7 +33,7 @@ def compute_cmc(ranked_list, query_label):
     cmc = np.zeros(len(ranked_list))
 
     for i in range(len(ranked_list)):
-        if ranked_list[i][1] == query_label:   # if not empty
+        if ranked_list[i][3] == query_label:   # if not empty
             cmc[i:] = 1
             break
     return cmc
@@ -50,7 +50,7 @@ def compute_map(scores, query_label):
     num_match = 0
 
     for j in range(len(scores)):
-        if scores[j][1] == query_label: 
+        if scores[j][3] == query_label:
             num_match += 1
             tp[j] = num_match/(j+1)
 

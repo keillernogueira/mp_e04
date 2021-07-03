@@ -16,6 +16,7 @@ def process_base64(base64_img):
 
 
 def read_image(image):
+    image = image.strip()
     # decode base64 file
     try:
         if os.path.isfile(image):
@@ -31,16 +32,10 @@ def read_image(image):
                 f.close()
             else:
                 img = imread(image)
-        else:
-            if validators.url(image):
-                img = imread(image)
-            else:
-                img = process_base64(image)
+        elif validators.url(image):
+            img = imread(image)
     except:
-        raise NotImplementedError("Could not identify and read probably base64 image")
-
-    if img.shape[2] > 3:
-        img = img[:, :, :3]
+        raise NotImplementedError("Could not identify and read image")
 
     return img
 

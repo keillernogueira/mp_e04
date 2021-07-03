@@ -9,10 +9,11 @@ import cv2
 from datetime import datetime
 
 from config import *
+from dataloaders.conversor import read_image
 
 
 def plot_top15_face_retrieval(query_image, query_person, scores, query_num,
-                              metrics=None, cropped_image=None, bb=None, save_dir="result/"):
+                              metrics=None, cropped_image=None, bb=None, save_dir="outputs/"):
     """
     Function to plot the top 15 visual results of the queries.
     Face retrieval considers the most similar images, including images of the same person.
@@ -69,16 +70,8 @@ def plot_top15_face_retrieval(query_image, query_person, scores, query_num,
                    style='italic', fontsize=11, bbox={'facecolor': 'green', 'alpha': 0.5, 'pad': 10})
 
     for i in range(15):
-        if scores[i][2].endswith("txt"):
-            with open(scores[i][2], "r") as f:
-                base64_img = f.read()
-                if base64_img[0] == "b":
-                    img = imageio.imread(io.BytesIO(base64.b64decode(base64_img[1:])))
-                else:
-                    img = imageio.imread(io.BytesIO(base64.b64decode(base64_img)))
-        else:
-            img = imageio.imread(scores[i][2].strip())
-        ax[i+5].set_title('| %i |\n%s\n%f' % (i+1, scores[i][3], scores[i][0]))
+        img = read_image(scores[i][2].strip())
+        ax[i+5].set_title('| %i |\n%s\n%f' % (i+1, scores[i][1], scores[i][0]))
         ax[i+5].imshow(img)
 
     for a in ax:
@@ -93,12 +86,12 @@ def plot_top15_face_retrieval(query_image, query_person, scores, query_num,
     plt.close(fig)
 
 
-def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
-                                cropped_image=None, bb=None, save_dir="result/"):
+def plot_top15_person_retrieval(query_image, query_person, scores, query_num, image_name,
+                                cropped_image=None, bb=None, save_dir="outputs/"):
     """
-    Function to plot the top 15 visual results of the queries.
+    Function to plot the top 10 visual results of the queries.
     Person retrieval considers the most similar persons, not repeating the images of the same person.
-    query_image: adress to the query image.
+    query_image: address to the query image.
     query_person: name of the person in query image.
     scores: ranked list containing the information of the images.
     query_num: int representing the queru number when evaluating the whole dataset.
@@ -108,19 +101,11 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
     save_dir: directory where are saved the image results.
     """
     
-    fig, axes = plt.subplots(4, 5, figsize=(15, 15), sharex=True, sharey=True)
+    fig, axes = plt.subplots(3, 5, figsize=(15, 15), sharex=True, sharey=True)
     ax = axes.ravel()
 
     # decode base64 file   
-    if query_image.endswith("txt"):
-        f = open(query_image, "r")
-        base64_img = f.read()
-        if base64_img[0] == "b":
-            img = imageio.imread(io.BytesIO(base64.b64decode(base64_img[1:])))
-        else:
-            img = imageio.imread(io.BytesIO(base64.b64decode(base64_img)))    
-    else:
-        img = imageio.imread(query_image.strip())
+    img = read_image(query_image)
     
     basewidth = 250
     wpercent = (basewidth / float(img.shape[1]))
@@ -128,12 +113,8 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
     hpercent = (hsize / float(img.shape[0]))
     img = cv2.resize(img, (basewidth, hsize))
 
-    now = datetime.now()
-    date = now.strftime("%d%m%Y-%H%M%S")
-    image_name = 'faces-' + date
-        
     ax[0].set_title('| Query image |\nPerson: %s\nImage: %s' %
-                    (query_person, image_name))
+                    (query_person, os.path.basename(os.path.splitext(query_image)[0])))
     ax[0].imshow(img)
 
     ax[1].imshow(img)
@@ -162,33 +143,17 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num,
     i = j = 0
     while i < 10:
         if unique_persons:
-            if scores[j][3] not in unique_persons:
-                if scores[j][2].endswith("txt"):
-                    with open(scores[j][2], "r") as f:
-                        base64_img = f.read()
-                        if base64_img[0] == "b":
-                            img = imageio.imread(io.BytesIO(base64.b64decode(base64_img[1:])))
-                        else:
-                            img = imageio.imread(io.BytesIO(base64.b64decode(base64_img)))
-                else:
-                    img = imageio.imread(scores[j][2].strip())
-                ax[i + 5].set_title('| %i |\n%s\n%f' % (i + 1, scores[j][3], scores[j][0]))
+            if scores[j][1] not in unique_persons:
+                img = read_image(scores[j][2].strip())
+                ax[i + 5].set_title('| %i |\n%s\n%f' % (i + 1, scores[j][1], scores[j][0]))
                 ax[i + 5].imshow(img)
-                unique_persons.append(scores[j][3])
+                unique_persons.append(scores[j][1])
                 i += 1
         else:
-            if scores[j][2].endswith("txt"):
-                with open(scores[i][2], "r") as f:
-                    base64_img = f.read()
-                    if base64_img[0] == "b":
-                        img = imageio.imread(io.BytesIO(base64.b64decode(base64_img[1:])))
-                    else:
-                        img = imageio.imread(io.BytesIO(base64.b64decode(base64_img)))
-            else:
-                img = imageio.imread(scores[j][2].strip())
-            ax[i + 5].set_title('| %i |\n%s\n%f' % (i + 1, scores[j][3], scores[j][0]))
+            img = read_image(scores[j][2].strip())
+            ax[i + 5].set_title('| %i |\n%s\n%f' % (i + 1, scores[j][1], scores[j][0]))
             ax[i + 5].imshow(img)
-            unique_persons.append(scores[j][3])
+            unique_persons.append(scores[j][1])
             i += 1
         j += 1
 

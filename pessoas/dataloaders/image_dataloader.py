@@ -36,7 +36,7 @@ class ImageDataLoader(object):
             assert imgl.size != 0 and bb.size != 0
         except AssertionError:
             # no face detected
-            return [], [], []
+            return [], [], [], []
 
         # plot_bbs(self.image, '/home/kno/recfaces/', bb)
 
