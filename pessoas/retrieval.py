@@ -45,7 +45,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
     feature = extract_features_from_image(model_name, dataloader, None, gpu=gpu)
     if feature is not None:
         # generate ranking
-        _, ranking = generate_ranking_for_image(features, feature)
+        bbs_, ranking = generate_ranking_for_image(features, feature)
     else:
         print("No face detected in this image.")
         return
@@ -54,7 +54,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
 
     # if the method chosen was json
     if output_method.lower() == "json":
-        data = {'Path': image_path, 'Ranking': str(ranking[1]), 'Bounding Boxes': ranking[0].tolist()}
+        data = {'Path': image_path, 'Ranking': str(ranking[0]), 'Bounding Boxes': bbs_[0][0].tolist()}
         with open(os.path.join(save_dir, 'faces-' + date + '.json'), 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4)
     # if the method chosen was image
