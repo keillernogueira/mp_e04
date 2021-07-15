@@ -50,6 +50,7 @@ def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
     validate_dataloader = torch.utils.data.DataLoader(validate_dataset, batch_size=8, shuffle=False,
                                                       num_workers=2, drop_last=False)
 
+    # TODO carregar modelo usando load_net(model_name, gpu)
     net = MobileFacenet()
     arc_margin = ArcMarginProduct(128, train_dataset.num_classes)
     net = net.cuda()

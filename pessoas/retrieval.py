@@ -42,6 +42,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
         features = scipy.io.loadmat(feature_file)
 
     # extract features for the query image
+    # TODO permitir que um modelo pre-treinado seja usado para extrair as features
     feature = extract_features_from_image(model_name, dataloader, None, gpu=gpu)
     if feature is not None:
         # generate ranking

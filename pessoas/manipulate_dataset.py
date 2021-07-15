@@ -11,6 +11,7 @@ from main import extract_features_from_image
 from dataset_processor import extract_features
 
 
+# TODO talvez o melhor seja ao inves de ter dois parametros para imagem e um pra dataset, ter somente um para dataset
 def manipulate_dataset(feature_file=None, image_path=None, image_id=None, dataset_path=None,
                        model_name="mobilefacenet", preprocessing_method="sphereface",
                        crop_size=(96, 112), gpu=True):
@@ -48,6 +49,7 @@ def manipulate_dataset(feature_file=None, image_path=None, image_id=None, datase
         features = scipy.io.loadmat(feature_file)
 
     # extracting features
+    # TODO permitir que um modelo pre-treinado seja usado para extrair as features
     if image_dataloader is not None:
         feature = extract_features_from_image(model_name, image_dataloader, image_id, gpu=gpu)
         feature.pop('cropped_image', None)  # drop key 'cropped_image' since it is only used during the retrieval
