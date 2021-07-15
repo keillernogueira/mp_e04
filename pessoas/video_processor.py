@@ -59,12 +59,12 @@ def video_processor(video_path):
     print("extract features: ",fim_extract_features - inicio_extract_features)
     
     for i in feature:
-        ranking = generate_ranking_for_image(features, i)
+        bbs_, ranking = generate_ranking_for_image(features, i)
         if(method.lower() == "json"):
             data[f'Frame{frame_number}'] = {}
             data[f'Frame{frame_number}']['Path'] = video_path
-            data[f'Frame{frame_number}']['Ranking'] = str(ranking[1])
-            data[f'Frame{frame_number}']['Bounding Boxes'] = ranking[0].tolist()
+            data[f'Frame{frame_number}']['Ranking'] = str(ranking[0])
+            data[f'Frame{frame_number}']['Bounding Boxes'] = bbs_[0][0].tolist()
         frame_number+=1
 
     if(method.lower() == "json"):
