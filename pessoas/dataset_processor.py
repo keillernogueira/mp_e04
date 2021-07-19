@@ -14,30 +14,18 @@ from dataloaders.LFW_dataloader import LFW
 from dataloaders.yale_dataloader import YALE
 
 
-def extract_features(dataloader, model_name=None, model=None, gpu=True, save_img_results=False):
-
+def extract_features(dataloader, model, save_img_results=False, gpu=True):
     """
     Function to extract features of images for a WHOLE dataset.
 
-    :param model_name: string with the name of the model used.
     :param dataloader: dataloader used to load the images.
-    :param gpu: boolean to allow use gpu.
+    :param model: the model
     :param save_img_results: boolean that indicates that we want to save image samples of the produced results.
-    :param model: a model to use instead of load. If set, then there is no need to set model_name.
+    :param gpu: boolean to allow use gpu.
     :return a dict composed of the extracted features, names, classes, images, cropped images, and bounding boxes.
     """
 
-    # initialize the network
-    if model_name:
-        net = load_net(model_name, gpu)
-        if gpu:
-            net = net.cuda()
-    elif model:
-        net = model
-    else:
-        raise NotImplementedError("Model or Model_name should be set")
-
-    net.eval()
+    model.eval()
 
     features = None
     classes = None
@@ -56,7 +44,7 @@ def extract_features(dataloader, model_name=None, model=None, gpu=True, save_img
         if count % (dataloader.batch_size*10) == 0:
             print('extracing deep features from the face {}...'.format(count))
 
-        res = [net(d).data.cpu().numpy() for d in imgs]
+        res = [model(d).data.cpu().numpy() for d in imgs]
         feature = np.concatenate((res[0], res[1]), 1)
 
         if features is None:
@@ -76,7 +64,7 @@ def extract_features(dataloader, model_name=None, model=None, gpu=True, save_img
                 classes = np.concatenate((classes, cls), 0)
                 cropped_images = np.concatenate((cropped_images, crop_img), 0)
 
-    print(features.shape, bbs.shape, names.shape, images.shape)
+    print(np.asarray(features).shape, np.asarray(bbs).shape, np.asarray(names).shape, np.asarray(images).shape)
     if save_img_results is True:
         print(cropped_images.shape)
         print(classes.shape)
@@ -206,8 +194,8 @@ def process_dataset(operation, model_name, batch_size,
 
     if operation == 'extract_features':
         # extract the features for a WHOLE DATASET
-        features = extract_features(dataloader, model_name=model_name, gpu=gpu,
-                                    save_img_results=(False if result_sample_path is None else True))
+        features = extract_features(dataloader, model=load_net(model_name, gpu=gpu),
+                                    save_img_results=(False if result_sample_path is None else True), gpu=gpu)
         assert feature_file is not None
         scipy.io.savemat(feature_file, features)
     elif operation == 'generate_rank':
@@ -216,9 +204,9 @@ def process_dataset(operation, model_name, batch_size,
         evaluate_dataset(features, save_dir=result_sample_path)
     elif operation == 'extract_generate_rank':
         if feature_file is None:
-            # extract the features for a WHOLE DATASET...
-            features = extract_features(dataloader, model_name=model_name, gpu=gpu,
-                                        save_img_results=(False if result_sample_path is None else True))  # TRUE?
+            # extract the features for a ENTIRE DATASET...
+            features = extract_features(dataloader, model=load_net(model_name, gpu=gpu),
+                                        save_img_results=(False if result_sample_path is None else True), gpu=gpu)
         else:
             # ...OR load the previous saved features, if possible
             features = scipy.io.loadmat(feature_file)

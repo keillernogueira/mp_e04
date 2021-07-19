@@ -4,17 +4,16 @@ import scipy.io
 import torch
 import numpy as np
 import argparse
-import urllib.request
 
-from PIL import Image
 from datetime import datetime
 from argparse import ArgumentParser
 from dataloaders.image_dataloader import ImageDataLoader
-from main import extract_features_from_image, generate_ranking_for_image
+from image_processor import extract_features_from_image, generate_ranking_for_image
 from plots import plot_top15_person_retrieval
+from networks.load_network import load_net
 
 
-def retrieval(image_path, feature_file, save_dir, output_method="image", model_name="mobilefacenet",
+def retrieval(image_path, feature_file, save_dir, output_method="image", model_name="mobilefacenet", model_path=None,
               preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific image.
@@ -24,6 +23,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
     :param save_dir: Path to the dir used to save the results.
     :param output_method: Method to export the results, json or image.
     :param model_name: String with the name of the model used.
+    :param model_path: Path to a trained model
     :param preprocessing_method: String with the name of the preprocessing method used.
     :param crop_size: Size of the crop based on the model used.
     :param gpu: use GPU?
@@ -42,8 +42,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
         features = scipy.io.loadmat(feature_file)
 
     # extract features for the query image
-    # TODO permitir que um modelo pre-treinado seja usado para extrair as features
-    feature = extract_features_from_image(model_name, dataloader, None, gpu=gpu)
+    feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
     if feature is not None:
         # generate ranking
         bbs_, ranking = generate_ranking_for_image(features, feature)
@@ -61,7 +60,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
     # if the method chosen was image
     elif output_method.lower() == "image":
         for i in range(len(ranking)):
-            plot_top15_person_retrieval(image_path, "Undisclosed", ranking[i], 1,
+            plot_top15_person_retrieval(image_path, "Unknown", ranking[i], 1,
                                         image_name='faces-' + datetime.now().strftime("%d%m%Y-%H%M%S"),
                                         cropped_image=np.array(feature["cropped_image"])[0][i],
                                         bb=feature["bbs"][i], save_dir=save_dir)
@@ -77,10 +76,13 @@ if __name__ == '__main__':
     parser.add_argument('--save_dir', type=str, required=True,
                         help='Path to to save outcomes (such as trained models) of the algorithm')
 
-    parser.add_argument('--method', type=str, required=False, default="image",
+    parser.add_argument('--output_method', type=str, required=False, default="image",
                         help='Method to read the data.')
+
     parser.add_argument('--model_name', type=str, required=False, default="mobilefacenet",
                         help='Name of the method.')
+    parser.add_argument('--model_path', type=str, required=False, default=None,
+                        help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
                         help='Pre-processing method')
     parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112),
@@ -90,4 +92,4 @@ if __name__ == '__main__':
     print(args)
 
     retrieval(args.image_query, args.feature_file, args.save_dir,
-              args.method, args.model_name, args.preprocessing_method, args.crop_size)
+              args.output_method, args.model_name, args.model_path, args.preprocessing_method, args.crop_size)

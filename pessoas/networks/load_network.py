@@ -20,14 +20,14 @@ from networks.inception_resnet_facenet import InceptionResnetV1
 from networks.shufflefacenet import ShuffleFaceNet
 
 
-def load_net(model_name, gpu):
+def load_net(model_name, model_path=None, gpu=True):
     # initialize the network
     if model_name == 'mobilefacenet':
         net = MobileFacenet()
         if gpu:
-            ckpt = torch.load(MOBILEFACENET_MODEL_PATH)
+            ckpt = torch.load(MOBILEFACENET_MODEL_PATH if model_path is None else model_path)
         else:
-            ckpt = torch.load(MOBILEFACENET_MODEL_PATH, map_location='cpu')
+            ckpt = torch.load(MOBILEFACENET_MODEL_PATH if model_path is None else model_path, map_location='cpu')
         net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'sphereface':
         net = sphere20a(feature=True)
@@ -71,6 +71,9 @@ def load_net(model_name, gpu):
         net.load_state_dict(ckpt['net_state_dict'])
     else:
         raise NotImplementedError("Model " + model_name + " not implemented")
+
+    if gpu:
+        net = net.cuda()
     return net
 
 

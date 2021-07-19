@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import logging
 import time
 import urllib.request
@@ -14,6 +13,7 @@ from dataloaders.LFW_dataloader import LFW
 from dataloaders.generic_dataloader import GenericDataLoader
 from networks.mobilefacenet import MobileFacenet, ArcMarginProduct
 from dataset_processor import extract_features, evaluate_dataset
+from networks.load_network import load_net
 
 
 def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
@@ -50,10 +50,8 @@ def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
     validate_dataloader = torch.utils.data.DataLoader(validate_dataset, batch_size=8, shuffle=False,
                                                       num_workers=2, drop_last=False)
 
-    # TODO carregar modelo usando load_net(model_name, gpu)
-    net = MobileFacenet()
+    net = load_net('mobilefacenet', model_path=resume_path, gpu=True)
     arc_margin = ArcMarginProduct(128, train_dataset.num_classes)
-    net = net.cuda()
     arc_margin = arc_margin.cuda()
     criterion = torch.nn.CrossEntropyLoss().cuda()
 
@@ -76,14 +74,14 @@ def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
 
     exp_lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer_ft, milestones=[36, 52, 58], gamma=0.1)
 
-    SAVE_FREQ = 10
-    TEST_FREQ = 3
+    SAVE_FREQ = 5
+    TEST_FREQ = 5
     start_epoch = 1
 
-    if resume_path:
-        ckpt = torch.load(resume_path)
-        net.load_state_dict(ckpt['net_state_dict'])
-        start_epoch = ckpt['epoch'] + 1
+    # if resume_path:
+    #     ckpt = torch.load(resume_path)
+    #     net.load_state_dict(ckpt['net_state_dict'])
+    #     start_epoch = ckpt['epoch'] + 1
 
     for epoch in range(start_epoch, num_epoch):
         # train model
@@ -144,5 +142,3 @@ if __name__ == '__main__':
     print(args)
 
     train(args.dataset_path, args.save_dir, args.resume_path, args.num_epoch)
-
-    # train('/home/kno/mp_e04/pessoas/datasets/CASIA-WebFace/', '/home/kno/mp_e04/pessoas/output/')

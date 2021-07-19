@@ -6,7 +6,8 @@ import cv2
 import torch
 from datetime import datetime
 
-from main import extract_features_from_image, extract_features_from_video, generate_ranking_for_image
+from main import extract_features_from_video
+from pessoas.image_processor import extract_features_from_image, generate_ranking_for_image
 from dataloaders.image_dataloader import ImageDataLoader
 from dataloaders.video_dataloader import VideoDataLoader
 
