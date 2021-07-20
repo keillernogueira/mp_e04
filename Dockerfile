@@ -11,6 +11,6 @@ RUN pip install --no-cache --upgrade tensorboard Cython onnx gsutil matplotlib \
     opencv-python Pillow==8.2.0 PyYAML scipy torch torchvision tqdm seaborn pandas \
     scikit-learn pycocotools thop dlib py7zr validators numpy
 
-RUN cd /opt && wget https://github.com/keillernogueira/mp_e04/archive/refs/heads/master.zip
-RUN cd /opt && unzip master.zip && cd mp_e04-master
+RUN cd /opt && wget https://github.com/MPMG-DCC-UFMG/E04/archive/refs/heads/main.zip
+RUN cd /opt && unzip main.zip && cd E04-main
 

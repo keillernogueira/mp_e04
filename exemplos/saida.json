@@ -1,0 +1,11 @@
+{
+    "image_path": "datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0004.jpg",
+    "bounding_boxes": [
+        61.92886143922806,
+        72.98486701399088,
+        147.31062522530556,
+        189.8526626713574,
+        0.9999955892562866
+    ],
+    "ranking": "[{'Name': 'Luiz_Inacio_Lula_da_Silva', 'Confidence': 1.0, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0004.jpg'}, {'Name': 'Lula', 'Confidence': 0.7219808, 'Image': 'datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0028.jpg'}, {'Name': 'Kamel_Morjane', 'Confidence': 0.5293243, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Kamel_Morjane/Kamel_Morjane_0001.jpg'}, {'Name': 'Keith_Tyson', 'Confidence': 0.44926798, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Keith_Tyson/Keith_Tyson_0001.jpg'}, {'Name': 'Ricardo_Lopez_Murphy', 'Confidence': 0.43920785, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Ricardo_Lopez_Murphy/Ricardo_Lopez_Murphy_0001.jpg'}, {'Name': 'Ravan_AG_Farhadi', 'Confidence': 0.42339134, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Ravan_AG_Farhadi/Ravan_AG_Farhadi_0001.jpg'}, {'Name': 'Abdullah', 'Confidence': 0.42127633, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Abdullah/Abdullah_0001.jpg'}, {'Name': 'Rafeeuddin_Ahmed', 'Confidence': 0.4141037, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Rafeeuddin_Ahmed/Rafeeuddin_Ahmed_0001.jpg'}, {'Name': 'Taha_Yassin_Ramadan', 'Confidence': 0.41028422, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Taha_Yassin_Ramadan/Taha_Yassin_Ramadan_0005.jpg'}, {'Name': 'Ranil_Wickremasinghe', 'Confidence': 0.4048823, 'Image': '/mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/Ranil_Wickremasinghe/Ranil_Wickremasinghe_0002.jpg'}]"
+}

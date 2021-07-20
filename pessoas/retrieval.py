@@ -1,4 +1,3 @@
-import json
 import os
 import scipy.io
 import torch
@@ -6,11 +5,11 @@ import numpy as np
 import argparse
 
 from datetime import datetime
-from argparse import ArgumentParser
 from dataloaders.image_dataloader import ImageDataLoader
 from image_processor import extract_features_from_image, generate_ranking_for_image
 from plots import plot_top15_person_retrieval
 from networks.load_network import load_net
+from manipulate_json import save_retrieved_ranking
 
 
 def retrieval(image_path, feature_file, save_dir, output_method="image", model_name="mobilefacenet", model_path=None,
@@ -30,7 +29,6 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
     """
     assert image_path is not None, "Must set parameter image_path"
     assert feature_file is not None, "Must set parameter feature_file"
-    date = datetime.now().strftime("%d%m%Y-%H%M%S")
 
     # seting dataset and dataloader
     dataset = ImageDataLoader(image_path, preprocessing_method, crop_size)
@@ -43,25 +41,24 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
 
     # extract features for the query image
     feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
-    if feature is not None:
-        # generate ranking
-        bbs_, ranking = generate_ranking_for_image(features, feature)
-    else:
-        print("No face detected in this image.")
-        return
+    assert feature is not None, "No face detected in this image."
+
+    # generate ranking
+    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature)
 
     # exporting results
 
     # if the method chosen was json
     if output_method.lower() == "json":
-        data = {'Path': image_path, 'Ranking': str(ranking[0]), 'Bounding Boxes': bbs_[0][0].tolist()}
-        with open(os.path.join(save_dir, 'faces-' + date + '.json'), 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4)
+        for rank in top_k_ranking:
+            print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
+            save_retrieved_ranking(image_path, rank[1], rank[0],
+                                   os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
     # if the method chosen was image
     elif output_method.lower() == "image":
-        for i in range(len(ranking)):
-            plot_top15_person_retrieval(image_path, "Unknown", ranking[i], 1,
-                                        image_name='faces-' + datetime.now().strftime("%d%m%Y-%H%M%S"),
+        for i in range(len(all_ranking)):
+            plot_top15_person_retrieval(image_path, "Unknown", all_ranking[i], 1,
+                                        image_name='faces-' + datetime.now().strftime("%d%m%Y-%H%M%S%f"),
                                         cropped_image=np.array(feature["cropped_image"])[0][i],
                                         bb=feature["bbs"][i], save_dir=save_dir)
     # in case the user didn't chose neither json nor image

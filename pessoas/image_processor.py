@@ -66,13 +66,13 @@ def generate_rank(scores, k_rank):
             if scores[j][1] not in unique_persons:
                 unique_persons.append(scores[j][1])
                 # append tuple with person id, score and image path
-                persons_scores.append(("Name: ", scores[j][1].strip(), "Confidence: ", scores[j][0],
-                                       "Image: ", scores[j][2].strip()))
+                persons_scores.append({"Name": scores[j][1].strip(), "Confidence": scores[j][0],
+                                       "Image": scores[j][2].strip()})
                 i += 1
         else:
             unique_persons.append(scores[j][1])
-            persons_scores.append(("Name: ", scores[j][1].strip(), "Confidence: ",
-                                   scores[j][0], "Image: ", scores[j][2].strip()))
+            persons_scores.append({"Name": scores[j][1].strip(), "Confidence":
+                                   scores[j][0], "Image": scores[j][2].strip()})
             i += 1
         j += 1
     return persons_scores

@@ -17,6 +17,7 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized
 from utils.data import read_json, DetectLoadImages
 from utils.options import defaultOpt
 
+
 @torch.no_grad()
 def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), output_file='detections.json'):
     """
@@ -35,7 +36,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
     if '.json' in img_path: 
         img_path = read_json(img_path)
 
-    imgsz =  opt.img_size # Get Image size to resize inputs if necessary
+    imgsz = opt.img_size  # Get Image size to resize inputs if necessary
 
     save_dir = Path(output_path)
     save_dir.mkdir(parents=True, exist_ok=True)  # Make output foledr directory
@@ -161,13 +162,16 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
 
 
 if __name__ == '__main__':
-    # TODO a ideia é ter main mas, ao mesmo tempo, poder chamar o metodo usando a funcao diretamente
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov5s.pt', help='model.pt path')
-    parser.add_argument('--source', type=str, default='data/images', help='Source of images/videos. Can be a folder, a single image/video file, a url to a image/video, or a json with a list of files (local or remote)')  # file/folder, 0 for webcam
-    
-    parser.add_argument('--output-path', type=str, default='outputs/', help='Path where the outputs generetated will be saved')
-    parser.add_argument('--output-file', type=str, default='detections.json', help='Name of the output json file (if is created)')
+    parser.add_argument('--img_path', type=str, default='data/images',
+                        help='Source of images/videos. Can be a folder, a single image/video file, '
+                             'a url to a image/video, or a json with a list of files (local or remote)')  # file/folder, 0 for webcam
+    parser.add_argument('--model_path', nargs='+', type=str, default='yolov5s.pt', help='model.pt path')
+
+    parser.add_argument('--output_path', type=str, default='outputs/',
+                        help='Path where the outputs generetated will be saved')
+    parser.add_argument('--output_file', type=str, default='detections.json',
+                        help='Name of the output json file (if is created)')
 
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
@@ -176,7 +180,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
 
-    parser.add_argument('--format', default='img', help='output format, options (img|json|both)')
+    parser.add_argument('--save_as', default='img', help='output format, options (img|json|both)')
     
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
 
@@ -190,4 +194,4 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     print(opt)
 
-    retrieval(opt.source, opt.weights, opt.output_path, opt.format, opt, output_file=opt.output_file)
+    retrieval(opt.img_path, opt.model_path, opt.output_path, opt.save_as, opt, output_file=opt.output_file)

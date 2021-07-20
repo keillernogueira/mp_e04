@@ -38,10 +38,12 @@ from utils.wandb_logging.wandb_utils import WandbLogger, check_wandb_resume
 
 logger = logging.getLogger(__name__)
 
-#def train(opt, data, hyp_path, output_path, weights, epochs, device, cfg, batch_size, img_size, resume, nosave, notest, cache_images, multi_scale, single_cls, sync_bn, local_rank, workers, save_period):
 
-def train(hyp_path = 'hyp.scratch.yaml', data = 'dataset.yaml', output_path = 'runs/train/exp', opt = defaultOptTrain(), tb_writer=None):
-    
+# def train(opt, data, hyp_path, output_path, weights, epochs, device, cfg, batch_size, img_size, resume,
+# nosave, notest, cache_images, multi_scale, single_cls, sync_bn, local_rank, workers, save_period):
+
+def train(hyp_path='hyp.scratch.yaml', data='dataset.yaml', output_path='runs/train/exp',
+          opt=defaultOptTrain(), tb_writer=None):
     opt.hyp = hyp_path
     opt.data = data
     opt.output_path = output_path
