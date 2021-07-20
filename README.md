@@ -51,7 +51,7 @@ where:
 1. ```feature_file``` é o caminho para um arquivo (```.mat```) de _features_.
    Se esse arquivo já existir, adiciona novas _features_ extraídas nesse arquivo.
    Caso contrário, cria o arquivo com as novas _features_ extraídas. 
-2. ```dataset_path``` caminho para o dataset. O formato do dataset é o mesmo [já descrito anteriormente](#train.py).
+2. ```dataset_path``` caminho para o dataset. O formato do dataset é o mesmo [já descrito anteriormente](#trainpy).
 3. ```model_name``` é o nome do modelo a ser usado.
    1. Default: ```mobilefacenet```
 4. ```model_path``` é um caminho para carregar um modelo pre-treinado.
@@ -76,11 +76,11 @@ retrieval(image_path, feature_file, save_dir, output_method="image", model_name=
 where:
 
 1. ```image_path``` é o caminho para a imagem _query_.
-   1. Esse arquivo pode ser uma imagem ou um json no formato base64 ([exemplo](../exemplos/image_base64.json)).
+   1. Esse arquivo pode ser uma imagem ou um json no formato base64 ([exemplo](exemplos/image_base64.json)).
 2. ```feature_file``` é o caminho para um arquivo (```.mat```) de _features_ já extraídas.
 3. ```save_dir``` é pasta onde será salvo o ranking de saída.
 4. ```output_method``` é o método que será usada para exportar a saída
-   1. Duas opções: ```json``` ([exemplo](../exemplos/saida.json)) ou ```image```.
+   1. Duas opções: ```json``` ([exemplo](exemplos/saida.json)) ou ```image```.
 4. ```model_name``` é o nome do modelo a ser usado.
    1. Default: ```mobilefacenet```
 5. ```model_path``` é um caminho para carregar um modelo pre-treinado.
@@ -125,7 +125,7 @@ onde:
 
 1. ```img_path``` é o caminho para a imagem ou vídeo
    1. Pode ser uma pasta com arquivos de imagem/vídeo, um único arquivo (local ou url) 
-      ou um [json](../exemplos/input_object.json) com uma lista de arquivos. O url dos arquivos também pode ser links do YouTube. 
+      ou um [json](exemplos/input_object.json) com uma lista de arquivos. O url dos arquivos também pode ser links do YouTube. 
 2. ```model_path``` é um caminho para carregar um modelo pre-treinado.
    1. Default: ```yolov5s.pt```
 3. ```output_path``` é o caminho para salvar a saída do algoritmo.
@@ -137,4 +137,4 @@ onde:
 6. ```output_file``` é o nome do arquivo de saída.
    1. Somente usado para o ```--save_as json```
    2. Default: ```detections.json```
-   3. [Exemplo](../exemplos/detections9.json)
+   3. [Exemplo](exemplos/detections9.json)
