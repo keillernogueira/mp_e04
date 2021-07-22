@@ -190,7 +190,7 @@ def process_dataset(operation, model_name, batch_size,
     if dataset == 'YALEB' and batch_size == 32:
         batch_size = 8
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False,
-                                             num_workers=2, drop_last=False)
+                                             num_workers=0, drop_last=False)
 
     if operation == 'extract_features':
         # extract the features for a WHOLE DATASET

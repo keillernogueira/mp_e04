@@ -6,7 +6,7 @@ import argparse
 
 from datetime import datetime
 from dataloaders.image_dataloader import ImageDataLoader
-from image_processor import extract_features_from_image, generate_ranking_for_image
+from processors.image_processor import extract_features_from_image, generate_ranking_for_image
 from plots import plot_top15_person_retrieval
 from networks.load_network import load_net
 from manipulate_json import save_retrieved_ranking
@@ -32,7 +32,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
 
     # seting dataset and dataloader
     dataset = ImageDataLoader(image_path, preprocessing_method, crop_size)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, drop_last=False)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0, drop_last=False)
     
     features = None
     # load current features

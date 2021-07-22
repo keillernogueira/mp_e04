@@ -6,7 +6,7 @@ import torch
 
 from utils import str2bool
 from dataloaders.generic_dataloader import GenericDataLoader
-from dataset_processor import extract_features
+from processors.dataset_processor import extract_features
 from networks.load_network import load_net
 
 
@@ -28,7 +28,7 @@ def manipulate_dataset(feature_file, dataset_path,
     dataset = GenericDataLoader(dataset_path, train=False,
                                 preprocessing_method=preprocessing_method, crop_size=crop_size)
     dataset_dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True,
-                                                     num_workers=8, drop_last=False)
+                                                     num_workers=0, drop_last=False)
 
     # load current features
     features = None

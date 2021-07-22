@@ -5,13 +5,13 @@ from sklearn import preprocessing
 
 import torch
 
-from preprocessing.preprocessing_general import preprocess
+from preprocessing.preprocessing_general import PreProcess
 
 
 class GenericDataLoader(object):
     def __init__(self, root, train=True, preprocessing_method=None, crop_size=(96, 112)):
         """
-        Dataloader of the LFW dataset.
+        Generic data loader.
         root: path to the dataset to be used.
         preprocessing_method: string with the name of the preprocessing method.
         crop_size: retrieval network specific crop size.
@@ -23,6 +23,9 @@ class GenericDataLoader(object):
         self.img_list = []
         self.labels = []
         self.labels_string = []
+
+        self.preprocess = PreProcess(self.preprocessing_method, crop_size=self.crop_size,
+                                     is_processing_dataset=True, return_only_one_face=True, execute_default=True)
 
         self.img_list, self.labels, self.labels_string = self.read_directory(root)
 
@@ -54,8 +57,9 @@ class GenericDataLoader(object):
         if len(img.shape) == 2:
             img = np.stack([img] * 3, 2)
 
-        img, bb = preprocess(img, self.preprocessing_method, crop_size=self.crop_size,
-                             is_processing_dataset=True, return_only_largest_bb=True, execute_default=True)
+        img, bb = self.preprocess.preprocess(img)
+        img = img.squeeze()
+        bb = bb.squeeze()
 
         if self.train is True:
             # basic data augmentation

@@ -5,7 +5,7 @@ from sklearn import preprocessing
 
 import torch
 
-from preprocessing.preprocessing_general import preprocess
+from preprocessing.preprocessing_general import PreProcess
 
 
 class LFW(object):
@@ -25,7 +25,9 @@ class LFW(object):
         self.imgl_list = []
         self.classes = []
         self.people = []
-        self.model_align = None
+
+        self.preprocess = PreProcess(self.preprocessing_method, crop_size=self.crop_size,
+                                     is_processing_dataset=True, return_only_one_face=True, execute_default=True)
 
         # read the file with the names and the number of images of each people in the dataset
         with open(os.path.join(root, 'people.txt')) as f:
@@ -55,8 +57,9 @@ class LFW(object):
         if len(imgl.shape) == 2:
             imgl = np.stack([imgl] * 3, 2)
 
-        imgl, bb = preprocess(imgl, self.preprocessing_method, crop_size=self.crop_size,
-                              is_processing_dataset=True, return_only_largest_bb=True, execute_default=True)
+        imgl, bb = self.preprocess.preprocess(imgl)
+        imgl = imgl.squeeze()
+        bb = bb.squeeze()
 
         # append image with its reverse
         imglist = [imgl, imgl[:, ::-1, :]]

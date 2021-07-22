@@ -12,11 +12,11 @@
 
 	CUDA_VISIBLE_DEVICES=0 python3 main.py --operation generate_rank --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0028.jpg --model_name mobilefacenet --preprocessing_method sphereface
 
-	CUDA_VISIBLE_DEVICES=0 python3 main.py --operation extract_features --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0028.jpg --query_label Lula --model_name mobilefacenet --preprocessing_method sphereface
+	CUDA_VISIBLE_DEVICES=0 python3 main.py --operation extract_features --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0028.jpg --query_label Luiz_Inacio_Lula_da_Silva --model_name mobilefacenet --preprocessing_method sphereface
 
 ## image_processor: gerar ranking de uma imagem com multiplas faces
 
-	CUDA_VISIBLE_DEVICES=0 python3 main.py --operation generate_rank --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0004.jpg --model_name mobilefacenet --preprocessing_method sphereface
+	CUDA_VISIBLE_DEVICES=0 python main.py --operation generate_rank --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0004.jpg --model_name mobilefacenet --preprocessing_method sphereface
 
 --------------------------------------------------------------------------------------------------------------
 

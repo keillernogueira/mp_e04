@@ -2,14 +2,11 @@ import os
 import time
 import json
 import scipy.io
-import cv2
-import torch
 from datetime import datetime
 
 from main import extract_features_from_video
-from pessoas.image_processor import extract_features_from_image, generate_ranking_for_image
-from dataloaders.image_dataloader import ImageDataLoader
-from dataloaders.video_dataloader import VideoDataLoader
+from pessoas.processors.image_processor import generate_ranking_for_image
+from dataloaders.video_dataloader_v1 import VideoDataLoader
 
 
 def video_processor(video_path):

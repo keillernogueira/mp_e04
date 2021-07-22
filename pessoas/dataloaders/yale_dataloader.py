@@ -5,7 +5,7 @@ from sklearn import preprocessing
 
 import torch
 
-from preprocessing.preprocessing_general import preprocess
+from preprocessing.preprocessing_general import PreProcess
 
 
 class YALE(object):
@@ -25,7 +25,9 @@ class YALE(object):
         self.imgl_list = []
         self.classes = []
         self.people = []
-        self.model_align = None
+
+        self.preprocess = PreProcess(self.preprocessing_method, crop_size=self.crop_size,
+                                     is_processing_dataset=True, return_only_one_face=True, execute_default=True)
 
         for r, d, f in os.walk(os.path.join(root, specific_folder)):
             for fi in f:
@@ -47,8 +49,8 @@ class YALE(object):
         if len(imgl.shape) == 2:
             imgl = np.stack([imgl] * 3, 2)
 
-        imgl, _ = preprocess(imgl, self.preprocessing_method, crop_size=self.crop_size,
-                             is_processing_dataset=True, return_only_largest_bb=True, execute_default=True)
+        imgl, _ = self.preprocess.preprocess(imgl)
+        imgl = imgl.squeeze()
 
         # append image with its reverse
         imglist = [imgl, imgl[:, ::-1, :]]

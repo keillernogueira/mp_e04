@@ -2,14 +2,14 @@ import numpy as np
 
 import torch
 
-from preprocessing.preprocessing_general import preprocess
+from preprocessing.preprocessing_general import PreProcess
 from dataloaders.conversor import read_image
 
 from utils import plot_bbs
 
 
 class ImageDataLoader(object):
-    def __init__(self, image, preprocessing_method=None, crop_size=(96, 112), will_save_features=False):
+    def __init__(self, image, preprocessing_method=None, crop_size=(96, 112), return_only_one_face=False):
         """
         Dataloader for specific images.
 
@@ -21,7 +21,10 @@ class ImageDataLoader(object):
         self.image = image
         self.preprocessing_method = preprocessing_method
         self.crop_size = crop_size
-        self.will_save_features = will_save_features
+        self.return_only_one_face = return_only_one_face
+
+        self.preprocess = PreProcess(self.preprocessing_method, crop_size=self.crop_size,
+                                     return_only_one_face=self.return_only_one_face)
 
     def __getitem__(self, index):
         imgl = read_image(self.image)
@@ -31,8 +34,7 @@ class ImageDataLoader(object):
             imgl = np.stack([imgl] * 3, 2)
 
         try:
-            imgl, bb = preprocess(imgl, self.preprocessing_method,
-                                  crop_size=self.crop_size, return_only_largest_bb=self.will_save_features)
+            imgl, bb = self.preprocess.preprocess(imgl)
             assert imgl.size != 0 and bb.size != 0
         except AssertionError:
             # no face detected

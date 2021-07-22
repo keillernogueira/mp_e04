@@ -11,8 +11,8 @@ import torch.optim as optim
 
 from dataloaders.LFW_dataloader import LFW
 from dataloaders.generic_dataloader import GenericDataLoader
-from networks.mobilefacenet import MobileFacenet, ArcMarginProduct
-from dataset_processor import extract_features, evaluate_dataset
+from networks.mobilefacenet import ArcMarginProduct
+from processors.dataset_processor import extract_features, evaluate_dataset
 from networks.load_network import load_net
 
 
@@ -31,7 +31,7 @@ def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
     # create dataset
     train_dataset = GenericDataLoader(dataset_path, preprocessing_method='sphereface', crop_size=(96, 112))
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=8,
-                                                   shuffle=True, num_workers=4, drop_last=False)
+                                                   shuffle=True, num_workers=0, drop_last=False)
 
     # validation dataset
     lfw_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets', 'LFW')
@@ -48,7 +48,7 @@ def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
     validate_dataset = LFW(lfw_path, specific_folder='lfw', img_extension='jpg',
                            preprocessing_method='sphereface', crop_size=(96, 112))
     validate_dataloader = torch.utils.data.DataLoader(validate_dataset, batch_size=8, shuffle=False,
-                                                      num_workers=2, drop_last=False)
+                                                      num_workers=0, drop_last=False)
 
     net = load_net('mobilefacenet', model_path=resume_path, gpu=True)
     arc_margin = ArcMarginProduct(128, train_dataset.num_classes)

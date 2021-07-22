@@ -139,7 +139,7 @@ def process_image(operation, model_name, model_path, image_query, query_label,
     # process unique image
     dataset = ImageDataLoader(image_query, preprocessing_method,
                               crop_size, operation == 'extract_features')
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=2, drop_last=False)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0, drop_last=False)
 
     features = None
     # load current features
