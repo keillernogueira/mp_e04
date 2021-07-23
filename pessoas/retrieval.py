@@ -3,6 +3,7 @@ import scipy.io
 import torch
 import numpy as np
 import argparse
+import json
 
 from datetime import datetime
 from dataloaders.image_dataloader import ImageDataLoader
@@ -50,10 +51,31 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
 
     # if the method chosen was json
     if output_method.lower() == "json":
-        for rank in top_k_ranking:
-            print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
-            save_retrieved_ranking(image_path, rank[1], rank[0],
-                                   os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
+        data=[]
+        output_id=1
+        for i in range(len([image_path])):
+            output = []
+            name = os.path.basename(image_path)
+            output.append({'name':name})
+            output[i]['path'] = image_path
+            
+            face_id = 1
+            for rank in top_k_ranking:
+                face_dict = {}
+                face_dict['id'] = face_id
+                face_dict['class'] = rank[1][0]['Name']
+                face_dict['confidence'] = np.float64(rank[1][0]['Confidence'])
+                face_dict['box'] = rank[0].tolist()
+                output[0][f'face_{face_id}'] = face_dict
+                print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
+                #save_retrieved_ranking(output, rank[1], rank[0],
+                #                       os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
+                face_id += 1
+            data={f'output{output_id}':output}
+            output_id+=1 
+        with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w', 
+                      encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
     # if the method chosen was image
     elif output_method.lower() == "image":
         for i in range(len(all_ranking)):
