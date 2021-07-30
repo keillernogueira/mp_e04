@@ -1,0 +1,4 @@
+knife
+machete
+machine gun
+pistol
