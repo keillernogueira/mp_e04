@@ -1,7 +1,3 @@
-# AutoCrawler
-Google, Naver multiprocess image crawler (High Quality & Speed & Customizable)
-
-![](docs/animation.gif)
 
 # How to use
 
@@ -47,35 +43,4 @@ python3 main.py [--skip true] [--threads 4] [--google true] [--naver true] [--fu
 
 You can download full resolution image of JPG, GIF, PNG files by specifying --full true
 
-![](docs/full.gif)
 
-
-
-# Data Imbalance Detection
-
-Detects data imbalance based on number of files.
-
-When crawling ends, the message show you what directory has under 50% of average files.
-
-I recommend you to remove those directories and re-download.
-
-
-# Remote crawling through SSH on your server
-
-```
-sudo apt-get install xvfb <- This is virtual display
-
-sudo apt-get install screen <- This will allow you to close SSH terminal while running.
-
-screen -S s1
-
-Xvfb :99 -ac & DISPLAY=:99 python3 main.py
-```
-
-# Customize
-
-You can make your own crawler by changing collect_links.py
-
-# Issues
-
-As google site consistently changes, please make issues if it doesn't work.
