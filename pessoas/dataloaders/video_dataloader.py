@@ -65,7 +65,9 @@ class VideoDataLoader:
         first = True
         faces = []
         bbs = []
+        frames_batches = []
         img_batches = []
+        crop_batches = []
         bb_batches = []
         for j in range(0, v_len):
             success = v_cap.grab()
@@ -94,22 +96,28 @@ class VideoDataLoader:
                 imgs = [torch.from_numpy(i).float() for i in imglist]
 
                 if first:
+                    frames =  [np.array(frame)]
                     faces = imgs
+                    crops = imgl
                     bbs = bb
                     first = False
                 else:
+                    frames.append([np.array(frame)])
                     faces[0] = torch.cat((faces[0], imgs[0]))
                     faces[1] = torch.cat((faces[1], imgs[1]))
+                    crops = np.concatenate((crops, imgl))
                     bbs = np.concatenate((bbs, bb))
                     # print('4', np.asarray(faces).shape, np.asarray(faces[0]).shape, np.asarray(faces[1]).shape,
                     #       type(faces[0]), type(faces[1]), bbs.shape)
 
                 # When batch is full, reset list
                 if len(faces[0]) % self.batch_size == 0 or j == sample[-1]:
+                    frames_batches.append(frames)
                     img_batches.append(faces)
+                    crop_batches.append(crops)
                     bb_batches.append(bbs)
                     first = True
 
         v_cap.release()
 
-        return img_batches, bb_batches
+        return frames_batches, img_batches, crop_batches, bb_batches

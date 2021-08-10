@@ -13,6 +13,7 @@ import torch
 
 from processors.image_processor import generate_ranking_for_image
 from dataloaders.video_dataloader import VideoDataLoader
+from plots import plot_top15_person_retrieval
 from networks.load_network import load_net
 
 
@@ -44,7 +45,7 @@ def process_video(video_paths, model, feature_file, save_dir):
         for i, filename in enumerate(video_paths):
             print(i, filename)
             # Load frames and find faces
-            batches_imgs, batches_bbs = detection_pipeline(filename)
+            batches_frames, batches_imgs, batches_crops, batches_bbs = detection_pipeline(filename)
             
             name = os.path.basename(filename)
             output.append(dict())
@@ -53,7 +54,7 @@ def process_video(video_paths, model, feature_file, save_dir):
 
             face_id = 1
             for j in range(len(batches_imgs)):  # batch loop
-                imgs, bbs = batches_imgs[j], batches_bbs[j]
+                frames, imgs, crops, bbs = batches_frames[j], batches_imgs[j], batches_crops[j], batches_bbs[j]
                 imgs1, imgs2 = imgs
 
                 for i in range(len(imgs)):
@@ -70,23 +71,44 @@ def process_video(video_paths, model, feature_file, save_dir):
                     #result = {'feature': np.reshape(feature[i], (-1, 1)).transpose(1,0),
                     #           'bbs': np.reshape(bbs[i], (-1, 1)).transpose(1,0)}
 
-                result = {'feature': feature, 'bbs': bbs}
+                result = {'feature': feature, 'bbs': bbs, "cropped_image": crops}
                 # generate ranking
                 top_k_ranking, all_ranking = generate_ranking_for_image(features, result)
                 
+                output_method="json"
+                # TODO gerar saida
+                if output_method.lower() == "image":
+                    for i in range(len(all_ranking)):
+                        pass
+                        ##KEILLER## 
+                        #Para rodar o plot do top 15, é necessário criar uma nova funçao do plot
+                        #que receba o frame e não o link ou o diretorio.
+                        #Eu mudei a original pra testar, mas não salvei pra evitar conflito com a parte do retrieval de imagem
+                        
+                        #plot_top15_person_retrieval(frames[i][0], "Unknown", all_ranking[i], 1,
+                          #              image_name='faces-' + datetime.now().strftime("%d%m%Y-%H%M%S%f"),
+                          #              cropped_image=np.array(result["cropped_image"])[i],
+                          #              bb=result["bbs"][i], save_dir=save_dir)
+                # Saída em JSON
+
+                #for i in range(len(feature)):
+                    #result = {'feature': np.reshape(feature[i], (-1, 1)).transpose(1,0),
+                    #           'bbs': np.reshape(bbs[i], (-1, 1)).transpose(1,0)}
+
                 #print(top_k_ranking)
-                for rank in top_k_ranking:#for each face
-                    #print(rank)
-                    face_dict = {}
-                    face_dict['id'] = face_id
-                    face_dict['class'] = rank[1][0]['Name']
-                    face_dict['confidence'] = np.float64(rank[1][0]['Confidence'])
-                    face_dict['box'] = rank[0].tolist()
-                    output[0][f'face_{face_id}'] = face_dict
-                    #print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
-                    #save_retrieved_ranking(output, rank[1], rank[0],
-                    #                       os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))      
-                    face_id += 1
+                if output_method.lower() == "json":
+                    for rank in top_k_ranking:#for each face
+                        #print(rank)
+                        face_dict = {}
+                        face_dict['id'] = face_id
+                        face_dict['class'] = rank[1][0]['Name']
+                        face_dict['confidence'] = np.float64(rank[1][0]['Confidence'])
+                        face_dict['box'] = rank[0].tolist()
+                        output[0][f'face_{face_id}'] = face_dict
+                        #print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
+                        #save_retrieved_ranking(output, rank[1], rank[0],
+                        #                       os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))      
+                        face_id += 1
 
                 n_processed += len(bbs)
             output_id+=1
