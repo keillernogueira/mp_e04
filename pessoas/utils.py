@@ -1,6 +1,8 @@
 import os
-import numpy as np
 import argparse
+
+import cv2
+import numpy as np
 
 import PIL.ImageDraw as ImageDraw
 from PIL import Image
@@ -68,3 +70,23 @@ def plot_bbs(input_image, output_path, bbs):
         draw.text((bb[0], bb[1]), str(i) + '-' + str("{0:.3f}".format(bb[4])), fill='red')
 
     imageio.imwrite(os.path.join(output_path, 'bbs.jpg'), im)
+
+
+def generate_video(frames, bbs):
+    all_frames = []
+    for k in range(len(frames)):
+        img = Image.fromarray(frames[k])
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([(bbs[k][0], bbs[k][1]), (bbs[k][2], bbs[k][3])], fill=None, outline='red')
+        img = np.asarray(img)
+        all_frames.append(img)
+
+    all_frames = np.asarray(all_frames)
+    print(all_frames.shape)
+    f, h, w, c = all_frames.shape
+
+    out = cv2.VideoWriter('project.avi', cv2.VideoWriter_fourcc(*'MP4V'), 24, (w, h))
+    print(type(cv2.cvtColor(all_frames[0], cv2.COLOR_RGB2BGR)))
+    for z in range(len(all_frames)):
+        out.write(cv2.cvtColor(all_frames[z], cv2.COLOR_RGB2BGR))
+    out.release()

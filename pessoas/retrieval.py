@@ -56,7 +56,7 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
         for i in range(len([image_path])):
             output = []
             name = os.path.basename(image_path)
-            output.append({'name':name})
+            output.append({'name': name})
             output[i]['path'] = image_path
             
             face_id = 1
@@ -68,11 +68,11 @@ def retrieval(image_path, feature_file, save_dir, output_method="image", model_n
                 face_dict['box'] = rank[0].tolist()
                 output[0][f'face_{face_id}'] = face_dict
                 print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
-                #save_retrieved_ranking(output, rank[1], rank[0],
+                # save_retrieved_ranking(output, rank[1], rank[0],
                 #                       os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 face_id += 1
-            data={f'output{output_id}':output}
-            output_id+=1 
+            data = {f'output{output_id}': output}
+            output_id += 1
         with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w', 
                       encoding='utf-8') as f:
             json.dump(data, f, indent=4)

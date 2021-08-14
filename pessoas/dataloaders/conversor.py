@@ -3,6 +3,7 @@ import io
 import base64
 from imageio import imread, imwrite
 import validators
+import numpy as np
 
 
 def process_base64(base64_img):
@@ -16,24 +17,28 @@ def process_base64(base64_img):
 
 
 def read_image(image):
-    image = image.strip()
-    # decode base64 file
     try:
-        if os.path.isfile(image):
-            if image.endswith("txt"):
-                f = open(image, "r")
-                base64_img = f.read()
-                img = process_base64(base64_img)
-                f.close()
-            elif image.endswith("json"):
-                f = open(image, "r")
-                base64_img = f.read()
-                img = process_base64(base64_img)
-                f.close()
-            else:
+        # if type is array, just return
+        if type(image) is np.ndarray:
+            return image
+        # otherwise, check if it is file or link
+        else:
+            image = image.strip()
+            if os.path.isfile(image):
+                if image.endswith("txt"):
+                    f = open(image, "r")
+                    base64_img = f.read()
+                    img = process_base64(base64_img)
+                    f.close()
+                elif image.endswith("json"):
+                    f = open(image, "r")
+                    base64_img = f.read()
+                    img = process_base64(base64_img)
+                    f.close()
+                else:
+                    img = imread(image)
+            elif validators.url(image):
                 img = imread(image)
-        elif validators.url(image):
-            img = imread(image)
     except:
         raise NotImplementedError("Could not identify and read image")
 

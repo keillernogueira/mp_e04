@@ -75,6 +75,6 @@ if __name__ == '__main__':
         process_image(args.operation, args.model_name, args.model_path, args.image_query, args.query_label,
                       args.preprocessing_method, crop_size, args.feature_file, args.gpu)
     elif args.video_path is not None:
-        process_video([args.video_path], load_net(args.model_name, gpu=args.gpu))
+        process_video([args.video_path], load_net(args.model_name, gpu=args.gpu), args.feature_file, save_dir=None)
     else:
         raise NotImplementedError("Dataset OR Image Path flags must be set. Both flags are None.")

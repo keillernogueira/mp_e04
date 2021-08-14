@@ -6,6 +6,7 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import imageio
 import cv2
+import validators
 from datetime import datetime
 
 from config import *
@@ -104,7 +105,7 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
     fig, axes = plt.subplots(3, 5, figsize=(15, 15), sharex=True, sharey=True)
     ax = axes.ravel()
 
-    # decode base64 file   
+    # decode base64 file
     img = read_image(query_image)
     
     basewidth = 250
@@ -113,8 +114,11 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
     hpercent = (hsize / float(img.shape[0]))
     img = cv2.resize(img, (basewidth, hsize))
 
-    ax[0].set_title('| Query image |\nPerson: %s\nImage: %s' %
-                    (query_person, os.path.basename(os.path.splitext(query_image)[0])))
+    if os.path.isfile(query_image):
+        ax[0].set_title('| Query image |\nPerson: %s\nImage: %s' %
+                        (query_person, os.path.basename(os.path.splitext(query_image)[0])))
+    else:
+        ax[0].set_title('| Query image |\nPerson: %s' % query_person)
     ax[0].imshow(img)
 
     ax[1].imshow(img)

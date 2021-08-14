@@ -91,6 +91,7 @@ def generate_ranking_for_image(database_data, query_data, k_rank=10, bib="numpy"
     """
 
     # normalize features
+    # TODO check copy and pointer
     database_features = database_data['feature']
     query_features = query_data['feature']
     query_bbs = query_data['bbs']
