@@ -66,7 +66,7 @@ class VideoDataLoader:
         frames = []
         faces = []
         bbs = []
-        crops= []
+        crops = []
         frames_batches = []
         img_batches = []
         crop_batches = []

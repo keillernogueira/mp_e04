@@ -45,7 +45,7 @@ def extract_features_from_image(model, dataloader, query_label, gpu):
     # plot_bbs(bbs[0].cpu().numpy())
 
     result = {'feature': feature, 'name': [query_label], 'image': img_name,
-              'bbs': bbs[0].cpu().numpy(), 'cropped_image': cropped}
+              'bbs': bbs[0].cpu().numpy(), 'cropped_image': cropped[0].cpu().numpy()}
 
     return result
 
