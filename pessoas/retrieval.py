@@ -13,13 +13,43 @@ from processors.image_processor import extract_features_from_image, generate_ran
 from processors.video_processor import extract_features_from_video
 from plots import plot_top15_person_retrieval
 from networks.load_network import load_net
-from manipulate_json import save_retrieved_ranking
+from manipulate_json import save_retrieved_ranking, read_json
 
-
-# TODO checar com MPMG import usando json com multiplas images
 def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
               model_name="mobilefacenet", model_path=None,
               preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
+    """
+    Retrieving results from an specific input data.
+
+    :param data_to_load: Data to be analysed. Can be a link or path, image or video, or else a json file with multiple links/paths.
+    :param feature_file: Path to the file that contains extracted features from dataset images.
+    :param save_dir: Path to the dir used to save the results.
+    :param input_data: Type of the input data: image or video
+    :param output_method: Method to export the results: json or image.
+    :param model_name: String with the name of the model used.
+    :param model_path: Path to a trained model
+    :param preprocessing_method: String with the name of the preprocessing method used.
+    :param crop_size: Size of the crop based on the model used.
+    :param gpu: use GPU?
+    """
+    assert data_to_load is not None, "Must set parameter data_to_load"
+    assert feature_file is not None and os.path.isfile(feature_file), \
+        "Must set parameter feature_file with existing file"
+
+    if '.json' in data_to_load: 
+        data_to_load = read_json(data_to_load)
+        for path in data_to_load:
+            individual_retrieval(path, feature_file, save_dir, input_data, output_method, model_name,
+                                  model_path, preprocessing_method, crop_size, gpu)
+    else:
+        individual_retrieval(data_to_load, feature_file, save_dir, input_data, output_method, model_name,
+                                  model_path, preprocessing_method, crop_size, gpu)
+
+
+# TODO checar com MPMG import usando json com multiplas images
+def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
+                        model_name="mobilefacenet", model_path=None,
+                        preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -35,8 +65,6 @@ def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_m
     :param gpu: use GPU?
     """
     assert data_to_load is not None, "Must set parameter data_to_load"
-    assert feature_file is not None and os.path.isfile(feature_file), \
-        "Must set parameter feature_file with existing file"
 
     # create save_dir if it doesn't exist
     save_dir = Path(save_dir)
