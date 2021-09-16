@@ -20,7 +20,7 @@ from networks.inception_resnet_facenet import InceptionResnetV1
 from networks.shufflefacenet import ShuffleFaceNet
 
 
-def load_net(model_name, model_path=None, gpu=True):
+def load_net(model_name, model_path=None, gpu=True, train=False):
     # initialize the network
     if model_name == 'mobilefacenet':
         net = MobileFacenet()
@@ -52,7 +52,8 @@ def load_net(model_name, model_path=None, gpu=True):
             ckpt = torch.load(OPENFACE_MODEL_PATH)
         else:
             ckpt = torch.load(OPENFACE_MODEL_PATH, map_location='cpu')
-        net.load_state_dict(ckpt)
+        if train == False:
+            net.load_state_dict(ckpt)#modelo carregado tem conflito com o modelo implementado
     elif model_name == 'facenet':
         net = InceptionResnetV1(pretrained='casia-webface')
         if not os.path.exists(FACENET_MODEL_PATH):

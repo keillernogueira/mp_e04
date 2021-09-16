@@ -16,7 +16,7 @@ from processors.dataset_processor import extract_features, evaluate_dataset
 from networks.load_network import load_net
 
 
-def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
+def train(dataset_path, save_dir, model_name, resume_path=None, num_epoch=71):
     """
     Train a model.
 
@@ -28,8 +28,19 @@ def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
+    if model_name == "mobiface" or model_name == "shufflefacenet":
+        crop_size=(112, 112)
+    elif model_name == "sphereface" or model_name == "mobilefacenet":
+        crop_size = (96, 112)
+    elif model_name == "openface":
+        crop_size = (96, 96)
+    elif model_name == "facenet":
+        crop_size = (160, 160)
+    else:
+        raise NotImplementedError("Model " + model_name + " not implemented")
+
     # create dataset
-    train_dataset = GenericDataLoader(dataset_path, preprocessing_method='sphereface', crop_size=(96, 112))
+    train_dataset = GenericDataLoader(dataset_path, preprocessing_method='sphereface', crop_size=crop_size)
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=8,
                                                    shuffle=True, num_workers=0, drop_last=False)
 
@@ -46,31 +57,39 @@ def train(dataset_path, save_dir, resume_path=None, num_epoch=71):
         tar.close()
 
     validate_dataset = LFW(lfw_path, specific_folder='lfw', img_extension='jpg',
-                           preprocessing_method='sphereface', crop_size=(96, 112))
+                           preprocessing_method='sphereface', crop_size=crop_size)
     validate_dataloader = torch.utils.data.DataLoader(validate_dataset, batch_size=8, shuffle=False,
                                                       num_workers=0, drop_last=False)
 
-    net = load_net('mobilefacenet', model_path=resume_path, gpu=True)
-    arc_margin = ArcMarginProduct(128, train_dataset.num_classes)
+    net = load_net(model_name, model_path=resume_path, gpu=True, train=True)
+    if model_name == "mobilefacenet" or model_name == "openface" or model_name == "shufflefacenet":
+        arc_margin = ArcMarginProduct(128, train_dataset.num_classes)
+    elif model_name == "mobiface" or model_name == "sphereface" or model_name == "facenet":
+        arc_margin = ArcMarginProduct(512, train_dataset.num_classes)
     arc_margin = arc_margin.cuda()
     criterion = torch.nn.CrossEntropyLoss().cuda()
 
     # define optimizers
-    ignored_params = list(map(id, net.linear1.parameters()))
-    ignored_params += list(map(id, arc_margin.weight))
-    prelu_params = []
-    for m in net.modules():
-        if isinstance(m, nn.PReLU):
-            ignored_params += list(map(id, m.parameters()))
-            prelu_params += m.parameters()
-    base_params = filter(lambda p: id(p) not in ignored_params, net.parameters())
+    if model_name == "mobilefacenet" or model_name == "mobiface":
+        ignored_params = list(map(id, net.linear1.parameters()))
+        ignored_params += list(map(id, arc_margin.weight))
+        prelu_params = []
+        for m in net.modules():
+            if isinstance(m, nn.PReLU):
+                ignored_params += list(map(id, m.parameters()))
+                prelu_params += m.parameters()
+        base_params = filter(lambda p: id(p) not in ignored_params, net.parameters())
 
-    optimizer_ft = optim.SGD([
-        {'params': base_params, 'weight_decay': 4e-5},
-        {'params': net.linear1.parameters(), 'weight_decay': 4e-4},
-        {'params': arc_margin.weight, 'weight_decay': 4e-4},
-        {'params': prelu_params, 'weight_decay': 0.0}
-    ], lr=0.1, momentum=0.9, nesterov=True)
+        optimizer_ft = optim.SGD([
+            {'params': base_params, 'weight_decay': 4e-5},
+            {'params': net.linear1.parameters(), 'weight_decay': 4e-4},
+            {'params': arc_margin.weight, 'weight_decay': 4e-4},
+            {'params': prelu_params, 'weight_decay': 0.0}
+        ], lr=0.1, momentum=0.9, nesterov=True)
+
+    
+    else:
+        optimizer_ft = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
 
     exp_lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer_ft, milestones=[36, 52, 58], gamma=0.1)
 
@@ -133,6 +152,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_path', type=str, required=True, help='Path to the dataset')
     parser.add_argument('--save_dir', type=str, required=True,
                         help='Path to to save outcomes (such as trained models) of the algorithm')
+    parser.add_argument('--model_name', type=str, required=False, default="mobilefacenet", help='Name of the method.')
 
     parser.add_argument('--resume_path', type=str, required=False, default=None,
                         help='Path to to save outcomes (such as trained models) of the algorithm')
@@ -141,4 +161,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
 
-    train(args.dataset_path, args.save_dir, args.resume_path, args.num_epoch)
+    train(args.dataset_path, args.save_dir, args.model_name, args.resume_path, args.num_epoch)
+
