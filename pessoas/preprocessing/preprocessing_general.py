@@ -83,7 +83,7 @@ class PreProcess(object):
                         img_res = mtcnn_crop_image(img, bounding_boxes, detect_multiple_faces=True,
                                                    margin=24, image_size=self.crop_size)
                         print('1', img_res.shape)
-                        img_res = self.mtcnn.extract(img, bounding_boxes, "/tmp")
+                        img_res = self.mtcnn.extract(img, bounding_boxes, None)
                         print('2', img_res.shape)
                     elif self.preprocessing_method == 'sphereface':
                         if self.has_load_landmarks is True:
