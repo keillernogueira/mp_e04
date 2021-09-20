@@ -10,7 +10,7 @@ def read_json(input_file):
         data = json.load(json_file)
         for p in data['input']:
             if 'src' in p.keys():
-                if p['src'].split('.')[-1] in img_formats + vid_formats:
+                if (p['src'].split('.')[-1] in img_formats + vid_formats) or 'youtube.com/' in p['src'].lower() or 'youtu.be/' in p['src'].lower():
                     files.append(p['src'])
     return files
 

@@ -72,6 +72,10 @@
 
 	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file features.mat --data_to_process https://www.youtube.com/watch?v=Qtpl_vbawcg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/ --input_type video
 
+## com input json
+	
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --data_to_process exemplos/input_json.json --output_method json --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
+
 --------------------------------------------------------------------------------------------------------------
 
 # 4 teste manipulate_dataset.py
