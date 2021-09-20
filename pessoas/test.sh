@@ -54,6 +54,10 @@
 
 	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0004.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
 
+## com input json
+	
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --data_to_process exemplos/input_json.json --output_method json --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
+
 --------------------------------------------------------------------------------------------------------------
 
 # 4 teste manipulate_dataset.py
