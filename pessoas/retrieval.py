@@ -15,6 +15,9 @@ from plots import plot_top15_person_retrieval
 from networks.load_network import load_net
 from manipulate_json import save_retrieved_ranking, read_json
 
+img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
+vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
+
 def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
               model_name="mobilefacenet", model_path=None,
               preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
@@ -39,6 +42,10 @@ def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_m
     if '.json' in data_to_load: 
         data_to_load = read_json(data_to_load)
         for path in data_to_load:
+            if any(vid_format in path.lower() for vid_format in vid_formats) or 'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
+                input_data = 'video'
+            elif any(img_format in path.lower() for img_format in img_formats):
+                input_data = 'image'
             individual_retrieval(path, feature_file, save_dir, input_data, output_method, model_name,
                                   model_path, preprocessing_method, crop_size, gpu)
     else:
