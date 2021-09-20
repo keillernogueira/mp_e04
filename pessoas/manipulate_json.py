@@ -3,6 +3,7 @@ import json
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']  # acceptable video suffixes
 
+
 def read_json(input_file):
     files = []
     with open(input_file) as json_file:
@@ -11,8 +12,8 @@ def read_json(input_file):
             if 'src' in p.keys():
                 if p['src'].split('.')[-1] in img_formats + vid_formats:
                     files.append(p['src'])
-
     return files
+
 
 def save_retrieved_ranking(query_image, ranking, bb, save_path):
     """

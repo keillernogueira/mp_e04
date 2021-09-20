@@ -16,12 +16,14 @@ from processors.dataset_processor import extract_features, evaluate_dataset
 from networks.load_network import load_net
 
 
-def train(dataset_path, save_dir, model_name, resume_path=None, num_epoch=71):
+def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71):
     """
     Train a model.
 
     :param dataset_path: Path to the dataset used to train.
     :param save_dir: Path to the dir used to save the trained model.
+    :param model_name: Model name
+    :param preprocessing_method: pre-processing method
     :param resume_path: Path to a previously trained model.
     :param num_epoch: number of epochs to train
     """
@@ -29,7 +31,7 @@ def train(dataset_path, save_dir, model_name, resume_path=None, num_epoch=71):
     logging.getLogger().setLevel(logging.INFO)
 
     if model_name == "mobiface" or model_name == "shufflefacenet":
-        crop_size=(112, 112)
+        crop_size = (112, 112)
     elif model_name == "sphereface" or model_name == "mobilefacenet":
         crop_size = (96, 112)
     elif model_name == "openface":
@@ -40,8 +42,8 @@ def train(dataset_path, save_dir, model_name, resume_path=None, num_epoch=71):
         raise NotImplementedError("Model " + model_name + " not implemented")
 
     # create dataset
-    train_dataset = GenericDataLoader(dataset_path, preprocessing_method='sphereface', crop_size=crop_size)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=8,
+    train_dataset = GenericDataLoader(dataset_path, preprocessing_method=preprocessing_method, crop_size=crop_size)
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=128,
                                                    shuffle=True, num_workers=0, drop_last=False)
 
     # validation dataset
@@ -57,15 +59,20 @@ def train(dataset_path, save_dir, model_name, resume_path=None, num_epoch=71):
         tar.close()
 
     validate_dataset = LFW(lfw_path, specific_folder='lfw', img_extension='jpg',
-                           preprocessing_method='sphereface', crop_size=crop_size)
+                           preprocessing_method=preprocessing_method, crop_size=crop_size)
     validate_dataloader = torch.utils.data.DataLoader(validate_dataset, batch_size=8, shuffle=False,
                                                       num_workers=0, drop_last=False)
 
-    net = load_net(model_name, model_path=resume_path, gpu=True, train=True)
+    net = load_net(model_name, model_path=resume_path, gpu=True)
     if model_name == "mobilefacenet" or model_name == "openface" or model_name == "shufflefacenet":
         arc_margin = ArcMarginProduct(128, train_dataset.num_classes)
-    elif model_name == "mobiface" or model_name == "sphereface" or model_name == "facenet":
+    # elif model_name == "mobiface" or model_name == "sphereface" or model_name == "facenet":
+    else:
         arc_margin = ArcMarginProduct(512, train_dataset.num_classes)
+    # openface, facenet : triplet loss
+    # mobilefacenet , shufflefacenet : ArcMarginProduct (ArcFace)
+    # mobiface : cross entropy
+    # sphereface : A-Softmax Loss
     arc_margin = arc_margin.cuda()
     criterion = torch.nn.CrossEntropyLoss().cuda()
 
@@ -86,8 +93,6 @@ def train(dataset_path, save_dir, model_name, resume_path=None, num_epoch=71):
             {'params': arc_margin.weight, 'weight_decay': 4e-4},
             {'params': prelu_params, 'weight_decay': 0.0}
         ], lr=0.1, momentum=0.9, nesterov=True)
-
-    
     else:
         optimizer_ft = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
 
@@ -158,8 +163,11 @@ if __name__ == '__main__':
                         help='Path to to save outcomes (such as trained models) of the algorithm')
     parser.add_argument('--num_epoch', type=int, required=False, default=71,
                         help='Path to to save outcomes (such as trained models) of the algorithm')
+    parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
+                        help='Pre-processing method')
     args = parser.parse_args()
     print(args)
 
-    train(args.dataset_path, args.save_dir, args.model_name, args.resume_path, args.num_epoch)
+    train(args.dataset_path, args.save_dir, args.model_name, args.preprocessing_method,
+          args.resume_path, args.num_epoch)
 

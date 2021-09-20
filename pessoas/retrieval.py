@@ -15,6 +15,7 @@ from plots import plot_top15_person_retrieval
 from networks.load_network import load_net
 from manipulate_json import save_retrieved_ranking, read_json
 
+
 def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
               model_name="mobilefacenet", model_path=None,
               preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
@@ -88,7 +89,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
                                              return_only_one_face=True)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
-                                              load_net(args.model_name, args.model_path, gpu=True))
+                                              load_net(model_name, model_path, gpu))
 
     assert feature is not None, "No face detected in this file."
 
@@ -99,7 +100,6 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
 
     # if the method chosen was json
     if output_method.lower() == "json":
-        # TODO implementar a saida json para video
         data = []
         output_id = 1
         for i in range(len([data_to_load])):
@@ -115,7 +115,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
                 output[0][f'face_{face_id}'] = face_dict
                 print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 # save_retrieved_ranking(output, rank[1], rank[0],
-                #                       os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
+                # os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 face_id += 1
             data = {f'output{output_id}': output}
             output_id += 1
@@ -130,7 +130,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
                                         image_name='faces-' + datetime.now().strftime("%d%m%Y-%H%M%S%f"),
                                         cropped_image=feature["cropped_image"][i],
                                         bb=feature["bbs"][i], save_dir=save_dir)
-    # in case the user didn't chose neither json nor image
+    # in case the user didn't choose neither json nor image
     else:
         raise NotImplementedError("Output method " + output_method + " not implemented")
 
@@ -153,11 +153,23 @@ if __name__ == '__main__':
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
                         help='Pre-processing method')
-    parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112),
-                        help='Crop size')
+    # parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112),
+    #                     help='Crop size')
     args = parser.parse_args()
-    args.crop_size = tuple(args.crop_size)
+    # args.crop_size = tuple(args.crop_size)
     print(args)
 
+    # selecting the size of the crop based on the network
+    if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
+        crop_size = (96, 112)
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet':
+        crop_size = (112, 112)
+    elif args.model_name == 'openface':
+        crop_size = (96, 96)
+    elif args.model_name == 'facenet':
+        crop_size = (160, 160)
+    else:
+        raise NotImplementedError("Model " + args.model_name + " not implemented")
+
     retrieval(args.data_to_process, args.feature_file, args.save_dir, args.input_type,
-              args.output_method, args.model_name, args.model_path, args.preprocessing_method, args.crop_size)
+              args.output_method, args.model_name, args.model_path, args.preprocessing_method, crop_size)

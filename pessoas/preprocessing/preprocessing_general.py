@@ -56,6 +56,7 @@ class PreProcess(object):
         if self.preprocessing_method is not None:
             try:
                 if self.preprocessing_method == 'openface':
+                    print('openface')
                     # model to detect faces used in openface
                     model = AlignDlib('landmarks/shape_predictor_68_face_landmarks.dat')
                     img, __ = model.align(112, img)

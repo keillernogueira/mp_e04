@@ -32,7 +32,8 @@ def extract_features_from_video(video_file, detection_pipeline, model):
 
         for j in range(len(batches_imgs)):  # batch loop
             frames, imgs, crops, bbs = batches_frames[j], batches_imgs[j], batches_crops[j], batches_bbs[j]
-            # print(frames.shape, imgs[0].shape, imgs[1].shape, crops.shape, bbs.shape)
+            # print(frames.shape, imgs[0].shape, imgs[1].shape, crops.shape, bbs.shape, len(frames))
+            n_processed += len(frames)
 
             for i in range(len(imgs)):
                 imgs[i] = imgs[i].cuda()

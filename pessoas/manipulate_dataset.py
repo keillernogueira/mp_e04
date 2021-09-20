@@ -65,11 +65,23 @@ if __name__ == '__main__':
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
                         help='Pre-processing method')
-    parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112), help='Crop size')
+    # parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112), help='Crop size')
     parser.add_argument('--gpu', type=str2bool, required=False, default=True, help='Use GPU?')
     args = parser.parse_args()
-    args.crop_size = tuple(args.crop_size)
+    # args.crop_size = tuple(args.crop_size)
     print(args)
 
+    # selecting the size of the crop based on the network
+    if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
+        crop_size = (96, 112)
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet':
+        crop_size = (112, 112)
+    elif args.model_name == 'openface':
+        crop_size = (96, 96)
+    elif args.model_name == 'facenet':
+        crop_size = (160, 160)
+    else:
+        raise NotImplementedError("Model " + args.model_name + " not implemented")
+
     manipulate_dataset(args.feature_file, args.dataset_path,
-                       args.model_name, args.model_path, args.preprocessing_method, args.crop_size, args.gpu)
+                       args.model_name, args.model_path, args.preprocessing_method, crop_size, args.gpu)

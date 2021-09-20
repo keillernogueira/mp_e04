@@ -40,19 +40,37 @@
 
 ## com path default - output_method image
 
-	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
 
 ## com path default - output_method json
 
-	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --output_method json --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --output_method json --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
 
 ## com path customizado
 
-	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/ --model_path outputs/005.ckpt
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/ --model_path outputs/005.ckpt
 	
 ## com multiplas faces
 
-	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --image_query datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0004.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file test.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0004.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/
+
+## com path default - output_method image - com diferentes arquiteturas
+
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file mobilefacenet.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/ 
+
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file sphereface.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name sphereface --preprocessing_method sphereface --save_dir outputs/
+	
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file mobiface.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name mobiface --preprocessing_method sphereface --save_dir outputs/
+	
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file shufflefacenet.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name shufflefacenet --preprocessing_method sphereface --save_dir outputs/
+	
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file facenet.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name facenet --preprocessing_method sphereface --save_dir outputs/
+	
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file openface.mat --data_to_process datasets/LFW/lfw/Luiz_Inacio_Lula_da_Silva/Luiz_Inacio_Lula_da_Silva_0001.jpg --model_name openface --preprocessing_method sphereface --save_dir outputs/
+	
+## com video
+
+	CUDA_VISIBLE_DEVICES=0 python retrieval.py --feature_file features.mat --data_to_process https://www.youtube.com/watch?v=Qtpl_vbawcg --model_name mobilefacenet --preprocessing_method sphereface --save_dir outputs/ --input_type video
 
 --------------------------------------------------------------------------------------------------------------
 
@@ -65,6 +83,19 @@
 ## com um dataset
 
 	CUDA_VISIBLE_DEVICES=0 python manipulate_dataset.py --feature_file /mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/test.mat --dataset_path /mnt/DADOS_PARIS_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/
+	
+## com diferentes arquiteturas
 
+	CUDA_VISIBLE_DEVICES=0 python manipulate_dataset.py --feature_file /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/mobilefacenet.mat  --dataset_path /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/ --model_name mobilefacenet
+
+	CUDA_VISIBLE_DEVICES=0 python manipulate_dataset.py --feature_file /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/sphereface.mat  --dataset_path /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/ --model_name sphereface
+	
+	CUDA_VISIBLE_DEVICES=0 python manipulate_dataset.py --feature_file /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/mobiface.mat  --dataset_path /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/ --model_name mobiface
+	
+	CUDA_VISIBLE_DEVICES=0 python manipulate_dataset.py --feature_file /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/shufflefacenet.mat --dataset_path /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/ --model_name shufflefacenet
+	
+	CUDA_VISIBLE_DEVICES=0 python manipulate_dataset.py --feature_file /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/facenet.mat --dataset_path /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/ --model_name facenet
+	
+	CUDA_VISIBLE_DEVICES=0 python manipulate_dataset.py --feature_file /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/openface.mat --dataset_path /mnt/DADOS_PONTOISE_1/keiller/mp_e04/pessoas/datasets/LFW/lfw/ --model_name openface
 
 --------------------------------------------------------------------------------------------------------------

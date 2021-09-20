@@ -20,7 +20,7 @@ from networks.inception_resnet_facenet import InceptionResnetV1
 from networks.shufflefacenet import ShuffleFaceNet
 
 
-def load_net(model_name, model_path=None, gpu=True, train=False):
+def load_net(model_name, model_path=None, gpu=True):
     # initialize the network
     if model_name == 'mobilefacenet':
         net = MobileFacenet()
@@ -31,44 +31,54 @@ def load_net(model_name, model_path=None, gpu=True, train=False):
         net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'sphereface':
         net = sphere20a(feature=True)
-        if not os.path.exists(SPHEREFACE_MODEL_PATH):
+        if model_path is None and not os.path.exists(SPHEREFACE_MODEL_PATH):
+            # unzip default model
             archive = py7zr.SevenZipFile(os.path.join(MODEL_DIR, 'sphereface.7z'))
             archive.extractall(path=MODEL_DIR)
         if gpu:
-            ckpt = torch.load(SPHEREFACE_MODEL_PATH)
+            ckpt = torch.load(SPHEREFACE_MODEL_PATH if model_path is None else model_path)
         else:
-            ckpt = torch.load(SPHEREFACE_MODEL_PATH, map_location='cpu')
-        net.load_state_dict(ckpt)
+            ckpt = torch.load(SPHEREFACE_MODEL_PATH if model_path is None else model_path, map_location='cpu')
+        try:
+            net.load_state_dict(ckpt)
+        except:
+            net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'mobiface':
         net = MobiFace(final_linear=True)
         if gpu:
-            ckpt = torch.load(MOBIFACE_MODEL_PATH)
+            ckpt = torch.load(MOBIFACE_MODEL_PATH if model_path is None else model_path)
         else:
-            ckpt = torch.load(MOBIFACE_MODEL_PATH, map_location='cpu')
+            ckpt = torch.load(MOBIFACE_MODEL_PATH if model_path is None else model_path, map_location='cpu')
         net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'openface':
         net = OpenFaceModel()
         if gpu:
-            ckpt = torch.load(OPENFACE_MODEL_PATH)
+            ckpt = torch.load(OPENFACE_MODEL_PATH if model_path is None else model_path)
         else:
-            ckpt = torch.load(OPENFACE_MODEL_PATH, map_location='cpu')
-        if train == False:
-            net.load_state_dict(ckpt)#modelo carregado tem conflito com o modelo implementado
+            ckpt = torch.load(OPENFACE_MODEL_PATH if model_path is None else model_path, map_location='cpu')
+        try:
+            net.load_state_dict(ckpt)
+        except:
+            net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'facenet':
         net = InceptionResnetV1(pretrained='casia-webface')
         if not os.path.exists(FACENET_MODEL_PATH):
+            # unzip default model
             extract_gz()
         if gpu:
-            ckpt = torch.load(FACENET_MODEL_PATH)
+            ckpt = torch.load(FACENET_MODEL_PATH if model_path is None else model_path)
         else:
-            ckpt = torch.load(FACENET_MODEL_PATH, map_location='cpu')
-        net.load_state_dict(ckpt)
+            ckpt = torch.load(FACENET_MODEL_PATH if model_path is None else model_path, map_location='cpu')
+        try:
+            net.load_state_dict(ckpt)
+        except:
+            net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'shufflefacenet':
         net = ShuffleFaceNet()
         if gpu:
-            ckpt = torch.load(SHUFFLEFACENET_MODEL_PATH)
+            ckpt = torch.load(SHUFFLEFACENET_MODEL_PATH if model_path is None else model_path)
         else:
-            ckpt = torch.load(SHUFFLEFACENET_MODEL_PATH, map_location='cpu')
+            ckpt = torch.load(SHUFFLEFACENET_MODEL_PATH if model_path is None else model_path, map_location='cpu')
         net.load_state_dict(ckpt['net_state_dict'])
     else:
         raise NotImplementedError("Model " + model_name + " not implemented")
