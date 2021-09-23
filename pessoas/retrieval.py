@@ -94,7 +94,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
         feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
-                                             return_only_one_face=True)
+                                             return_only_one_face=True, crop_size = crop_size)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
                                               load_net(model_name, model_path, gpu))
 
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     # selecting the size of the crop based on the network
     if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
         crop_size = (96, 112)
-    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet':
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'curricularface':
         crop_size = (112, 112)
     elif args.model_name == 'openface':
         crop_size = (96, 96)

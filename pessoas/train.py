@@ -12,8 +12,12 @@ import torch.optim as optim
 from dataloaders.LFW_dataloader import LFW
 from dataloaders.generic_dataloader import GenericDataLoader
 from networks.mobilefacenet import ArcMarginProduct
+from networks.curricularface import CurricularFace
 from processors.dataset_processor import extract_features, evaluate_dataset
 from networks.load_network import load_net
+
+
+
 
 
 def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71):
@@ -30,7 +34,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
-    if model_name == "mobiface" or model_name == "shufflefacenet":
+    if model_name == "mobiface" or model_name == "shufflefacenet" or model_name == 'curricularface':
         crop_size = (112, 112)
     elif model_name == "sphereface" or model_name == "mobilefacenet":
         crop_size = (96, 112)
@@ -67,6 +71,9 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     if model_name == "mobilefacenet" or model_name == "openface" or model_name == "shufflefacenet":
         arc_margin = ArcMarginProduct(128, train_dataset.num_classes)
     # elif model_name == "mobiface" or model_name == "sphereface" or model_name == "facenet":
+    elif model_name == 'curricularface':
+        print("curricularFace")
+        arc_margin = CurricularFace(in_features = 512, out_features =  train_dataset.num_classes)
     else:
         arc_margin = ArcMarginProduct(512, train_dataset.num_classes)
     # openface, facenet : triplet loss
@@ -93,8 +100,28 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
             {'params': arc_margin.weight, 'weight_decay': 4e-4},
             {'params': prelu_params, 'weight_decay': 0.0}
         ], lr=0.1, momentum=0.9, nesterov=True)
+    elif model_name == 'curricularface':
+        ignored_params = []
+        paras_only_bn = []
+        paras_wo_bn = []
+        for layer in net.modules():
+            if 'Backbone' in str(layer.__class__):
+                continue
+            elif 'container' in str(layer.__class__):
+                continue
+            else:
+                if 'batchnorm' in str(layer.__class__):
+                    ignored_params += list(map(id, layer.parameters()))
+                    paras_only_bn.extend([*layer.parameters()])
+        paras_wo_bn = list(filter(lambda p: id(p) not in ignored_params, net.parameters()))
+
+        optimizer_ft = optim.SGD([
+          {'params': paras_wo_bn + list(arc_margin.parameters()), 'weight_decay': 5e-4}, 
+          {'params': paras_only_bn, 'weight_decay': 0.0}
+          ], lr=0.1, momentum=0.9)
     else:
         optimizer_ft = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
+
 
     exp_lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer_ft, milestones=[36, 52, 58], gamma=0.1)
 
