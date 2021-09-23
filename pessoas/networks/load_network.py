@@ -18,6 +18,8 @@ from networks.openface import OpenFaceModel
 from networks.inception_resnet_facenet import InceptionResnetV1
 # ShuffleFaceNet
 from networks.shufflefacenet import ShuffleFaceNet
+# CurricularFace
+from networks.curricularface import IR_101, IR_50
 
 
 def load_net(model_name, model_path=None, gpu=True):
@@ -80,6 +82,17 @@ def load_net(model_name, model_path=None, gpu=True):
         else:
             ckpt = torch.load(SHUFFLEFACENET_MODEL_PATH if model_path is None else model_path, map_location='cpu')
         net.load_state_dict(ckpt['net_state_dict'])
+    elif model_name == 'curricularface':
+        net = IR_101([112, 112])
+        if gpu:
+            ckpt = torch.load(CURRICULARFACE_MODEL_PATH if model_path is None else model_path)
+        else:
+            ckpt = torch.load(CURRICULARFACE_MODEL_PATH if model_path is None else model_path, map_location='cpu')
+        try:
+            net.load_state_dict(ckpt)
+        except:
+            net.load_state_dict(ckpt['net_state_dict'])
+
     else:
         raise NotImplementedError("Model " + model_name + " not implemented")
 
