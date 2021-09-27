@@ -1,0 +1,293 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+import torchvision
+from torchvision import models
+import statistics
+import time
+import copy
+from tqdm import tqdm
+from collections import OrderedDict
+from pathlib import Path
+
+from utils import box_iou, ap_per_class
+
+def model_factory(model_name, num_classes, feature_extract=False, use_pretrained=True):
+    model_ft = None
+    if model_name == "faster":
+        """ Faster R-CNN ResNet-50 FPN
+        """
+        model_ft = models.detection.fasterrcnn_resnet50_fpn(pretrained=use_pretrained, 
+                                                            num_classes=num_classes)
+
+    elif model_name == "maskrcnn":
+        """ Mask R-CNN ResNet-50 FPN
+        """
+        model_ft = models.detection.maskrcnn_resnet50_fpn(pretrained=use_pretrained,
+                                                          num_classes=num_classes)
+
+    elif model_name == "retina":
+        """ RetinaNet ResNet-50 FPN
+        """
+        model_ft = models.detection.retinanet_resnet50_fpn(pretrained=use_pretrained,
+                                                            num_classes=num_classes)
+
+    elif model_name == "ssd":
+        """ SSD300 VGG16
+        """
+        model_ft = models.detection.ssd300_vgg16(pretrained=use_pretrained,
+                                                  num_classes=num_classes)
+
+    else:
+        print("Invalid model name, exiting...")
+        exit()
+
+    set_parameter_requires_grad(model_ft, feature_extract)
+
+    return model_ft
+
+
+def set_parameter_requires_grad(model, feature_extracting):
+    if feature_extracting:
+        for param in model.parameters():
+            param.requires_grad = False
+
+
+def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_board, save_dir, plot=False, save_best=True):
+    # Directories
+    save_dir = Path(save_dir)
+    wdir = save_dir / 'weights'
+    wdir.mkdir(parents=True, exist_ok=True)  # make dir
+    last = wdir / 'last.pt'
+    best = wdir / 'best.pt'
+    results_file = save_dir / 'results.txt'
+    
+    counter_early_stop_epochs = 0
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    cpu_device = torch.device("cpu")
+    since = time.time()
+    #counter = 0
+    val_acc_history = []
+    total_time = 0
+
+    num_classes = dataloaders['train'].dataset.num_classes
+    class_names = dataloaders['train'].dataset.class_names
+    class_names = class_names if len(class_names) == num_classes else [str(i) for i in range(num_classes)]
+
+    iou_values = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
+    n_ious = iou_values.numel()
+
+    best_model_wts = copy.deepcopy(model.state_dict())
+    best_val_loss = 9999999.99
+    best_map = 0.0
+
+    for epoch in range(num_epochs):
+        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        print('-' * 10)
+        predictions = []
+        labels_list = []
+
+        # Each epoch has a training and validation phase
+        for phase in ['train', 'test']:
+            if phase == 'train':
+                model.train()  # Set model to training mode
+            else:
+                model.eval()   # Set model to evaluate mode
+                stats, ap, ap_class = [], [], []
+                p, r, f1, mp, mr, mAP50, mAP = 0., 0., 0., 0., 0., 0., 0. # Precision, Recall, F1, Mean P, Mean R, mAP@0.5, mAP@[0.5:0.95]
+
+            running_loss = 0.0
+
+            # Iterate over data.
+            for inputs, targets in tqdm(dataloaders[phase]):
+                inputs = inputs.to(device)
+                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                
+                if phase == 'train':
+                    time1 = time.time()
+
+                    loss_dict = model(inputs, targets)
+                    losses = sum(loss for loss in loss_dict.values())
+
+                    optimizer.zero_grad()
+                    losses.backward()
+                    optimizer.step()
+
+                    total_time += (time.time() - time1)
+
+                if phase == 'test':
+                    outputs = model(inputs)
+
+                    outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+
+                    # Assuming all imgs have at least one detection target
+                    # For each img, there is an out dict with the predictions
+                    for out in outputs:
+                        # Zero detections for the img
+                        if len(out['scores']) == 0:
+                            stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tcls))
+                            continue
+
+                        # Correct detected targets, initially assume all targets are missed for all iou threshold values
+                        correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=device)
+                        detected = []  # Detected Target Indices
+
+                        # Per target class
+                        for cls in torch.unique(targets['labels']):
+                            target_ids = (cls == targets['labels']).nonzero(as_tuple=False).view(-1)
+                            pred_ids = (cls == out['labels']).nonzero(as_tuple=False).view(-1) 
+
+                            # Search for detections
+                            if pred_ids.shape[0]:
+                                # Prediction to target ious
+                                ious, max_iou_ids = box_iou(out['boxes'][pred_ids], targets['boxes'][target_ids]).max(1)  # best ious, indices
+
+                                # Append detections
+                                detected_set = set()
+                                for idx in (ious > iou_values[0]).nonzero(as_tuple=False):
+                                    detected_tgt_id = target_ids[max_iou_ids[idx]]  # detected target
+                                    if detected_tgt_id.item() not in detected_set:
+                                        detected_set.add(detected_tgt_id.item())
+                                        detected.append(detected_tgt_id)
+
+                                        correct[pred_ids[idx]] = ious[idx] > iou_values  # iou_thres is 1xn
+
+                                        if len(detected) == len(targets['labels']):  # all targets already located in image
+                                            break
+
+                        # Append statistics (correct, conf, pred_cls, gt_cls)
+                        stats.append((correct.cpu(), out['scores'].cpu(), out['labels'].cpu(), targets['labels']))
+
+                running_loss += losses.item() * inputs.size(0)
+
+            epoch_loss = running_loss / len(dataloaders[phase].dataset)
+
+            print('{} Loss: {:.4f}'.format(phase, epoch_loss))
+            if (phase == 'train'):
+                tensor_board.add_scalar('Loss/train', epoch_loss, epoch)
+            else:
+                tensor_board.add_scalar('Loss/val', epoch_loss, epoch)
+
+            # Early stopping and validation loss history
+            if phase == 'test':
+               counter_early_stop_epochs += 1
+               val_acc_history.append(epoch_acc)
+            if phase == 'test' and epoch_loss < best_val_loss:
+                counter_early_stop_epochs = 0
+                best_val_loss = epoch_loss
+
+            # Compute statistics
+            if phase == 'test':
+                stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
+                if len(stats) and stats[0].any():
+                    p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plot, save_dir=save_dir, names=class_names)
+                    ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+                    mp, mr, mAP50, mAP = p.mean(), r.mean(), ap50.mean(), ap.mean()
+
+                pf = '%20s'  + '%12.3g' * 4  # print format  
+                print(pf % ('all', mp, mr, mAP50, mAP))
+
+                # Write metrics to file
+                with open(results_file, 'a') as f:
+                    f.write('%g/%g' % (epoch, num_epochs - 1) + '%10.4g' * 5 % (mp, mr, mAP50, mAP, running_loss/len(dataloaders['test'].dataset)) + '\n')  # append metrics, val_loss
+
+
+            # Saving models
+            if phase == 'train':
+                torch.save(copy.deepcopy(model.state_dict()), last)
+            if phase == 'test':
+                if mAP > best_map and save_best:
+                    torch.save(copy.deepcopy(model.state_dict()), best)
+
+        print ('Epoch ' + str(epoch) + ' - Time Spent ' + str(total_time))
+        if (counter_early_stop_epochs >= epochs_early_stop):
+            print ('Stopping training because validation loss did not improve in ' + str(epochs_early_stop) + ' consecutive epochs.')
+            break
+        
+        print()
+
+    time_elapsed = time.time() - since
+    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+    print('Best val Loss: {:4f}'.format(best_val_loss))
+
+    # load best model weights
+    if save_best:
+        model.load(best)
+    return model, val_acc_history
+
+
+
+def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
+    print ("Begining final eval.")
+    save_dir = Path(save_dir)
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    cpu_device = torch.device("cpu")
+
+    num_classes = dataloaders['test'].dataset.num_classes
+    class_names = dataloaders['test'].dataset.class_names
+    class_names = class_names if len(class_names) == num_classes else [str(i) for i in range(num_classes)]
+
+    iou_values = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
+
+    model.eval()
+    stats = []
+    for inputs, targets in tqdm(dataloaders['test']):
+        inputs = inputs.to(device)
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+        outputs = model(inputs)
+
+        outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+
+        # Assuming all imgs have at least one detection target
+        # For each img, there is an out dict with the predictions
+        for out in outputs:
+            # Zero detections for the img
+            if len(out['scores']) == 0:
+                stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tcls))
+                continue
+
+            # Correct detected targets, initially assume all targets are missed for all iou threshold values
+            correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=device)
+            detected = []  # Detected Target Indices
+
+            # Per target class
+            for cls in torch.unique(targets['labels']):
+                target_ids = (cls == targets['labels']).nonzero(as_tuple=False).view(-1)
+                pred_ids = (cls == out['labels']).nonzero(as_tuple=False).view(-1) 
+
+                # Search for detections
+                if pred_ids.shape[0]:
+                    # Prediction to target ious
+                    ious, max_iou_ids = box_iou(out['boxes'][pred_ids], targets['boxes'][target_ids]).max(1)  # best ious, indices
+
+                    # Append detections
+                    detected_set = set()
+                    for idx in (ious > iou_values[0]).nonzero(as_tuple=False):
+                        detected_tgt_id = target_ids[max_iou_ids[idx]]  # detected target
+                        if detected_tgt_id.item() not in detected_set:
+                            detected_set.add(detected_tgt_id.item())
+                            detected.append(detected_tgt_id)
+
+                            correct[pred_ids[idx]] = ious[idx] > iou_values  # iou_thres is 1xn
+
+                            if len(detected) == len(targets['labels']):  # all targets already located in image
+                                break
+
+            # Append statistics (correct, conf, pred_cls, gt_cls)
+            stats.append((correct.cpu(), out['scores'].cpu(), out['labels'].cpu(), targets['labels']))
+
+    stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
+    if len(stats) and stats[0].any():
+        p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plot, save_dir=save_dir, names=class_names)
+        ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+        mp, mr, mAP50, mAP = p.mean(), r.mean(), ap50.mean(), ap.mean()
+    print('%12.3g' * 4 % (mp, mr, mAP50, mAP))
+
+    # Write metrics to file
+    with open(stats_file, 'a') as f:
+        f.write('Precision, Recall, mAP@50, mAP@[50, 95]\n')
+        f.write('%10.4g' * 5 % (mp, mr, mAP50, mAP))  # append metrics
+
