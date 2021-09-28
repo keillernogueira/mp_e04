@@ -14,8 +14,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
     <!-- Material Design Bootstrap -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/mdbootstrap/4.10.1/css/mdb.min.css" rel="stylesheet">
+    <!-- Material Design Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <!-- Menu -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.7/paper/bootstrap.min.css" />
+    <!-- <link rel="stylesheet" href="https://bootswatch.com/5/cosmo/bootstrap.min.css" /> -->
 
     <!-- JQuery -->
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -34,7 +37,7 @@
 <div class="container-fluid">
 
     <div class="row">
-        <div class="p-0" style="width: 12.5%">
+        <div class="p-0" style="width: 15%">
             <nav class="navbar navbar-inverse">
                 <div class="container justify-content-center">
                     <div class="navbar-header">
@@ -42,16 +45,29 @@
                     </div>
                     <div id="navbar" class="navbar-collapse collapse">
                         <ul class="nav navbar-nav">
-                            <li>Pessoas</li>
+                            <li><div style="display: flex;
+                                align-items: center;
+                                flex-wrap: wrap;"><span class="material-icons">person_search</span><h5>Pessoas</h5></div></li>
                             <li><a href="{% url 'id_person' %}">Identificar Pessoa</a></li>
                             <li><a href="{% url 'update_db' %}">Atualizar Banco</a></li>
 
-                            <li>Objetos</li>
+                            <li><div style="display: flex;
+                                align-items: center;
+                                flex-wrap: wrap;"><span class="material-icons">pageview</span><h5>Objetos</h5></div></li>
                             <li><a href="{% url 'detect_obj' %}">Detectar Objetos</a></li>
 
-                            <li><a class="nav-item nav-link" href="{% url 'results' %}">Resultados</a></li>
-
-                            <li>Configuracoes</li>
+                            <li>
+                                <a style='display: flex;
+                                align-items: center;
+                                flex-wrap: wrap;' class="nav-item nav-link" href="{% url 'results' %}">
+                                    <span class="material-icons">list</span>
+                                    <h5>Resultados</h5>
+                                </a>
+                            </li>
+                            <li><div style="display: flex;
+                                align-items: center;
+                                flex-wrap: wrap;"><span class="material-icons">settings</span><h5>Configurações</h5>
+                            </div></li>
                             <li><a href="{% url 'config' %}">Sistema</a></li>
                             <li><a href="{% url 'train' %}">Treino</a></li>
                         </ul>

@@ -52,6 +52,8 @@ HSV_AUG = True
 # normalization means and stds for different datasets
 norms = {'imagenet': {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}}
 
+img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
+
 # Class that reads a sequence of image paths from a text file and creates a data.Dataset with them.
 class ListDataset(data.Dataset):
     def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11,
@@ -157,7 +159,7 @@ class ListDataset(data.Dataset):
 
         return img, bbx, labels
 
-    def norm(self, img):
+    def normalize(self, img):
         if len(img.shape) == 2:
             img = (img - img.mean()) / img.std()
         else:

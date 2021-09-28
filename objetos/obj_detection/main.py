@@ -57,21 +57,27 @@ def main():
     parser.add_argument('--quad', action='store_true', help='Uses a four image mosaic for training.')
 
     args = parser.parse_args()
+
     dataset_dict = yaml.safe_load(open(args.dataset, 'r'))
+    total_classes = dataset_dict['nc']
+
     img_size = args.size
     out_dir = args.output_path
     batch_size = args.batch
     epochs = args.epochs
-    model = args.model
     early_stop = args.early_stop
     total_classes = dataset_dict['nc'] + 1 # +1 to include the __background__ class used in the pytorch models 
     infer = args.inference
     is_val = args.is_val
     weights = args.weights
+
+    infer = args.inference
+    
     optim_type = args.optim
     lr = args.lr
     momentum = args.momentum
     wd = args.wd
+
     plot = args.plot
     save_best = args.save_best
     norm = args.normalization

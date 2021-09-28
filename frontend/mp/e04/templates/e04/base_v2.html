@@ -1,0 +1,121 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>{% block title %}Home{% endblock %} - MP.E04</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <!-- Font Awesome -->
+    <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    rel="stylesheet"
+    />
+    <!-- Material Design Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+    <!-- Google Fonts -->
+    <link
+    href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+    rel="stylesheet"
+    />
+    <!-- MDB -->
+    <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/4.0.0/mdb.min.css"
+    rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="{% static 'e04/css/style.css' %}">
+</head>
+
+<body>
+<!--Main Navigation-->
+<header>
+    <!-- Sidebar -->
+    <nav id="sidebarMenu" class="collapse d-lg-block sidebar collapse bg-info">
+      <div class="position-sticky">
+        <div class="list-group list-group-flush mx-3 mt-4">
+          <h5 class="list-group-item bg-info" style="display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          border-width: 0;"><span class="material-icons">person_search</span><span>    Pessoas</span></h5>
+          <a href="{% url 'id_person' %}" class="list-group-item list-group-item-action py-1 ripple bg-info sidenav-item" 
+          style="border-width: 0;">
+            <span>Identificar Pessoa</span>
+          </a>
+          <a href="{% url 'update_db' %}" class="list-group-item list-group-item-action py-1 ripple bg-info sidenav-item" style="border-width: 0;">
+            <span>Atualizar Banco</span>
+          </a>
+          <h5 class="list-group-item bg-info" style="display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          border-width: 0;"><span class="material-icons">pageview</span><span>    Objetos</span></h5>
+          <a href="{% url 'detect_obj' %}" class="list-group-item list-group-item-action py-1 ripple bg-info sidenav-item" style="border-width: 0;">
+            <span>Detectar Objetos</span>
+          </a>
+          <a href="{% url 'results' %}" class="list-group-item list-group-item-action py-2 ripple bg-info" style="border-width: 0;"><h5>
+              <i class="fa-regular fa-rectangle-list"></i><span>    Resultados</span></h5>
+          </a>
+          <h5 class="list-group-item bg-info" style="display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          border-width: 0;"><span class="material-icons">settings</span><span>    Configurações</span>
+          </h5>
+          <a href="{% url 'config' %}" class="list-group-item list-group-item-action py-1 ripple bg-info sidenav-item" style="border-width: 0;">
+              <span>Sistema</span>
+          </a>
+          <a href="{% url 'train' %}" class="list-group-item list-group-item-action py-1 ripple bg-info sidenav-item" style="border-width: 0;">
+              <span>Treino</span>
+          </a>
+        </div>
+      </div>
+    </nav>
+    <!-- Sidebar -->
+    <!-- Main Navbar -->
+    <nav id="main-navbar" class="navbar navbar-expand-lg navbar-light fixed-top" style="box-shadow:none">
+        <!-- Container wrapper -->
+        <div class="container-fluid">
+          <!-- Toggle button -->
+          <button class="navbar-toggler" type="button" data-mdb-toggle="collapse" data-mdb-target="#sidebarMenu"
+            aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+          </button>
+
+          <!-- Brand -->
+          <a class="navbar-brand" href="{% url 'index' %}">
+            <i class="fa-brands fa-searchengin h3" style="margin-bottom:0;"></i><span class="h2" style="margin-bottom:0;margin-left: 0.5rem;">E04</span>
+          </a>
+        </div>
+    </nav>
+  </header>
+  <!--Main Navigation-->
+
+  <!--Main layout-->
+  <main style="margin-top: 58px;">
+    <div class="container pt-4">
+        {% for message in messages %}
+            <div class="alert {{ message.tags }} alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                {{ message }}
+            </div>
+        {% endfor %}
+
+        {% block content %}
+        {% endblock %}
+    </div>
+  </main>
+</div>
+
+<!-- MDB -->
+<script
+type="text/javascript"
+src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/4.0.0/mdb.min.js"
+></script>
+
+</body>
+
+</html>
