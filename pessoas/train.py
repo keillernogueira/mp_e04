@@ -18,8 +18,6 @@ from networks.load_network import load_net
 
 
 
-
-
 def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71):
     """
     Train a model.
@@ -34,7 +32,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
-    if model_name == "mobiface" or model_name == "shufflefacenet" or model_name == 'curricularface':
+    if model_name == "mobiface" or model_name == "shufflefacenet" or model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
         crop_size = (112, 112)
     elif model_name == "sphereface" or model_name == "mobilefacenet":
         crop_size = (96, 112)
@@ -75,7 +73,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
         print("curricularFace")
         arc_margin = CurricularFace(in_features = 512, out_features =  train_dataset.num_classes)
     else:
-        arc_margin = ArcMarginProduct(512, train_dataset.num_classes)
+        arc_margin = ArcMarginProduct(512, train_dataset.num_classes, s=64.0, m=0.5)
     # openface, facenet : triplet loss
     # mobilefacenet , shufflefacenet : ArcMarginProduct (ArcFace)
     # mobiface : cross entropy
@@ -119,6 +117,9 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
           {'params': paras_wo_bn + list(arc_margin.parameters()), 'weight_decay': 5e-4}, 
           {'params': paras_only_bn, 'weight_decay': 0.0}
           ], lr=0.1, momentum=0.9)
+    elif model_name == 'arcface' or model_name == 'cosface':
+        optimizer = optim.SGD([{'params': net.parameters()}, {'params': arc_margin.parameters()}],
+                                    lr=0.1, momentum=0.9, weight_decay=5e-4)
     else:
         optimizer_ft = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
 
@@ -197,4 +198,3 @@ if __name__ == '__main__':
 
     train(args.dataset_path, args.save_dir, args.model_name, args.preprocessing_method,
           args.resume_path, args.num_epoch)
-

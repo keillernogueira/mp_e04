@@ -14,7 +14,8 @@ SPHEREFACE_MODEL_PATH = os.path.join(MODEL_DIR, 'sphere20a_20171020.pth')
 OPENFACE_MODEL_PATH = os.path.join(MODEL_DIR, 'openface.pth')
 FACENET_MODEL_PATH = os.path.join(MODEL_DIR, 'facenet.pt')
 SHUFFLEFACENET_MODEL_PATH = os.path.join(MODEL_DIR, 'shufflefacenet.ckpt')
-CURRICULARFACE_MODEL_PATH = os.path.join(MODEL_DIR,   'CurricularFace_Backbone.pth')
+CURRICULARFACE_MODEL_PATH = os.path.join(MODEL_DIR, 'CurricularFace_Backbone.pth')
+ARCFACE_MODEL_PATH = os.path.join(MODEL_DIR, 'arcface_backbone.pth')
 
 # data dirs
 LFW_GENERAL_DATA_DIR = os.path.join(DATASET_DIR, 'LFW')
