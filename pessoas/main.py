@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # selecting the size of the crop based on the network
     if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
         crop_size = (96, 112)
-    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'arcface':
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'arcface' or args.model_name == 'curricularface':
         crop_size = (112, 112)
     elif args.model_name == 'openface':
         crop_size = (96, 96)
