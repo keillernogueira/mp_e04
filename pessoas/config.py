@@ -16,6 +16,7 @@ FACENET_MODEL_PATH = os.path.join(MODEL_DIR, 'facenet.pt')
 SHUFFLEFACENET_MODEL_PATH = os.path.join(MODEL_DIR, 'shufflefacenet.ckpt')
 CURRICULARFACE_MODEL_PATH = os.path.join(MODEL_DIR, 'CurricularFace_Backbone.pth')
 ARCFACE_MODEL_PATH = os.path.join(MODEL_DIR, 'arcface_backbone.pth')
+COSFACE_MODEL_PATH = os.path.join(MODEL_DIR, 'cosface_backbone.pth')
 
 # data dirs
 LFW_GENERAL_DATA_DIR = os.path.join(DATASET_DIR, 'LFW')

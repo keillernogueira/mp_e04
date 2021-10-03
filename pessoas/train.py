@@ -12,6 +12,7 @@ import torch.optim as optim
 from dataloaders.LFW_dataloader import LFW
 from dataloaders.generic_dataloader import GenericDataLoader
 from networks.mobilefacenet import ArcMarginProduct
+from networks.cosface import CosineMarginProduct
 from networks.curricularface import CurricularFace
 from processors.dataset_processor import extract_features, evaluate_dataset
 from networks.load_network import load_net
@@ -72,8 +73,12 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     elif model_name == 'curricularface':
         print("curricularFace")
         arc_margin = CurricularFace(in_features = 512, out_features =  train_dataset.num_classes)
-    else:
+    elif model_name == 'cosface':
+        arc_margin = CosineMarginProduct(512, train_dataset.num_classes)
+    elif model_name == 'arcface':
         arc_margin = ArcMarginProduct(512, train_dataset.num_classes, s=64.0, m=0.5)
+    else:
+        arc_margin = ArcMarginProduct(512, train_dataset.num_classes)
     # openface, facenet : triplet loss
     # mobilefacenet , shufflefacenet : ArcMarginProduct (ArcFace)
     # mobiface : cross entropy
@@ -118,7 +123,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
           {'params': paras_only_bn, 'weight_decay': 0.0}
           ], lr=0.1, momentum=0.9)
     elif model_name == 'arcface' or model_name == 'cosface':
-        optimizer = optim.SGD([{'params': net.parameters()}, {'params': arc_margin.parameters()}],
+        optimizer_ft = optim.SGD([{'params': net.parameters()}, {'params': arc_margin.parameters()}],
                                     lr=0.1, momentum=0.9, weight_decay=5e-4)
     else:
         optimizer_ft = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)

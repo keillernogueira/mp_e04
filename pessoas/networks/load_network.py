@@ -104,7 +104,16 @@ def load_net(model_name, model_path=None, gpu=True):
             net.load_state_dict(ckpt)
         except:
             net.load_state_dict(ckpt['net_state_dict'])
-    
+    elif model_name == 'cosface':
+        net = get_model('r100', dropout=0.0, fp16=True, num_features=512)
+        if gpu:
+            ckpt = torch.load(COSFACE_MODEL_PATH if model_path is None else model_path)
+        else:
+            ckpt = torch.load(COSFACE_MODEL_PATH if model_path is None else model_path, map_location='cpu')
+        try:
+            net.load_state_dict(ckpt)
+        except:
+            net.load_state_dict(ckpt['net_state_dict'])
 
     else:
         raise NotImplementedError("Model " + model_name + " not implemented")

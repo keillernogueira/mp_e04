@@ -43,7 +43,7 @@ if __name__ == '__main__':
     # model options
     parser.add_argument('--model_name', type=str, required=True, default='mobilefacenet',
                         help='Model to test [Options: mobilefacenet | mobiface | sphereface | '
-                             'openface | facenet | shufflefacenet | arcface]')
+                             'openface | facenet | shufflefacenet | arcface | cosface | curricularface]')
     parser.add_argument('--model_path', type=str, required=False, default=None,
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size to extract features')
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     # selecting the size of the crop based on the network
     if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
         crop_size = (96, 112)
-    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'arcface' or args.model_name == 'curricularface':
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'arcface' or args.model_name == 'cosface' or args.model_name == 'curricularface':
         crop_size = (112, 112)
     elif args.model_name == 'openface':
         crop_size = (96, 96)
