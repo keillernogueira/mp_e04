@@ -4,6 +4,7 @@ import torch.optim as optim
 import numpy as np
 import torchvision
 from torchvision import models
+from torchvision.models.detection import _utils as det_utils
 import statistics
 import time
 import copy
@@ -13,36 +14,58 @@ from pathlib import Path
 
 from utils import box_iou, ap_per_class
 
-def model_factory(model_name, num_classes, feature_extract=False, use_pretrained=True):
+def model_factory(model_name, num_classes, feature_extract=False, use_pretrained=True, img_size=(480, 480)):
     model_ft = None
     if model_name == "faster":
         """ Faster R-CNN ResNet-50 FPN
         """
-        model_ft = models.detection.fasterrcnn_resnet50_fpn(pretrained_backbone=use_pretrained, 
-                                                            num_classes=num_classes)
+        model_ft = models.detection.fasterrcnn_resnet50_fpn(pretrained=use_pretrained)
+        # get number of input features for the classifier
+        in_features = model_ft.roi_heads.box_predictor.cls_score.in_features
+        # replace the pre-trained head with a new one
+        model_ft.roi_heads.box_predictor = models.detection.faster_rcnn.FastRCNNPredictor(in_features, num_classes)
 
     elif model_name == "faster-mobile":
         """ Faster R-CNN MobileNet-v3 FPN
         """
-        model_ft = models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained_backbone=use_pretrained,
-                                                          num_classes=num_classes)
+        model_ft = models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=use_pretrained)
+        # get number of input features for the classifier
+        in_features = model_ft.roi_heads.box_predictor.cls_score.in_features
+        # replace the pre-trained head with a new one
+        model_ft.roi_heads.box_predictor = models.detection.faster_rcnn.FastRCNNPredictor(in_features, num_classes)
 
     elif model_name == "retina":
         """ RetinaNet ResNet-50 FPN
         """
-        model_ft = models.detection.retinanet_resnet50_fpn(pretrained_backbone=use_pretrained,
-                                                            num_classes=num_classes)
+        model_ft = models.detection.retinanet_resnet50_fpn(pretrained=use_pretrained)
+        # get number of input features for the classifier
+        in_channels = model_ft.head.classification_head.cls_logits.in_channels
+        num_achors = model_ft.head.classification_head.num_anchors
+
+        # replace the pre-trained head with a new one
+        model_ft.head.classification_head.cls_logits = nn.Conv2d(in_channels, num_achors * num_classes, kernel_size=3, stride=1, padding=1)
+        model_ft.head.classification_head.num_classes = num_classes
 
     elif model_name == "ssd":
         """ SSD300 VGG16
         """
-        model_ft = models.detection.ssd300_vgg16(pretrained_backbone=use_pretrained,
-                                                  num_classes=num_classes)
+        model_ft = models.detection.ssd300_vgg16(pretrained=use_pretrained)
+        # get number of input features for the classifier
+        if hasattr(model_ft.backbone, 'out_channels'):
+            out_channels = model_ft.backbone.out_channels
+        else:
+            out_channels = det_utils.retrieve_out_channels(model_ft.backbone, img_size)
+
+        num_anchors = model_ft.anchor_generator.num_anchors_per_location()
+        # replace the pre-trained head with a new one
+
+        model_ft.head.classification_head =  models.detection.ssd.SSDClassificationHead(out_channels, num_anchors, num_classes)
 
     else:
         print("Invalid model name, exiting...")
         exit()
 
+    model_ft.num_classes = num_classes
     set_parameter_requires_grad(model_ft, feature_extract)
 
     return model_ft
@@ -102,7 +125,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
             # Iterate over data.
             for inputs, targets in tqdm(dataloaders[phase]):
                 # inputs = inputs.to(device)
-                inputs = list(inputs.to(device) for inp in inputs)
+                inputs = list(inp.to(device) for inp in inputs)
                 targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
                 
                 if phase == 'train':
@@ -237,7 +260,7 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     stats = []
     for inputs, targets in tqdm(dataloaders['test']):
         # inputs = inputs.to(device)
-        inputs = list(inputs.to(device) for inp in inputs)
+        inputs = list(inp.to(device) for inp in inputs)
         targets = [{k: v.to(cpu_device) for k, v in t.items()} for t in targets]
 
         outputs = model(inputs)

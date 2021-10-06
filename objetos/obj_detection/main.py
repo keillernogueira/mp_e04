@@ -78,7 +78,7 @@ def main():
     print ('.......Creating model.......')
     print('total classes: ', total_classes)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    net = model_factory(model, total_classes)
+    net = model_factory(model, total_classes, img_size=(img_size, img_size))
     if weights != 'default' and os.path.exists(weights):
         net.load_state_dict(torch.load(weights))
 
