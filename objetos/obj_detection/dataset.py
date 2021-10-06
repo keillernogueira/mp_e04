@@ -107,6 +107,8 @@ class ListDataset(data.Dataset):
                 ymin = float(bb_list[2]) - (float(bb_list[4])/2)
                 xmax = float(bb_list[1]) + (float(bb_list[3])/2)
                 ymax = float(bb_list[2]) + (float(bb_list[4])/2)
+                if xmin == xmax: xmin -= 0.1
+                if ymin == ymax: ymin -= 0.1
                 bbx.append([xmin,ymin,xmax,ymax])
         
         img = img_as_float32(img)
