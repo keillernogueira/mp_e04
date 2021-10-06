@@ -28,7 +28,7 @@ def main():
                         help='Number of epochs to activate early stop.')
 
     parser.add_argument('--model', type=str, required=False, default='vgg',
-                        help = 'Choose network model. [faster|maskrcnn|retina|ssd]')
+                        help = 'Choose network model. [faster|faster-mobile|retina|ssd]')
     
     parser.add_argument('--optim', type=str, required=False, default='adam',
                         help='Optimizer used [adam|sgd].')                        

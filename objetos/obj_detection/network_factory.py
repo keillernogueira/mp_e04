@@ -21,10 +21,10 @@ def model_factory(model_name, num_classes, feature_extract=False, use_pretrained
         model_ft = models.detection.fasterrcnn_resnet50_fpn(pretrained=use_pretrained, 
                                                             num_classes=num_classes)
 
-    elif model_name == "maskrcnn":
-        """ Mask R-CNN ResNet-50 FPN
+    elif model_name == "faster-mobile":
+        """ Faster R-CNN MobileNet-v3 FPN
         """
-        model_ft = models.detection.maskrcnn_resnet50_fpn(pretrained=use_pretrained,
+        model_ft = models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=use_pretrained,
                                                           num_classes=num_classes)
 
     elif model_name == "retina":
