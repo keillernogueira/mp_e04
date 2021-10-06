@@ -6,6 +6,7 @@ from torch.utils import data
 
 from skimage import io, transform
 from skimage import img_as_float, img_as_float32
+from skimage.color import gray2rgb
 
 '''
 # This class ListDataset use the dataset name and task name to load the respectives images accordingly, modify this class to your use case
@@ -92,7 +93,9 @@ class ListDataset(data.Dataset):
         bbx = []
         # Reading images.
         img = io.imread(img_path)
-        h, w, _ = img.shape
+        # check gray
+        if len(img.shape) == 2:
+            img = gray2rgb(img)
 
         with open(ann_path,"r") as f:
             while True:
@@ -137,7 +140,7 @@ class ListDataset(data.Dataset):
         img = transform.resize(img, (self.img_size, self.img_size) , order=1, preserve_range=True)
         
         # Transform bb to the image size
-        h, w, _ = img.shape
+        h, w, _ = img.shape 
         bbx = np.array(bbx)*np.array([w,h,w,h])
 
         # Adding channel dimension.
