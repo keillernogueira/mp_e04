@@ -101,7 +101,8 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
             # Iterate over data.
             for inputs, targets in tqdm(dataloaders[phase]):
-                inputs = inputs.to(device)
+                # inputs = inputs.to(device)
+                inputs = list(inputs.to(device) for inp in inputs)
                 targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
                 
                 if phase == 'train':
@@ -235,7 +236,8 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     model.eval()
     stats = []
     for inputs, targets in tqdm(dataloaders['test']):
-        inputs = inputs.to(device)
+        # inputs = inputs.to(device)
+        inputs = list(inputs.to(device) for inp in inputs)
         targets = [{k: v.to(cpu_device) for k, v in t.items()} for t in targets]
 
         outputs = model(inputs)
