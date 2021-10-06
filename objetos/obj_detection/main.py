@@ -3,7 +3,6 @@ import os, random
 from torch.utils.tensorboard import SummaryWriter
 import torch.optim as optim
 import dataloader
-import trainval
 import torch.nn as nn
 import torch
 import yaml
@@ -66,16 +65,23 @@ def main():
     plot = args.plot
     save_best = args.save_best
 
-    if (not os.path.exists(out_dir)):
+    if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    if (not os.path.exists(os.path.join(out_dir, 'weights')):
-        os.makedirs(os.path.join(out_dir, 'weights'))
+    save_dir = os.path.join(out_dir, model)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    if not os.path.exists(os.path.join(save_dir, 'weights')):
+        os.makedirs(os.path.join(save_dir, 'weights'))
 
     print ('.......Creating model.......')
     print('total classes: ', total_classes)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = model_factory(model, total_classes)
+    if weights != 'default' and os.path.exists(weights):
+        net.load_state_dict(torch.load(weights))
+
     print (net)
     net = net.to(device)
     print ('......Model created.......')
@@ -97,12 +103,15 @@ def main():
         print("Optimizer Not Implemented.")
         exit()
 
-    tensor_board = SummaryWriter(log_dir = out_dir)
-    final_model, val_history = train(net, dataloaders_dict, optimizer, epochs, early_stop, tensor_board, out_dir, plot=plot, save_best=save_best)
-    
-    final_stats_file = open(os.path.join(out_dir, model + '_finalstats.txt'), 'w')
+    tensor_board = SummaryWriter(log_dir = save_dir)
+    if not infer:
+        final_model, map_history = train(net, dataloaders_dict, optimizer, epochs, early_stop, tensor_board, save_dir, plot=plot, save_best=save_best)
+    else:
+        final_model = net
 
-    final_eval(final_model, dataloaders_dict, final_stats_file, out_dir, plot=plot)
+    final_stats_file = open(os.path.join(save_dir,'finalstats.txt'), 'w')
+
+    final_eval(final_model, dataloaders_dict, final_stats_file, save_dir, plot=plot)
 
 if __name__ == '__main__':
     main()

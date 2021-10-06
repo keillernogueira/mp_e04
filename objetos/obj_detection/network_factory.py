@@ -68,7 +68,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
     cpu_device = torch.device("cpu")
     since = time.time()
     #counter = 0
-    val_acc_history = []
+    val_map_history = []
     total_time = 0
 
     num_classes = dataloaders['train'].dataset.num_classes
@@ -169,14 +169,6 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
             else:
                 tensor_board.add_scalar('Loss/val', epoch_loss, epoch)
 
-            # Early stopping and validation loss history
-            if phase == 'test':
-               counter_early_stop_epochs += 1
-               val_acc_history.append(epoch_acc)
-            if phase == 'test' and epoch_loss < best_val_loss:
-                counter_early_stop_epochs = 0
-                best_val_loss = epoch_loss
-
             # Compute statistics
             if phase == 'test':
                 stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
@@ -192,6 +184,13 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                 with open(results_file, 'a') as f:
                     f.write('%g/%g' % (epoch, num_epochs - 1) + '%10.4g' * 5 % (mp, mr, mAP50, mAP, running_loss/len(dataloaders['test'].dataset)) + '\n')  # append metrics, val_loss
 
+            # Early stopping and validation loss history
+            if phase == 'test':
+               counter_early_stop_epochs += 1
+               val_map_history.append(mAP)
+            if phase == 'test' and mAP > best_map:
+                counter_early_stop_epochs = 0
+                best_map = mAP
 
             # Saving models
             if phase == 'train':
@@ -202,19 +201,19 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
         print ('Epoch ' + str(epoch) + ' - Time Spent ' + str(total_time))
         if (counter_early_stop_epochs >= epochs_early_stop):
-            print ('Stopping training because validation loss did not improve in ' + str(epochs_early_stop) + ' consecutive epochs.')
+            print ('Stopping training because mAP score did not improve in ' + str(epochs_early_stop) + ' consecutive epochs.')
             break
         
         print()
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-    print('Best val Loss: {:4f}'.format(best_val_loss))
+    print('Best mAP Loss: {:4f}'.format(best_map))
 
     # load best model weights
     if save_best:
-        model.load(best)
-    return model, val_acc_history
+        model.load_state_dict(torch.load(best))
+    return model, val_map_history
 
 
 
@@ -230,6 +229,7 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     class_names = class_names if len(class_names) == num_classes else [str(i) for i in range(num_classes)]
 
     iou_values = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
+    n_ious = iou_values.numel()
 
     model.eval()
     stats = []
