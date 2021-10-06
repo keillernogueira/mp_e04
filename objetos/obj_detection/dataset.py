@@ -134,7 +134,7 @@ class ListDataset(data.Dataset):
         if norm:
             img = self.norm(img)
 
-        img = transform.resize(img, self.img_size, order=1, preserve_range=True)
+        img = transform.resize(img, (self.img_size, self.img_size) , order=1, preserve_range=True)
         
         # Transform bb to the image size
         h, w, _ = img.shape

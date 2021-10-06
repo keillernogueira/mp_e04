@@ -92,8 +92,8 @@ def main():
 
 
     params_to_update = net.parameters()
-    print("Params to learn:")
-    print (params_to_update)
+    # print("Params to learn:")
+    # print (params_to_update)
 
     if optim_type == 'sgd':
         optimizer = optim.SGD(params_to_update, lr=lr, momentum=0.9, weight_decay=wd)
