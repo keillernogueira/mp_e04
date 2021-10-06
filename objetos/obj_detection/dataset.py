@@ -155,6 +155,7 @@ class ListDataset(data.Dataset):
         targets["labels"] = labels
 
         # Returning to iterator.
+        print(index, targets)
         return img, targets
 
         
