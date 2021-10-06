@@ -99,7 +99,7 @@ class ListDataset(data.Dataset):
                 bb_list = f.readline().split()
                 if not bb_list:
                     break
-                labels.append(bb_list[0])
+                labels.append(int(bb_list[0]))
                 xmin = float(bb_list[1]) - float(bb_list[3])/2
                 ymin = float(bb_list[2]) - float(bb_list[4])/2
                 xmax = float(bb_list[1]) + float(bb_list[3])/2
