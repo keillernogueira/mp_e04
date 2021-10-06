@@ -183,7 +183,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                         # Append statistics (correct, conf, pred_cls, gt_cls)
                         stats.append((correct.cpu(), out['scores'].cpu(), out['labels'].cpu(), tgt['labels'].cpu()))
 
-                running_loss += losses.item() * inputs.size(0)
+                running_loss += losses.item() * len(inputs)
 
             # Compute statistics
             if phase == 'test':
