@@ -18,25 +18,25 @@ def model_factory(model_name, num_classes, feature_extract=False, use_pretrained
     if model_name == "faster":
         """ Faster R-CNN ResNet-50 FPN
         """
-        model_ft = models.detection.fasterrcnn_resnet50_fpn(pretrained=use_pretrained, 
+        model_ft = models.detection.fasterrcnn_resnet50_fpn(pretrained_backbone=use_pretrained, 
                                                             num_classes=num_classes)
 
     elif model_name == "faster-mobile":
         """ Faster R-CNN MobileNet-v3 FPN
         """
-        model_ft = models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=use_pretrained,
+        model_ft = models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained_backbone=use_pretrained,
                                                           num_classes=num_classes)
 
     elif model_name == "retina":
         """ RetinaNet ResNet-50 FPN
         """
-        model_ft = models.detection.retinanet_resnet50_fpn(pretrained=use_pretrained,
+        model_ft = models.detection.retinanet_resnet50_fpn(pretrained_backbone=use_pretrained,
                                                             num_classes=num_classes)
 
     elif model_name == "ssd":
         """ SSD300 VGG16
         """
-        model_ft = models.detection.ssd300_vgg16(pretrained=use_pretrained,
+        model_ft = models.detection.ssd300_vgg16(pretrained_backbone=use_pretrained,
                                                   num_classes=num_classes)
 
     else:
