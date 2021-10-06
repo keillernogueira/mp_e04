@@ -100,10 +100,10 @@ class ListDataset(data.Dataset):
                 if not bb_list:
                     break
                 labels.append(int(bb_list[0]))
-                xmin = float(bb_list[1]) - float(bb_list[3])/2
-                ymin = float(bb_list[2]) - float(bb_list[4])/2
-                xmax = float(bb_list[1]) + float(bb_list[3])/2
-                ymax = float(bb_list[2]) + float(bb_list[4])/2
+                xmin = float(bb_list[1]) - (float(bb_list[3])/2)
+                ymin = float(bb_list[2]) - (float(bb_list[4])/2)
+                xmax = float(bb_list[1]) + (float(bb_list[3])/2)
+                ymax = float(bb_list[2]) + (float(bb_list[4])/2)
                 bbx.append([xmin,ymin,xmax,ymax])
         
         img = img_as_float32(img)
