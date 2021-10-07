@@ -155,7 +155,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                             continue
 
                         # Correct detected targets, initially assume all targets are missed for all iou threshold values
-                        correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=device)
+                        correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=cpu_device)
                         detected = []  # Detected Target Indices
 
                         # Per target class
@@ -277,7 +277,7 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
                 continue
 
             # Correct detected targets, initially assume all targets are missed for all iou threshold values
-            correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=device)
+            correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=cpu_device)
             detected = []  # Detected Target Indices
 
             # Per target class
