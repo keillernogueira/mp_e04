@@ -186,6 +186,9 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
                 running_loss += losses.item() * len(inputs)
 
+                del inputs
+                del targets
+
             # Compute statistics
             if phase == 'test':
                 stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
