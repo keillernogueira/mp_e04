@@ -151,7 +151,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                     for out, tgt in zip(outputs, targets):
                         # Zero detections for the img
                         if len(out['scores']) == 0:
-                            stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tgt['labels'].numpy.tolist()))
+                            stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tgt['labels'].numpy().tolist()))
                             continue
 
                         # Correct detected targets, initially assume all targets are missed for all iou threshold values
@@ -276,7 +276,7 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
         for out, tgt in zip(outputs, targets):
             # Zero detections for the img
             if len(out['scores']) == 0:
-                stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tgt['labels'].cpu().numpy.tolist()))
+                stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tgt['labels'].cpu().numpy().tolist()))
                 continue
 
             # Correct detected targets, initially assume all targets are missed for all iou threshold values
