@@ -87,7 +87,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
     results_file = save_dir / 'results.txt'
     
     counter_early_stop_epochs = 0
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cpu_device = torch.device("cpu")
     since = time.time()
     #counter = 0
@@ -250,7 +250,7 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     print ("Begining final eval.")
     save_dir = Path(save_dir)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cpu_device = torch.device("cpu")
 
     num_classes = dataloaders['test'].dataset.num_classes
