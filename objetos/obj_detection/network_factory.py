@@ -144,13 +144,14 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                     outputs = model(inputs)
 
                     outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+                    targets = [{k: v.to(cpu_device) for k, v in t.items()} for t in targets]
 
                     # Assuming all imgs have at least one detection target
                     # For each img, there is an out dict with the predictions
                     for out, tgt in zip(outputs, targets):
                         # Zero detections for the img
                         if len(out['scores']) == 0:
-                            stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tgt['labels'].cpu().numpy.tolist()))
+                            stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tgt['labels'].numpy.tolist()))
                             continue
 
                         # Correct detected targets, initially assume all targets are missed for all iou threshold values
