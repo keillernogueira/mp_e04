@@ -184,6 +184,8 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                         # Append statistics (correct, conf, pred_cls, gt_cls)
                         stats.append((correct.cpu(), out['scores'].cpu(), out['labels'].cpu(), tgt['labels'].cpu()))
 
+                    del outputs
+
                 running_loss += losses.item() * len(inputs)
 
                 del inputs
