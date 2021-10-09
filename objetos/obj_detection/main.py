@@ -7,7 +7,8 @@ import torch.nn as nn
 import torch
 import yaml
 import numpy as np
-from network_factory import model_factory, train, final_eval
+from network_factory_v2 import model_factory, train, final_eval
+
 
 # Fixed image size
 
@@ -28,10 +29,10 @@ def main():
                         help='Number of epochs to activate early stop.')
 
     parser.add_argument('--model', type=str, required=False, default='vgg',
-                        help = 'Choose network model. [faster|faster-mobile|retina|ssd]')
-    
+                        help='Choose network model. [faster|faster-mobile|retina|ssd]')
+
     parser.add_argument('--optim', type=str, required=False, default='adam',
-                        help='Optimizer used [adam|sgd].')                        
+                        help='Optimizer used [adam|sgd].')
     parser.add_argument('--lr', type=float, required=False, default=0.001,
                         help='Learning Rate.')
     parser.add_argument('--momentum', type=float, required=False, default=0.9,
@@ -39,7 +40,8 @@ def main():
     parser.add_argument('--wd', type=float, required=False, default=5e-5,
                         help='Weight Decay.')
 
-    parser.add_argument('--inference', action='store_true', help='Only test the model on the images in the test folder of the dataset.')
+    parser.add_argument('--inference', action='store_true',
+                        help='Only test the model on the images in the test folder of the dataset.')
 
     parser.add_argument('--plot', action='store_true', help='Plot metric graphics.')
 
@@ -75,21 +77,21 @@ def main():
     if not os.path.exists(os.path.join(save_dir, 'weights')):
         os.makedirs(os.path.join(save_dir, 'weights'))
 
-    print ('.......Creating model.......')
+    print('.......Creating model.......')
     print('total classes: ', total_classes)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net = model_factory(model, total_classes, img_size=(img_size, img_size))
     if weights != 'default' and os.path.exists(weights):
         net.load_state_dict(torch.load(weights))
 
-    print (net)
+    print(net)
     net = net.to(device)
-    print ('......Model created.......')
+    print('......Model created.......')
 
-    print ('......Creating dataloader......')
-    dataloaders_dict = dataloader.create_dataloader(dataset_dict['root'], img_size, batch_size, num_classes=total_classes)
-    print ('......Dataloader created......')
-
+    print('......Creating dataloader......')
+    dataloaders_dict = dataloader.create_dataloader(dataset_dict['root'], img_size, batch_size,
+                                                    num_classes=total_classes)
+    print('......Dataloader created......')
 
     params_to_update = net.parameters()
     # print("Params to learn:")
@@ -103,15 +105,17 @@ def main():
         print("Optimizer Not Implemented.")
         exit()
 
-    tensor_board = SummaryWriter(log_dir = save_dir)
+    tensor_board = SummaryWriter(log_dir=save_dir)
     if not infer:
-        final_model, map_history = train(net, dataloaders_dict, optimizer, epochs, early_stop, tensor_board, save_dir, plot=plot, save_best=save_best)
+        final_model, map_history = train(net, dataloaders_dict, optimizer, epochs, early_stop, tensor_board, save_dir,
+                                         plot=plot, save_best=save_best)
     else:
         final_model = net
 
-    final_stats_file = open(os.path.join(save_dir,'finalstats.txt'), 'w')
+    final_stats_file = open(os.path.join(save_dir, 'finalstats.txt'), 'w')
 
     final_eval(final_model, dataloaders_dict, final_stats_file, save_dir, plot=plot)
+
 
 if __name__ == '__main__':
     main()

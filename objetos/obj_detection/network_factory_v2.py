@@ -12,7 +12,7 @@ from tqdm import tqdm
 from collections import OrderedDict
 from pathlib import Path
 
-from utils import box_iou, ap_per_class
+from utils import box_iou_v2, ap_per_class
 
 
 def model_factory(model_name, num_classes, feature_extract=False, use_pretrained=True, img_size=(480, 480)):
@@ -102,8 +102,8 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
     class_names = dataloaders['train'].dataset.class_names
     class_names = class_names if len(class_names) == num_classes else [str(i) for i in range(num_classes)]
 
-    iou_values = torch.linspace(0.5, 0.95, 10).to(cpu_device)  # iou vector for mAP@0.5:0.95
-    n_ious = iou_values.numel()
+    iou_values = np.linspace(0.5, 0.95, 10)  # iou vector for mAP@0.5:0.95
+    n_ious = iou_values.size
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_loss = 9999999.99
@@ -147,44 +147,38 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                 if phase == 'test':
                     outputs = model(inputs)
 
-                    outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
-                    targets = [{k: v.to(cpu_device) for k, v in t.items()} for t in targets]
-
-                    print('outputs', outputs)
-                    print('targets', targets)
+                    outputs = [{k: v.detach().cpu().numpy() for k, v in t.items()} for t in outputs]
+                    targets = [{k: v.detach().cpu().numpy() for k, v in t.items()} for t in targets]
 
                     # Assuming all imgs have at least one detection target
                     # For each img, there is an out dict with the predictions
                     for out, tgt in zip(outputs, targets):
                         # Zero detections for the img
                         if len(out['scores']) == 0:
-                            stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(),
-                                          tgt['labels'].numpy().tolist()))
+                            stats.append((np.zeros((0, n_ious), dtype=bool), np.zeros(0), np.zeros(0),
+                                          tgt['labels'].tolist()))
                             continue
 
                         # Correct detected targets, initially assume all targets are missed for all iou threshold values
-                        correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=cpu_device)
+                        correct = np.zeros((len(out['scores']), n_ious), dtype=bool)
                         detected = []  # Detected Target Indices
 
                         # Per target class
-                        for cls in torch.unique(tgt['labels']):
-                            target_ids = (cls == tgt['labels']).nonzero(as_tuple=False).view(-1)
-                            pred_ids = (cls == out['labels']).nonzero(as_tuple=False).view(-1)
-
-                            print(cls == tgt['labels'])
-                            print(cls == out['labels'])
-
-                            print('target_ids', target_ids)
-                            print('pred_ids', pred_ids)
+                        for cls in np.unique(tgt['labels']):
+                            target_ids = np.flatnonzero(cls == tgt['labels'])
+                            pred_ids = np.flatnonzero(cls == out['labels'])
 
                             # Search for detections
                             if pred_ids.shape[0]:
                                 # Prediction to target ious
-                                ious, max_iou_ids = box_iou(out['boxes'][pred_ids], tgt['boxes'][target_ids]).max(1)  # best ious, indices
+                                inter = box_iou_v2(out['boxes'][pred_ids], tgt['boxes'][target_ids])
+                                ious = np.amax(inter, axis=1)
+                                max_iou_ids = np.argmax(inter, axis=1)
+                                # ious, max_iou_ids = box_iou_v2(out['boxes'][pred_ids], tgt['boxes'][target_ids]).max(1)  # best ious, indices
 
                                 # Append detections
                                 detected_set = set()
-                                for idx in (ious > iou_values[0]).nonzero(as_tuple=False):
+                                for idx in np.flatnonzero(ious > iou_values[0]):
                                     detected_tgt_id = target_ids[max_iou_ids[idx]]  # detected target
                                     if detected_tgt_id.item() not in detected_set:
                                         detected_set.add(detected_tgt_id.item())
@@ -196,7 +190,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                                             break
 
                         # Append statistics (correct, conf, pred_cls, gt_cls)
-                        stats.append((correct.cpu(), out['scores'].cpu(), out['labels'].cpu(), tgt['labels'].cpu()))
+                        stats.append((correct, out['scores'], out['labels'], tgt['labels']))
 
                     del outputs
 
@@ -225,7 +219,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
             epoch_loss = running_loss / len(dataloaders[phase].dataset)
 
             print('{} Loss: {:.4f}'.format(phase, epoch_loss))
-            if (phase == 'train'):
+            if phase == 'train':
                 tensor_board.add_scalar('Loss/train', epoch_loss, epoch)
             else:
                 tensor_board.add_scalar('mAP/val', mAP, epoch)
@@ -246,9 +240,9 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                     torch.save(copy.deepcopy(model.state_dict()), best)
 
         print('Epoch ' + str(epoch) + ' - Time Spent ' + str(total_time))
-        if (counter_early_stop_epochs >= epochs_early_stop):
-            print('Stopping training because mAP score did not improve in ' + str(
-                epochs_early_stop) + ' consecutive epochs.')
+        if counter_early_stop_epochs >= epochs_early_stop:
+            print('Stopping training because mAP score did not improve in ' +
+                  str(epochs_early_stop) + ' consecutive epochs.')
             break
 
         print()
@@ -305,13 +299,12 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
             for cls in torch.unique(tgt['labels']):
                 target_ids = (cls == tgt['labels']).nonzero(as_tuple=False).view(-1)
                 pred_ids = (cls == out['labels']).nonzero(as_tuple=False).view(-1)
-                print(target_ids)
-                print(pred_ids)
 
                 # Search for detections
                 if pred_ids.shape[0]:
                     # Prediction to target ious
-                    ious, max_iou_ids = box_iou(out['boxes'][pred_ids], tgt['boxes'][target_ids]).max(1)  # best ious, indices
+                    ious, max_iou_ids = box_iou(out['boxes'][pred_ids], tgt['boxes'][target_ids]).max(
+                        1)  # best ious, indices
 
                     # Append detections
                     detected_set = set()
