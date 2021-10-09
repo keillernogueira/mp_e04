@@ -48,16 +48,15 @@ def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_m
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
             individual_retrieval(path, feature_file, save_dir, input_data, output_method, model_name,
-                                  model_path, preprocessing_method, crop_size, gpu)
+                                 model_path, preprocessing_method, crop_size, gpu)
     else:
         individual_retrieval(data_to_load, feature_file, save_dir, input_data, output_method, model_name,
-                                  model_path, preprocessing_method, crop_size, gpu)
+                             model_path, preprocessing_method, crop_size, gpu)
 
 
-# TODO checar com MPMG import usando json com multiplas images
 def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
-                        model_name="mobilefacenet", model_path=None,
-                        preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
+                         model_name="mobilefacenet", model_path=None,
+                         preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 

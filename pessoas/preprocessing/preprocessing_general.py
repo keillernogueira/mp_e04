@@ -38,7 +38,7 @@ class PreProcess(object):
         self.return_only_one_face = return_only_one_face
         self.execute_default = execute_default
 
-        self.mtcnn = MTCNN(keep_all=True, selection_method="largest",
+        self.mtcnn = MTCNN(keep_all=True, selection_method="largest", post_process=False, image_size=crop_size,
                            device=torch.device('cuda') if gpu is True else torch.device('cpu'))
 
     def preprocess(self, img):
@@ -56,7 +56,6 @@ class PreProcess(object):
         if self.preprocessing_method is not None:
             try:
                 if self.preprocessing_method == 'openface':
-                    print('openface')
                     # model to detect faces used in openface
                     model = AlignDlib('landmarks/shape_predictor_68_face_landmarks.dat')
                     img, __ = model.align(112, img)
@@ -81,11 +80,9 @@ class PreProcess(object):
                     # print('2', bounding_boxes.shape, landmarks.shape)
 
                     if self.preprocessing_method == 'mtcnn':
-                        img_res = mtcnn_crop_image(img, bounding_boxes, detect_multiple_faces=True,
-                                                   margin=24, image_size=self.crop_size)
-                        print('1', img_res.shape)
+                        # img_res = mtcnn_crop_image(img, bounding_boxes, detect_multiple_faces=True,
+                        #                            margin=24, image_size=self.crop_size)
                         img_res = self.mtcnn.extract(img, bounding_boxes, None)
-                        print('2', img_res.shape)
                     elif self.preprocessing_method == 'sphereface':
                         if self.has_load_landmarks is True:
                             if self.img_name is None:

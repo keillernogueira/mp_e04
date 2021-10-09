@@ -305,17 +305,17 @@ def crop_resize(img, box, image_size):
         img = img[box[1]:box[3], box[0]:box[2]]
         out = cv2.resize(
             img,
-            (image_size, image_size),
+            (image_size[0], image_size[1]),
             interpolation=cv2.INTER_AREA
         ).copy()
     elif isinstance(img, torch.Tensor):
         img = img[box[1]:box[3], box[0]:box[2]]
         out = imresample(
             img.permute(2, 0, 1).unsqueeze(0).float(),
-            (image_size, image_size)
+            (image_size[0], image_size[1])
         ).byte().squeeze(0).permute(1, 2, 0)
     else:
-        out = img.crop(box).copy().resize((image_size, image_size), Image.BILINEAR)
+        out = img.crop(box).copy().resize(([0], image_size[1]), Image.BILINEAR)
     return out
 
 
@@ -350,8 +350,8 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
         torch.tensor -- tensor representing the extracted face.
     """
     margin = [
-        margin * (box[2] - box[0]) / (image_size - margin),
-        margin * (box[3] - box[1]) / (image_size - margin),
+        margin * (box[2] - box[0]) / (image_size[0] - margin),
+        margin * (box[3] - box[1]) / (image_size[1] - margin),
     ]
     raw_image_size = get_size(img)
     box = [
@@ -367,6 +367,6 @@ def extract_face(img, box, image_size=160, margin=0, save_path=None):
         os.makedirs(os.path.dirname(save_path) + "/", exist_ok=True)
         save_img(face, save_path)
 
-    face = F.to_tensor(np.float32(face))
+    # face = F.to_tensor(np.float32(face))  # removed because this changes the order of the channels
 
     return face
