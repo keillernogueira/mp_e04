@@ -112,7 +112,7 @@ def main():
     else:
         final_model = net
 
-    final_stats_file = open(os.path.join(save_dir, 'finalstats.txt'), 'w')
+    final_stats_file = os.path.join(save_dir, 'finalstats.txt')
 
     final_eval(final_model, dataloaders_dict, final_stats_file, save_dir, plot=plot)
 
