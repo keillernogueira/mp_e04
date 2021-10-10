@@ -271,8 +271,8 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     class_names = dataloaders['test'].dataset.class_names
     class_names = class_names if len(class_names) == num_classes else [str(i) for i in range(num_classes)]
 
-    iou_values = torch.linspace(0.5, 0.95, 10).to(cpu_device)  # iou vector for mAP@0.5:0.95
-    n_ious = iou_values.numel()
+    iou_values = np.linspace(0.5, 0.95, 10)  # iou vector for mAP@0.5:0.95
+    n_ious = iou_values.size
 
     model.eval()
     stats = []
