@@ -163,4 +163,4 @@ class ListDataset(data.Dataset):
         return img, targets
 
     def __len__(self):
-        return 100  # len(self.imgs)
+        return len(self.imgs)

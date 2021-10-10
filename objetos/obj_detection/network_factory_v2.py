@@ -195,7 +195,8 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
                     del outputs
 
-                running_loss += losses.item() * len(inputs)
+                if phase == 'train':
+                    running_loss += losses.item() * len(inputs)
 
                 del inputs
                 del targets
@@ -213,11 +214,11 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
                 # Write metrics to file
                 with open(results_file, 'a') as f:
-                    f.write('%g/%g' % (epoch, num_epochs - 1) + '%10.4g' * 5 % (mp, mr, mAP50, mAP, running_loss / len(
-                        dataloaders['test'].dataset)) + '\n')  # append metrics, val_loss
+                    f.write('%g/%g' % (epoch, num_epochs - 1) + '%10.4g' * 4 % (mp, mr, mAP50, mAP) + '\n')  # append metrics
 
             # Epoch loss/ metric registry in tensorboard
-            epoch_loss = running_loss / len(dataloaders[phase].dataset)
+            if phase == 'train':
+                epoch_loss = running_loss / len(dataloaders[phase].dataset)
 
             print('{} Loss: {:.4f}'.format(phase, epoch_loss))
             if phase == 'train':
