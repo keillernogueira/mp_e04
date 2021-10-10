@@ -339,4 +339,4 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     # Write metrics to file
     with open(stats_file, 'a') as f:
         f.write('Precision, Recall, mAP@50, mAP@[50, 95]\n')
-        f.write('%10.4g' * 5 % (mp, mr, mAP50, mAP))  # append metrics
+        f.write('%10.4g' * 4 % (mp, mr, mAP50, mAP))  # append metrics
