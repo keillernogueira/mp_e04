@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -107,7 +108,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_loss = 9999999.99
-    best_map = 0.0
+    best_map = -1.0
 
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -225,18 +226,20 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                 tensor_board.add_scalar('mAP/val', mAP, epoch)
 
             # Early stopping and validation loss history
+            save_model = False
             if phase == 'test':
                 counter_early_stop_epochs += 1
                 val_map_history.append(mAP)
             if phase == 'test' and mAP > best_map:
                 counter_early_stop_epochs = 0
                 best_map = mAP
+                save_model = True
 
             # Saving models
             if phase == 'train':
                 torch.save(copy.deepcopy(model.state_dict()), last)
             if phase == 'test':
-                if mAP > best_map and save_best:
+                if save_model and save_best:
                     torch.save(copy.deepcopy(model.state_dict()), best)
 
         print('Epoch ' + str(epoch) + ' - Time Spent ' + str(total_time))
@@ -252,7 +255,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
     print('Best mAP Loss: {:4f}'.format(best_map))
 
     # load best model weights
-    if save_best:
+    if save_best and os.path.exists(best):
         model.load_state_dict(torch.load(best))
     return model, val_map_history
 
@@ -276,39 +279,41 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     for inputs, targets in tqdm(dataloaders['test']):
         # inputs = inputs.to(device)
         inputs = list(inp.to(device) for inp in inputs)
-        targets = [{k: v.to(cpu_device) for k, v in t.items()} for t in targets]
 
         outputs = model(inputs)
 
-        outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+        outputs = [{k: v.detach().cpu().numpy() for k, v in t.items()} for t in outputs]
+        targets = [{k: v.detach().cpu().numpy() for k, v in t.items()} for t in targets]
 
         # Assuming all imgs have at least one detection target
         # For each img, there is an out dict with the predictions
         for out, tgt in zip(outputs, targets):
             # Zero detections for the img
             if len(out['scores']) == 0:
-                stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(),
-                              tgt['labels'].cpu().numpy().tolist()))
+                stats.append((np.zeros((0, n_ious), dtype=bool), np.zeros(0), np.zeros(0),
+                                tgt['labels'].tolist()))
                 continue
 
             # Correct detected targets, initially assume all targets are missed for all iou threshold values
-            correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=cpu_device)
+            correct = np.zeros((len(out['scores']), n_ious), dtype=bool)
             detected = []  # Detected Target Indices
 
             # Per target class
-            for cls in torch.unique(tgt['labels']):
-                target_ids = (cls == tgt['labels']).nonzero(as_tuple=False).view(-1)
-                pred_ids = (cls == out['labels']).nonzero(as_tuple=False).view(-1)
+            for cls in np.unique(tgt['labels']):
+                target_ids = np.flatnonzero(cls == tgt['labels'])
+                pred_ids = np.flatnonzero(cls == out['labels'])
 
                 # Search for detections
                 if pred_ids.shape[0]:
                     # Prediction to target ious
-                    ious, max_iou_ids = box_iou(out['boxes'][pred_ids], tgt['boxes'][target_ids]).max(
-                        1)  # best ious, indices
+                    inter = box_iou_v2(out['boxes'][pred_ids], tgt['boxes'][target_ids])
+                    ious = np.amax(inter, axis=1)
+                    max_iou_ids = np.argmax(inter, axis=1)
+                    # ious, max_iou_ids = box_iou_v2(out['boxes'][pred_ids], tgt['boxes'][target_ids]).max(1)  # best ious, indices
 
                     # Append detections
                     detected_set = set()
-                    for idx in (ious > iou_values[0]).nonzero(as_tuple=False):
+                    for idx in np.flatnonzero(ious > iou_values[0]):
                         detected_tgt_id = target_ids[max_iou_ids[idx]]  # detected target
                         if detected_tgt_id.item() not in detected_set:
                             detected_set.add(detected_tgt_id.item())
@@ -320,7 +325,7 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
                                 break
 
             # Append statistics (correct, conf, pred_cls, gt_cls)
-            stats.append((correct.cpu(), out['scores'].cpu(), out['labels'].cpu(), tgt['labels'].cpu()))
+            stats.append((correct, out['scores'], out['labels'], tgt['labels']))
 
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
