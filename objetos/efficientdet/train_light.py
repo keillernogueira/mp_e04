@@ -20,7 +20,8 @@ from backbone import EfficientDetBackbone
 from efficientdet.dataset_ import ListDataset, Resizer, Normalizer, Augmenter, collater
 from efficientdet.loss import FocalLoss
 from utils.sync_batchnorm import patch_replication_callback
-from utils.utils import replace_w_sync_bn, CustomDataParallel, get_last_weights, init_weights, boolean_string
+from utils.utils import replace_w_sync_bn, CustomDataParallel, get_last_weights, init_weights, boolean_string, box_iou, ap_per_class, postprocess
+from efficientdet.utils import BBoxTransform, ClipBoxes
 
 
 class Params:
@@ -60,6 +61,7 @@ def get_args():
     parser.add_argument('--debug', type=boolean_string, default=False,
                         help='whether visualize the predicted boxes of training, '
                              'the output images will be in test/')
+    parser.add_argument('--plot', action='store_true', help='Plot metric graphics.')
     parser.add_argument('--num_gpus', type=int, default=1)
     parser.add_argument('--anchors_ratios', type=str, default='[(0.7, 1.4), (1.0, 1.0), (1.5, 0.7)]')
     parser.add_argument('--anchors_scales', type=str, default='[2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)]')
@@ -75,13 +77,15 @@ class ModelWithLoss(nn.Module):
         self.model = model
         self.debug = debug
 
-    def forward(self, imgs, annotations, obj_list=None):
+    def forward(self, imgs, annotations, obj_list=None, test = False):
         _, regression, classification, anchors = self.model(imgs)
         if self.debug:
             cls_loss, reg_loss = self.criterion(classification, regression, anchors, annotations,
                                                 imgs=imgs, obj_list=obj_list)
         else:
             cls_loss, reg_loss = self.criterion(classification, regression, anchors, annotations)
+        if test:
+            return _, regression, classification, anchors
         return cls_loss, reg_loss
 
 
@@ -122,7 +126,8 @@ def train(opt):
 
     val_set = ListDataset(root=opt.data_path, mode="test", num_classes = params.nc ,class_names = params.names,
                          transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
-                                                        Resizer(input_sizes[opt.compound_coef])]))
+                                                       #Augmenter(),
+                                                       Resizer(input_sizes[opt.compound_coef])]))
     val_generator = DataLoader(val_set, **val_params)
 
     model = EfficientDetBackbone(num_classes=len(params.names), compound_coef=opt.compound_coef,
@@ -203,6 +208,11 @@ def train(opt):
     model.train()
 
     num_iter_per_epoch = len(training_generator)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(device)
+    iou_values = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
+    n_ious = iou_values.numel()
+    cpu_device = torch.device("cpu")
 
     try:
         for epoch in range(opt.num_epochs):
@@ -221,7 +231,7 @@ def train(opt):
                     annot = data['annot']
 
                     if opt.num_gpus == 1:
-                        # if only one gpu, just send it to cuda:0
+                        # if only one gpu, just send it to cuda
                         # elif multiple gpus, send it to multiple gpus in CustomDataParallel, not here
                         imgs = imgs.cuda()
                         annot = annot.cuda()
@@ -266,9 +276,77 @@ def train(opt):
             scheduler.step(np.mean(epoch_loss))
 
             if epoch % opt.val_interval == 0:
+                model.requires_grad_(False)
                 model.eval()
+                stats, ap, ap_class = [], [], []
+                p, r, f1, mp, mr, mAP50, mAP = 0., 0., 0., 0., 0., 0., 0. # Precision, Recall, F1, Mean P, Mean R, mAP@0.5, mAP@[0.5:0.95]
+
                 loss_regression_ls = []
                 loss_classification_ls = []
+                p_bar = tqdm(val_generator, unit="batch")
+
+                for iter, targets in enumerate(p_bar):
+                    inputs = targets["img"]
+                    inputs = inputs.cuda()
+                    annots = targets['annot']
+                    
+                    targets = [{'boxes': (annot[:,:4]).to(device), 'labels':(annot[:,4]).to(device)} for annot in annots]
+                    
+                    regressBoxes = BBoxTransform()
+                    clipBoxes = ClipBoxes()
+                    x = inputs
+                    x = x.to(device)
+                    x = x.float()
+                    #x = x.unsqueeze(0).permute(0, 3, 1, 2)
+                    features, regression, classification, anchors = model(x,annots, test=True)
+
+                    outputs = postprocess(x,
+                                        anchors, regression, classification,
+                                        regressBoxes, clipBoxes,
+                                        0.05, 0.5)
+
+                    sz = input_sizes[opt.compound_coef]
+                    outputs = [{k: torch.from_numpy(v).to(device) for k, v in out.items()} for out in outputs]
+                    for out,target in zip(outputs,targets):
+                        target['labels'] = target['labels'][target['labels'] != -1]
+                        target['boxes'] = target['boxes'][:len(target['labels']),:]
+                        print(out['rois'])
+                        out['rois'] =  torch.div(out['rois'], sz)
+                                                
+                        # Zero detections for the img
+                        if len(out['scores']) == 0:
+                            stats.append((torch.zeros(0, n_ious, dtype=torch.bool), torch.Tensor(), torch.Tensor(), list(target['labels'].cpu().numpy())))
+                            continue
+
+                        # Correct detected targets, initially assume all targets are missed for all iou threshold values
+                        correct = torch.zeros(len(out['scores']), n_ious, dtype=torch.bool, device=device)
+                        detected = []  # Detected Target Indices
+
+                        # Per target class
+                        for cls in torch.unique(target['labels']):
+                            target_ids = (cls == target['labels']).nonzero(as_tuple=False).view(-1)
+                            pred_ids = (cls == out['class_ids']).nonzero(as_tuple=False).view(-1) 
+
+                            # Search for detections
+                            if pred_ids.shape[0]:
+                                # Prediction to target ious
+                                ious, max_iou_ids = box_iou(out['rois'][pred_ids], target['boxes'][target_ids]).max(1)  # best ious, indices
+
+                                # Append detections
+                                detected_set = set()
+                                for idx in (ious > iou_values[0]).nonzero(as_tuple=False):
+                                    detected_tgt_id = target_ids[max_iou_ids[idx]]  # detected target
+                                    if detected_tgt_id.item() not in detected_set:
+                                        detected_set.add(detected_tgt_id.item())
+                                        detected.append(detected_tgt_id)
+
+                                        correct[pred_ids[idx]] = ious[idx] > iou_values  # iou_thres is 1xn
+
+                                        if len(detected) == len(target['labels']):  # all targets already located in image
+                                            break
+
+                        # Append statistics (correct, conf, pred_cls, gt_cls)
+                        stats.append((correct.cpu(), out['scores'].cpu(), out['class_ids'].cpu(), target['labels'].cpu()))
                 for iter, data in enumerate(val_generator):
                     with torch.no_grad():
                         imgs = data['img']
@@ -306,6 +384,22 @@ def train(opt):
 
                     save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
 
+                stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
+                if len(stats) and stats[0].any():
+                    p, r, ap, f1, ap_class = ap_per_class(*stats, plot=opt.plot, save_dir=os.path.join(opt.saved_path, "results"), names=params.names)
+                    ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+                    mp, mr, mAP50, mAP = p.mean(), r.mean(), ap50.mean(), ap.mean()
+
+                pf = '%20s'  + '%12.3g' * 4  # print format  
+                print(pf % ('all', mp, mr, mAP50, mAP))
+
+                # Write metrics to file
+                with open(os.path.join(opt.saved_path, "results.txt"), 'a') as f:
+                    if epoch==0:
+                        f.write("\n")
+                    f.write('%g/%g' % (epoch, opt.num_epochs - 1) + '%10.4g' * 5 % (mp, mr, mAP50, mAP, loss/len(val_generator.dataset)) + '\n')  # append metrics, val_loss
+                
+                model.requires_grad_(True)
                 model.train()
 
                 # Early stopping
@@ -317,6 +411,8 @@ def train(opt):
         writer.close()
     writer.close()
 
+    return model
+
 
 def save_checkpoint(model, name):
     if isinstance(model, CustomDataParallel):
@@ -327,4 +423,4 @@ def save_checkpoint(model, name):
 
 if __name__ == '__main__':
     opt = get_args()
-    train(opt)
+    model = train(opt)
