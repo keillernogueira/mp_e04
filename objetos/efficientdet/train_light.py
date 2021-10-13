@@ -125,6 +125,7 @@ def train(opt):
     training_generator = DataLoader(training_set, **training_params)
 
     val_set = ListDataset(root=opt.data_path, mode="test", num_classes = params.nc ,class_names = params.names,
+                         img_size=input_sizes[opt.compound_coef],
                          transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
                                                        #Augmenter(),
                                                        Resizer(input_sizes[opt.compound_coef])]))
@@ -209,7 +210,6 @@ def train(opt):
 
     num_iter_per_epoch = len(training_generator)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
     iou_values = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
     n_ious = iou_values.numel()
     cpu_device = torch.device("cpu")
@@ -305,13 +305,13 @@ def train(opt):
                                         regressBoxes, clipBoxes,
                                         0.05, 0.5)
 
-                    sz = input_sizes[opt.compound_coef]
+                    #sz = input_sizes[opt.compound_coef]
                     outputs = [{k: torch.from_numpy(v).to(device) for k, v in out.items()} for out in outputs]
                     for out,target in zip(outputs,targets):
                         target['labels'] = target['labels'][target['labels'] != -1]
                         target['boxes'] = target['boxes'][:len(target['labels']),:]
-                        print(out['rois'])
-                        out['rois'] =  torch.div(out['rois'], sz)
+                        #target['boxes'] = torch.mul(target['boxes'], sz)
+                        #out['rois'] =  torch.div(out['rois'], sz)
                                                 
                         # Zero detections for the img
                         if len(out['scores']) == 0:

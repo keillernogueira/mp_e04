@@ -161,6 +161,8 @@ class ListDataset(data.Dataset):
         targets['annot'] = np.concatenate((bbx, np.array(labels).reshape((len(labels),1)) ), axis=1)
         if self.transform:
             targets = self.transform(targets)
+        targets['annot'][:,:4] = torch.mul(targets['annot'][:,:4], self.img_size)
+
         return targets
         
     def __len__(self):
@@ -172,7 +174,7 @@ def collater(data):
     imgs = [s['img'] for s in data]
     annots = [s['annot'] for s in data]
     scales = [s['scale'] for s in data]
-    
+
     imgs = torch.from_numpy(np.stack(imgs, axis=0))
     max_num_annots = max(annot.shape[0] for annot in annots)
     if max_num_annots > 0:
@@ -197,6 +199,7 @@ class Resizer(object):
     def __call__(self, sample):
         image, annots = sample['img'], sample['annot']
         height, width, _ = image.shape
+
         if height > width:
             scale = self.img_size / height
             resized_height = self.img_size
