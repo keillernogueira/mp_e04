@@ -131,7 +131,7 @@ def train(opt):
                                                        Resizer(input_sizes[opt.compound_coef])]))
     val_generator = DataLoader(val_set, **val_params)
 
-    model = EfficientDetBackbone(num_classes=len(params.names), compound_coef=opt.compound_coef,
+    model = EfficientDetBackbone(num_classes=len(params.names), compound_coef=opt.compound_coef,load_weights=True,
                                  ratios=eval(opt.anchors_ratios), scales=eval(opt.anchors_scales))
 
     # load last weights

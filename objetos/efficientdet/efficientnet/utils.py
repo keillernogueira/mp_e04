@@ -300,11 +300,12 @@ def load_pretrained_weights(model, model_name, load_fc=True, advprop=False):
     """ Loads pretrained weights, and downloads if loading for the first time. """
     # AutoAugment or Advprop (different preprocessing)
     url_map_ = url_map_advprop if advprop else url_map
-    state_dict = model_zoo.load_url(url_map_[model_name], map_location=torch.device('cpu'))
+    #state_dict = model_zoo.load_url(url_map_[model_name], map_location=torch.device('cpu'))
+    state_dict = torch.load("/home/daniel/daniel/EfficientDet/weights_efficientnet/efficientnet-b0-08094119.pth", map_location='cuda')
     # state_dict = torch.load('../../weights/backbone_efficientnetb0.pth')
     if load_fc:
         ret = model.load_state_dict(state_dict, strict=False)
-        print(ret)
+        #print(ret)
     else:
         state_dict.pop('_fc.weight')
         state_dict.pop('_fc.bias')
