@@ -40,6 +40,7 @@ class PreProcess(object):
 
         self.mtcnn = MTCNN(keep_all=True, selection_method="largest", post_process=False, image_size=crop_size,
                            device=torch.device('cuda') if gpu is True else torch.device('cpu'))
+        self.openface_model = AlignDlib('landmarks/shape_predictor_68_face_landmarks.dat')
 
     def preprocess(self, img):
         """
@@ -57,8 +58,7 @@ class PreProcess(object):
             try:
                 if self.preprocessing_method == 'openface':
                     # model to detect faces used in openface
-                    model = AlignDlib('landmarks/shape_predictor_68_face_landmarks.dat')
-                    img, __ = model.align(112, img)
+                    img, __ = self.openface_model.align(112, img)
                     bounding_boxes = np.array([[0., 0., 255., 255., 0.]]).astype(np.float64)
 
                     # resize to the crop size
@@ -69,7 +69,6 @@ class PreProcess(object):
                 elif self.preprocessing_method == 'mtcnn' or self.preprocessing_method == 'sphereface':
                     # model to detect faces used in mtcnn
                     # bounding_boxes, landmarks = detect_faces(Image.fromarray(img))  # v1
-                    # print('1', bounding_boxes.shape, landmarks.shape)  # 1 (2, 5) (2, 10)
                     bounding_boxes, probs, landmarks = self.mtcnn.detect(img, landmarks=True)
                     if self.return_only_one_face is True:
                         bounding_boxes, probs, landmarks = self.mtcnn.select_boxes(bounding_boxes, probs, landmarks, img,
@@ -77,7 +76,6 @@ class PreProcess(object):
 
                     landmarks = np.concatenate((landmarks[:, :, 0], landmarks[:, :, 1]), axis=1)
                     assert bounding_boxes.size != 0 and landmarks.size != 0, "No face detected in this image"
-                    # print('2', bounding_boxes.shape, landmarks.shape)
 
                     if self.preprocessing_method == 'mtcnn':
                         # img_res = mtcnn_crop_image(img, bounding_boxes, detect_multiple_faces=True,
@@ -92,7 +90,6 @@ class PreProcess(object):
 
                         # model to align the image used in sphereface
                         img_res = alignment(img, landmarks, crop_size=self.crop_size)
-                        # print('3', img_res.shape)
                 else:
                     raise NotImplementedError("Preprocessing method " + self.preprocessing_method + " not implemented")
             except Exception as e:
