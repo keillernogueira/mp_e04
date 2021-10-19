@@ -147,17 +147,6 @@ def extract_gz():
     output.close()
 
 def join_files(new_file_name, file_names):
-  '''new_file = open(new_file_name, 'w', encoding = 'utf8')
-  for f in file_names:
-    print("Initial Size: ", os.stat(new_file_name).st_size)
-    print("Appending", f, ": ", os.stat(f).st_size)
-    with open(f, encoding = 'iso8859_14') as split_file:
-      a = split_file.read()
-      print(a[-1] == '\n')
-      print(len(a))
-      new_file.write(a)
-      #new_file.write('\n')
-    print("Final Size: ", os.stat(new_file_name).st_size)'''
 
   with open(new_file_name, 'wb') as result:  # append in binary mode
     for f in file_names:
