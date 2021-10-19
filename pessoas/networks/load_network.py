@@ -24,6 +24,7 @@ from networks.curricularface import IR_101, IR_50
 from networks.arcface import get_model
 
 
+
 def load_net(model_name, model_path=None, gpu=True):
     # initialize the network
     if model_name == 'mobilefacenet':
@@ -86,6 +87,11 @@ def load_net(model_name, model_path=None, gpu=True):
         net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'curricularface':
         net = IR_101([112, 112])
+        split_files = [os.path.join(MODEL_DIR, 'a_CurricularFace_Backbone.pth')
+                      ,os.path.join(MODEL_DIR, 'b_CurricularFace_Backbone.pth')
+                      ,os.path.join(MODEL_DIR, 'c_CurricularFace_Backbone.pth')]
+        join_files(CURRICULARFACE_MODEL_PATH, split_files)
+
         if gpu:
             ckpt = torch.load(CURRICULARFACE_MODEL_PATH if model_path is None else model_path)
         else:
@@ -139,3 +145,23 @@ def extract_gz():
     output = open(os.path.join(MODEL_DIR, './facenet.pt'), 'wb')
     output.write(s)
     output.close()
+
+def join_files(new_file_name, file_names):
+  '''new_file = open(new_file_name, 'w', encoding = 'utf8')
+  for f in file_names:
+    print("Initial Size: ", os.stat(new_file_name).st_size)
+    print("Appending", f, ": ", os.stat(f).st_size)
+    with open(f, encoding = 'iso8859_14') as split_file:
+      a = split_file.read()
+      print(a[-1] == '\n')
+      print(len(a))
+      new_file.write(a)
+      #new_file.write('\n')
+    print("Final Size: ", os.stat(new_file_name).st_size)'''
+
+  with open(new_file_name, 'wb') as result:  # append in binary mode
+    for f in file_names:
+      with open(f, 'rb') as tmpf:        # open in binary mode also
+        result.write(tmpf.read())
+
+  result.close()
