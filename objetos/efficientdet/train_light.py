@@ -63,6 +63,7 @@ def get_args():
                              'the output images will be in test/')
     parser.add_argument('--plot', action='store_true', help='Plot metric graphics.')
     parser.add_argument('--num_gpus', type=int, default=1)
+    parser.add_argument('--num_imgs', type=int, default=20720)
     parser.add_argument('--anchors_ratios', type=str, default='[(0.7, 1.4), (1.0, 1.0), (1.5, 0.7)]')
     parser.add_argument('--anchors_scales', type=str, default='[2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)]')
 
@@ -197,10 +198,14 @@ def train(opt):
 
     if opt.optim == 'adamw':
         optimizer = torch.optim.AdamW(model.parameters(), opt.lr)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3)
     else:
-        optimizer = torch.optim.SGD(model.parameters(), opt.lr, momentum=0.9, nesterov=True)
-
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
+        optimizer = torch.optim.SGD(model.parameters(), opt.lr, momentum=0.9, nesterov=True, weight_decay = 4e-5)
+        calc_lr = lambda epoch: epoch/(opt.num_imgs//opt.num_epochs)
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = calc_lr, last_epoch=-1)
+        #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.num_epochs, eta_min=0)
+   
+    #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
     epoch = 0
     best_loss = 1e5
@@ -264,7 +269,9 @@ def train(opt):
                     writer.add_scalar('learning_rate', current_lr, step)
 
                     step += 1
-
+                    if epoch == 0 and opt.optim != 'adamw':
+                        scheduler.step()
+                        #print(scheduler.get_last_lr())
                     if step % opt.save_interval == 0 and step > 0:
                         save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
                         print('checkpoint...')
@@ -273,7 +280,14 @@ def train(opt):
                     print('[Error]', traceback.format_exc())
                     print(e)
                     continue
-            scheduler.step(np.mean(epoch_loss))
+            if epoch == 0 and opt.optim != 'adamw':
+                scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.num_epochs-1, eta_min=0)
+            if epoch>0:
+                if opt.optim == 'adamw':
+                    scheduler.step(np.mean(epoch_loss))
+                else:
+                    scheduler.step()
+            #print(scheduler.get_last_lr())
 
             if epoch % opt.val_interval == 0:
                 model.requires_grad_(False)

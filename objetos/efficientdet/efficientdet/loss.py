@@ -12,8 +12,8 @@ def calc_iou(a, b):
     # b(gt, coco-style) [boxes, (x1, y1, x2, y2)]
 
     area = (b[:, 2] - b[:, 0]) * (b[:, 3] - b[:, 1])
-    iw = torch.min(torch.unsqueeze(a[:, 3], dim=1), b[:, 2]) - torch.max(torch.unsqueeze(a[:, 1], 1), b[:, 0])
-    ih = torch.min(torch.unsqueeze(a[:, 2], dim=1), b[:, 3]) - torch.max(torch.unsqueeze(a[:, 0], 1), b[:, 1])
+    iw = torch.min(torch.unsqueeze(a[:, 3], dim=1).cuda(), b[:, 2]).cuda() - torch.max(torch.unsqueeze(a[:, 1], 1).cuda(), b[:, 0]).cuda()
+    ih = torch.min(torch.unsqueeze(a[:, 2], dim=1).cuda(), b[:, 3]).cuda() - torch.max(torch.unsqueeze(a[:, 0], 1).cuda(), b[:, 1]).cuda()
     iw = torch.clamp(iw, min=0)
     ih = torch.clamp(ih, min=0)
     ua = torch.unsqueeze((a[:, 2] - a[:, 0]) * (a[:, 3] - a[:, 1]), dim=1) + area - iw * ih
@@ -30,7 +30,7 @@ class FocalLoss(nn.Module):
 
     def forward(self, classifications, regressions, anchors, annotations, **kwargs):
         alpha = 0.25
-        gamma = 2.0
+        gamma = 1.5 
         batch_size = classifications.shape[0]
         classification_losses = []
         regression_losses = []
@@ -83,7 +83,10 @@ class FocalLoss(nn.Module):
                     classification_losses.append(cls_loss.sum())
 
                 continue
-                
+               
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            anchor = anchor.to(device) 
+            bbox_annotation = bbox_annotation.to(device)
             IoU = calc_iou(anchor[:, :], bbox_annotation[:, :4])
 
             IoU_max, IoU_argmax = torch.max(IoU, dim=1)
