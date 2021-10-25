@@ -110,6 +110,8 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
     best_val_loss = 9999999.99
     best_map = -1.0
 
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=3)
+
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
@@ -143,9 +145,12 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                     losses.backward()
                     optimizer.step()
 
+                    scheduler.step(losses)
+
                     total_time += (time.time() - time1)
 
                 if phase == 'test':
+                    model.eval()
                     outputs = model(inputs)
 
                     outputs = [{k: v.detach().cpu().numpy() for k, v in t.items()} for t in outputs]
