@@ -7,9 +7,27 @@ import torch
 from utils import str2bool
 from dataloaders.generic_dataloader import GenericDataLoader
 from processors.dataset_processor import extract_features
+from sklearn.cluster import KMeans
 from networks.load_network import load_net
 
-
+def dividir(features, n_sub_codebooks):
+    sub_codebooks = [[] for x in range(n_sub_codebooks)]
+    size = int(features[0].shape[0]/n_sub_codebooks)
+    for feature in features:
+        for i in range(n_sub_codebooks):
+            sub_codebooks[i].append(feature[i*size:(i+1)*size])
+    return sub_codebooks
+    
+def product(*args, repeat=1):
+    # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
+    # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
+    pools = [tuple(pool) for pool in args] * repeat
+    result = [[]]
+    for pool in pools:
+        result = [x+[y] for x in result for y in pool]
+    for prod in result:
+        yield tuple(prod)
+            
 def manipulate_dataset(feature_file, dataset_path,
                        model_name="mobilefacenet", model_path=None, preprocessing_method="sphereface",
                        crop_size=(96, 112), gpu=True):
@@ -38,6 +56,7 @@ def manipulate_dataset(feature_file, dataset_path,
     # extracting features
     feature = extract_features(dataset_dataloader, model=load_net(model_name, model_path, gpu))
     assert feature is not None, "Not capable of extracting features"
+    
 
     if features is None:
         # if there is not features, use the recently extracted one as the current features
@@ -50,6 +69,78 @@ def manipulate_dataset(feature_file, dataset_path,
         features['bbs'] = np.concatenate((features['bbs'], feature['bbs']), 0)
     # save the current version of the features
     scipy.io.savemat(feature_file, features)
+    
+    #print(len(features["feature"]))
+    
+    M = 8
+    sub_codebooks = dividir(features["feature"], M)
+    #print(len(sub_codebooks))
+    
+    kmeans = []
+    n_clusters = 8
+    for i in range(M):
+        kmeans.append(KMeans(init="random", n_clusters=n_clusters, n_init=10, max_iter=10000, random_state=42))
+        kmeans[i].fit(sub_codebooks[i])
+        #print(kmeans[i].labels_)
+    
+    mapping = dict()
+    
+    for i in range(M):
+        for j in range(len(sub_codebooks[i])):
+            if (i, kmeans[i].labels_[j]) in mapping.keys():
+                pass
+            else:
+                dist = []
+                cluster_center = []
+                idx = []
+                for k in range(len(kmeans[i].cluster_centers_)):
+                    distAB = 0
+                    for d in range(len(sub_codebooks[i][j])):
+                      distAB += (sub_codebooks[i][j][d]-kmeans[i].cluster_centers_[k][d])**2
+                    distAB = np.sqrt(distAB)
+                    dist.append(distAB)
+                    cluster_center.append(kmeans[i].cluster_centers_[k])
+                mapping[(i, kmeans[i].labels_[j])] = tuple(cluster_center[np.argmin(dist)].tolist())
+    
+    #print(mapping)
+    
+    A = [i for i in range(n_clusters)]
+    vocabulary = list(product(A, repeat = M))
+    #print(vocabulary)
+    for i in range(len(vocabulary)):
+        vocabulary[i] = list(vocabulary[i])
+        for j in range(len(vocabulary[i])):
+            vocabulary[i][j] = tuple(kmeans[j].cluster_centers_[vocabulary[i][j]])
+        vocabulary[i] = tuple(vocabulary[i])
+    vocabulary = tuple(vocabulary)
+    #print(vocabulary[0])
+    
+    inverted_table = dict()
+    for i in vocabulary:
+        inverted_table[i] = list()
+    #print(len(inverted_table))
+    for i in range(len(features['feature'])):
+        if("Luiz_Inacio_Lula_da_Silva" in features['name'][i]):
+            print(features['image'][i])
+            print(features['bbs'][i])
+        idx = list()
+        for j in range(M):
+            idx.append(mapping[(j, kmeans[j].labels_[i])])
+        idx = tuple(idx)
+        inverted_table[idx].append([features['feature'][i], features['name'][i], features['image'][i], features['bbs'][i]])
+    #print(inverted_table)
+    
+    result = dict()
+
+    result['kmeans'] = kmeans
+    for i in range(len(vocabulary)):
+        result[str(i)] = inverted_table[vocabulary[i]]
+    result['vocabulary'] = vocabulary
+    result['M'] = M
+    
+    save_file = feature_file[:-4]
+    save_file = save_file + '_meta.mat'
+    scipy.io.savemat(save_file, result)
 
 
 if __name__ == '__main__':

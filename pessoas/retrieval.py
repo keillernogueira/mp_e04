@@ -82,7 +82,12 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
     # load current features
     if feature_file is not None and os.path.isfile(feature_file):
         features = scipy.io.loadmat(feature_file)
-
+    
+    save_file = feature_file[:-4]
+    save_file = save_file + '_meta.mat'
+    if save_file is not None and os.path.isfile(save_file):
+        features_meta = scipy.io.loadmat(save_file)
+    
     feature = None
     if input_data == 'image':
         # setting dataset and dataloader
@@ -100,7 +105,9 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
     assert feature is not None, "No face detected in this file."
 
     # generate ranking
-    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature)
+    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, features_meta)
+    print(top_k_ranking)
+    print("###############################")
 
     # exporting results
 
