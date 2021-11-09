@@ -57,7 +57,6 @@ class ListDataset(data.Dataset):
             self.normalize = T.Normalize(mean=norms[normvalues]['mean'],
                                          std=norms[normvalues]['std'])
                     
-
         if make:
             # Creating list of paths.
             self.imgs = self.make_dataset()
@@ -81,15 +80,16 @@ class ListDataset(data.Dataset):
             mode_str = 'test'
 
         # Joining input paths.
-        img_path = os.path.join(self.root, 'images', self.mode)
+        self.imgs_path = os.path.join(self.root, 'images', self.mode)
+        self.annots_path = os.path.join(self.root, 'labels', self.mode)
 
         # Reading paths from file.
         data_list = []
-        data_list = os.listdir(img_path)
+        data_list = os.listdir(self.imgs_path)
 
         # Creating list containing image and ground truth paths.
         for it in data_list:
-            item = os.path.join(img_path, it)
+            item = os.path.join(self.imgs_path, it)
             items.append(item)
 
         # Returning list.
@@ -100,7 +100,7 @@ class ListDataset(data.Dataset):
     def get_data(self, index):
         img_path = self.imgs[index]
         im = os.path.split(img_path)[1]
-        ann_path = os.path.join(self.root, 'labels', self.mode, os.path.splitext(im)[0] + ".txt")
+        ann_path = os.path.join(self.annots_path, os.path.splitext(im)[0] + ".txt")
         labels = []
         bbx = []
         # Reading images.
@@ -209,15 +209,16 @@ class ValidationListDataset(ListDataset):
         items = []
 
         # Joining input paths.
-        img_path = os.path.join(self.root, 'images', 'validation')
+        self.imgs_path = os.path.join(self.root, 'images', 'validation')
+        self.annots_path = os.path.join(self.root, 'labels', 'validation')
 
         # Reading paths from file.
         data_list = []
-        data_list = os.listdir(img_path)
+        data_list = os.listdir(self.imgs_path)
 
         # Creating list containing image and ground truth paths.
         for it in data_list:
-            item = os.path.join(img_path, it)
+            item = os.path.join(self.imgs_path, it)
             items.append(item)
 
         random.shuffle(items)
