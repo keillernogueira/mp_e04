@@ -150,8 +150,6 @@ class ListDataset(data.Dataset):
         # Normalization.
         if norm:
             img = self.norm(img)
-        elif self.normalize is not None:
-            img = self.normalize(img)
 
         img = transform.resize(img, (self.img_size, self.img_size), order=1, preserve_range=True)
 
@@ -164,6 +162,9 @@ class ListDataset(data.Dataset):
 
         # Turning to tensors.
         img = torch.from_numpy(img).float()
+
+        if self.normalize is not None:
+            img = self.normalize(img)
 
         # Construction target dict (pytorch default)
         targets = {}
