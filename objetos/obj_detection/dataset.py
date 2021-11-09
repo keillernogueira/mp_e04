@@ -222,9 +222,9 @@ class ValidationListDataset(ListDataset):
 
         random.shuffle(items)
         if self.mode == 'train':
-            items = items[:np.ceil(len(items) * self.train_size)]
+            items = items[:int(np.ceil(len(items) * self.train_size))]
         else:
-            items = items[np.ceil(len(items) * self.train_size):]
+            items = items[int(np.ceil(len(items) * self.train_size)):]
 
         # Returning list.
         return items
