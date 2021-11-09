@@ -43,11 +43,16 @@ def main():
     parser.add_argument('--inference', action='store_true',
                         help='Only test the model on the images in the test folder of the dataset.')
 
+    parser.add_argument('--is_val', action='store_true',
+                        help='Only for hyperparameter validation. Uses a smaller subset of the train set to train/test the model.')
+
     parser.add_argument('--plot', action='store_true', help='Plot metric graphics.')
 
     parser.add_argument('--save_best', action='store_true', help='Save the best model in relation do mAP.')
 
     parser.add_argument('--weights', type=str, default='default', help='Initial weights path')
+
+    parser.add_argument('--normalization', type=str, default='imagenet', help='Normalization values')
 
     args = parser.parse_args()
     dataset_dict = yaml.safe_load(open(args.dataset, 'r'))
@@ -59,6 +64,7 @@ def main():
     early_stop = args.early_stop
     total_classes = dataset_dict['nc']
     infer = args.inference
+    is_val = args.is_val
     weights = args.weights
     optim_type = args.optim
     lr = args.lr
@@ -66,6 +72,7 @@ def main():
     wd = args.wd
     plot = args.plot
     save_best = args.save_best
+    norm = args.normalization
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -90,7 +97,7 @@ def main():
 
     print('......Creating dataloader......')
     dataloaders_dict = dataloader.create_dataloader(dataset_dict['root'], img_size, batch_size,
-                                                    num_classes=total_classes)
+                                                    num_classes=total_classes, is_val=is_val, normalization=norm)
     print('......Dataloader created......')
 
     params_to_update = net.parameters()

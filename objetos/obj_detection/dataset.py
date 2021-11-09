@@ -1,8 +1,10 @@
 import os
 import numpy as np
 import torch
+import random
 
 from torch.utils import data
+from torchvision import transforms as T
 
 from skimage import io, transform
 from skimage import img_as_float, img_as_float32
@@ -34,9 +36,10 @@ from skimage.color import gray2rgb
 
 # Class that reads a sequence of image paths from a text file and creates a data.Dataset with them.
 
+norms = {'imagenet': {'mean': [0.485, 0.456, 0.406], 'std' : [0.229, 0.224, 0.225]}}
 
 class ListDataset(data.Dataset):
-    def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11, make=True):
+    def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11, make=True, normvalues=None):
 
         self.root = root
         # Initializing variables.
@@ -45,6 +48,15 @@ class ListDataset(data.Dataset):
         self.img_size = img_size
         self.num_classes = num_classes
         self.class_names = class_names
+        self.normalize = None
+
+        if isinstance(normvalues, dict):
+            self.normalize = T.Normalize(mean=normvalues['mean'],
+                                         std=normvalues['std'])
+        elif isinstance(normvalues, str):
+            self.normalize = T.Normalize(mean=norms[normvalues]['mean'],
+                                         std=norms[normvalues]['std'])
+                    
 
         if make:
             # Creating list of paths.
@@ -164,3 +176,55 @@ class ListDataset(data.Dataset):
 
     def __len__(self):
         return len(self.imgs)
+
+
+class ValidationListDataset(ListDataset):
+    def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11, train_size=0.8, normvalues=None):
+
+        self.root = root
+        # Initializing variables.
+        self.mode = mode
+        self.imgs = None
+        self.img_size = img_size
+        self.num_classes = num_classes
+        self.class_names = class_names
+        self.train_size = train_size
+
+        if isinstance(normvalues, dict):
+            self.normalize = T.Normalize(mean=normvalues['mean'],
+                                         std=normvalues['std'])
+        elif isinstance(normvalues, str):
+            self.normalize = T.Normalize(mean=norms[normvalues]['mean'],
+                                         std=norms[normvalues]['std'])
+
+        # Creating list of paths.
+        self.imgs = self.make_dataset()
+
+        # Check for consistency in list.
+        if len(self.imgs) == 0:
+            raise (RuntimeError('Found 0 images, please check the data set'))
+
+    # Function that create the list of img_path
+    def make_dataset(self):
+        items = []
+
+        # Joining input paths.
+        img_path = os.path.join(self.root, 'images', 'validation')
+
+        # Reading paths from file.
+        data_list = []
+        data_list = os.listdir(img_path)
+
+        # Creating list containing image and ground truth paths.
+        for it in data_list:
+            item = os.path.join(img_path, it)
+            items.append(item)
+
+        random.shuffle(items)
+        if self.mode == 'train':
+            items = items[:np.ceil(len(items) * self.train_size)]
+        else:
+            items = items[np.ceil(len(items) * self.train_size):]
+
+        # Returning list.
+        return items
