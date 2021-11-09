@@ -1,4 +1,5 @@
 import os
+from unicodedata import normalize
 import numpy as np
 import torch
 import random
@@ -149,6 +150,8 @@ class ListDataset(data.Dataset):
         # Normalization.
         if norm:
             img = self.norm(img)
+        elif self.normalize is not None:
+            img = self.normalize(img)
 
         img = transform.resize(img, (self.img_size, self.img_size), order=1, preserve_range=True)
 
