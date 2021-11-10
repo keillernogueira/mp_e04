@@ -11,6 +11,8 @@ from skimage import io, transform
 from skimage import img_as_float, img_as_float32
 from skimage.color import gray2rgb
 
+import cv2
+
 '''
 # This class ListDataset use the dataset name and task name to load the respectives images accordingly, modify this class to your use case
 # For a simple loader, this version is implemented considering the following folder scheme:
@@ -33,12 +35,13 @@ from skimage.color import gray2rgb
         ...
 
 '''
+# hsv augmentation flag
+HSV_AUG = True
 
-
-# Class that reads a sequence of image paths from a text file and creates a data.Dataset with them.
-
+# normalization means and stds for different datasets
 norms = {'imagenet': {'mean': [0.485, 0.456, 0.406], 'std' : [0.229, 0.224, 0.225]}}
 
+# Class that reads a sequence of image paths from a text file and creates a data.Dataset with them.
 class ListDataset(data.Dataset):
     def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11, make=True, normvalues=None):
 
@@ -157,13 +160,16 @@ class ListDataset(data.Dataset):
         h, w, _ = img.shape
         bbx = np.array(bbx) * np.array([w, h, w, h])
 
+        if HSV_AUG:
+            img = augment_hsv(img)
+
         # Adding channel dimension.
         img = self.torch_channels(img)
 
         # Turning to tensors.
         img = torch.from_numpy(img).float()
 
-        if self.normalize is not None:
+        if self.normalize is not None and not HSV_AUG:
             img = self.normalize(img)
 
         # Construction target dict (pytorch default)
@@ -233,3 +239,18 @@ class ValidationListDataset(ListDataset):
 
         # Returning list.
         return items
+
+def augment_hsv(im, hgain=0.015, sgain=0.7, vgain=0.4):
+    # HSV color-space augmentation
+    if hgain or sgain or vgain:
+        r = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain] + 1  # random gains
+        hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_RGB2HSV))
+        dtype = im.dtype  # uint8
+
+        x = np.arange(0, 256, dtype=r.dtype)
+        lut_hue = ((x * r[0]) % 180).astype(dtype)
+        lut_sat = np.clip(x * r[1], 0, 255).astype(dtype)
+        lut_val = np.clip(x * r[2], 0, 255).astype(dtype)
+
+        im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
+        cv2.cvtColor(im_hsv, cv2.COLOR_HSV2RGB, dst=im)  # no return needed
