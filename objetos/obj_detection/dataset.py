@@ -3,12 +3,13 @@ from unicodedata import normalize
 import numpy as np
 import torch
 import random
+from torch._C import uint8
 
 from torch.utils import data
 from torchvision import transforms as T
 
 from skimage import io, transform
-from skimage import img_as_float, img_as_float32
+from skimage import img_as_float, img_as_float32, img_as_ubyte
 from skimage.color import gray2rgb
 
 import cv2
@@ -108,7 +109,7 @@ class ListDataset(data.Dataset):
         labels = []
         bbx = []
         # Reading images.
-        img = cv2.imread(img_path) #io.imread(img_path)
+        img = io.imread(img_path)#cv2.imread(img_path).astype(np.uint8) #io.imread(img_path)
         # check gray
         if len(img.shape) == 2:
             img = gray2rgb(img)
@@ -128,6 +129,7 @@ class ListDataset(data.Dataset):
                 bbx.append([xmin, ymin, xmax, ymax])
 
         # img = img_as_float32(img)
+        img = img_as_ubyte(img)
         # img = img.astype(np.float32)
 
         return img, bbx, labels
@@ -244,7 +246,7 @@ def augment_hsv(im, hgain=0.015, sgain=0.7, vgain=0.4):
     # HSV color-space augmentation
     if hgain or sgain or vgain:
         r = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain] + 1  # random gains
-        hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_BGR2HSV))
+        hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_RGB2HSV))
         dtype = im.dtype  # uint8
 
         x = np.arange(0, 256, dtype=r.dtype)
