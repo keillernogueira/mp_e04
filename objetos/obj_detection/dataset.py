@@ -130,6 +130,7 @@ class ListDataset(data.Dataset):
         # img = img_as_float32(img)
         img = img_as_ubyte(img)
         # img = img.astype(np.float32)
+        img = img.astype(np.uint8)
 
         return img, bbx, labels
 
