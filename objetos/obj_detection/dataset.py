@@ -3,7 +3,6 @@ from unicodedata import normalize
 import numpy as np
 import torch
 import random
-from torch._C import uint8
 
 from torch.utils import data
 from torchvision import transforms as T
