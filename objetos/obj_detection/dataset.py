@@ -127,8 +127,8 @@ class ListDataset(data.Dataset):
                 if ymin == ymax: ymin -= 0.1
                 bbx.append([xmin, ymin, xmax, ymax])
 
-        img = img_as_float32(img)
-        img = img.astype(np.float32)
+        # img = img_as_float32(img)
+        # img = img.astype(np.float32)
 
         return img, bbx, labels
 
