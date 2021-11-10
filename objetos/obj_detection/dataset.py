@@ -108,7 +108,7 @@ class ListDataset(data.Dataset):
         labels = []
         bbx = []
         # Reading images.
-        img = io.imread(img_path)
+        img = cv2.imread(img_path) #io.imread(img_path)
         # check gray
         if len(img.shape) == 2:
             img = gray2rgb(img)
@@ -244,7 +244,7 @@ def augment_hsv(im, hgain=0.015, sgain=0.7, vgain=0.4):
     # HSV color-space augmentation
     if hgain or sgain or vgain:
         r = np.random.uniform(-1, 1, 3) * [hgain, sgain, vgain] + 1  # random gains
-        hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_RGB2HSV))
+        hue, sat, val = cv2.split(cv2.cvtColor(im, cv2.COLOR_BGR2HSV))
         dtype = im.dtype  # uint8
 
         x = np.arange(0, 256, dtype=r.dtype)
