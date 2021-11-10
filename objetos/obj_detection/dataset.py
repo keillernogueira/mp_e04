@@ -165,6 +165,8 @@ class ListDataset(data.Dataset):
 
         if HSV_AUG:
             augment_hsv(img)
+            img = img_as_float32(img)
+            img = img.astype(np.float32)
 
         # Adding channel dimension.
         img = self.torch_channels(img)
