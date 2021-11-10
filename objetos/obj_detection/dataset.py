@@ -156,14 +156,14 @@ class ListDataset(data.Dataset):
         if norm:
             img = self.norm(img)
 
-        img = transform.resize(img, (self.img_size, self.img_size), order=1, preserve_range=True)
+        idtype = img.dtype
+        img = transform.resize(img, (self.img_size, self.img_size), order=1, preserve_range=True).astype(idtype)
 
         # Transform bb to the image size
         h, w, _ = img.shape
         bbx = np.array(bbx) * np.array([w, h, w, h])
 
         if HSV_AUG:
-            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", img.dtype)
             img = augment_hsv(img)
 
         # Adding channel dimension.
