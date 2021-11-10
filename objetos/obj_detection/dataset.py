@@ -164,7 +164,7 @@ class ListDataset(data.Dataset):
         bbx = np.array(bbx) * np.array([w, h, w, h])
 
         if HSV_AUG:
-            img = augment_hsv(img)
+            augment_hsv(img)
 
         # Adding channel dimension.
         img = self.torch_channels(img)
