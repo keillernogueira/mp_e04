@@ -79,6 +79,7 @@ class ListDataset(data.Dataset):
         if make:
             # Creating list of paths.
             self.imgs = self.make_dataset()
+            self.indices = range(len(self.imgs))
 
             # Check for consistency in list.
             if len(self.imgs) == 0:
@@ -278,6 +279,7 @@ class ValidationListDataset(ListDataset):
 
         # Creating list of paths.
         self.imgs = self.make_dataset()
+        self.indices = range(len(self.imgs))
 
         # Check for consistency in list.
         if len(self.imgs) == 0:
