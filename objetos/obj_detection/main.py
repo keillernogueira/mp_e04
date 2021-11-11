@@ -54,6 +54,8 @@ def main():
 
     parser.add_argument('--normalization', type=str, default='imagenet', help='Normalization values')
 
+    parser.add_argument('--quad', action='store_true', help='Uses a four image mosaic for training.')
+
     args = parser.parse_args()
     dataset_dict = yaml.safe_load(open(args.dataset, 'r'))
     img_size = args.size
@@ -73,6 +75,7 @@ def main():
     plot = args.plot
     save_best = args.save_best
     norm = args.normalization
+    quad = args.quad
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -97,7 +100,7 @@ def main():
 
     print('......Creating dataloader......')
     dataloaders_dict = dataloader.create_dataloader(dataset_dict['root'], img_size, batch_size,
-                                                    num_classes=total_classes, is_val=is_val, normalization=norm)
+                                                    num_classes=total_classes, is_val=is_val, normalization=norm, quad=quad)
     print('......Dataloader created......')
 
     params_to_update = net.parameters()
@@ -115,7 +118,7 @@ def main():
     tensor_board = SummaryWriter(log_dir=save_dir)
     if not infer:
         final_model, map_history = train(net, dataloaders_dict, optimizer, epochs, early_stop, tensor_board, save_dir,
-                                         plot=plot, save_best=save_best)
+                                         plot=plot, save_best=save_best, quad=quad)
     else:
         final_model = net
 

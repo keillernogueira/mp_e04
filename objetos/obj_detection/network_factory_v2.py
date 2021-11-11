@@ -82,7 +82,7 @@ def set_parameter_requires_grad(model, feature_extracting):
 
 
 def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_board, save_dir, plot=False,
-          save_best=True):
+          save_best=True, quad=False):
     # Directories
     save_dir = Path(save_dir)
     wdir = save_dir / 'weights'
@@ -140,6 +140,9 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
                     loss_dict = model(inputs, targets)
                     losses = sum(loss for loss in loss_dict.values())
+
+                    if quad:
+                        losses *= 4.
 
                     optimizer.zero_grad()
                     losses.backward()
