@@ -153,32 +153,6 @@ class ListDataset(data.Dataset):
 
         return img, bbx, labels
 
-    @staticmethod
-    def collate_fn4(batch):
-        img, label, path, shapes = zip(*batch)  # transposed
-        n = len(shapes) // 4
-        img4, label4, path4, shapes4 = [], [], path[:n], shapes[:n]
-
-        ho = torch.tensor([[0., 0, 0, 1, 0, 0]])
-        wo = torch.tensor([[0., 0, 1, 0, 0, 0]])
-        s = torch.tensor([[1, 1, .5, .5, .5, .5]])  # scale
-        for i in range(n):  # zidane torch.zeros(16,3,720,1280)  # BCHW
-            i *= 4
-            if random.random() < 0.5:
-                im = F.interpolate(img[i].unsqueeze(0).float(), scale_factor=2., mode='bilinear', align_corners=False)[
-                    0].type(img[i].type())
-                l = label[i]
-            else:
-                im = torch.cat((torch.cat((img[i], img[i + 1]), 1), torch.cat((img[i + 2], img[i + 3]), 1)), 2)
-                l = torch.cat((label[i], label[i + 1] + ho, label[i + 2] + wo, label[i + 3] + ho + wo), 0) * s
-            img4.append(im)
-            label4.append(l)
-
-        for i, l in enumerate(label4):
-            l[:, 0] = i  # add target image index for build_targets()
-
-        return torch.stack(img4, 0), torch.cat(label4, 0), path4, shapes4
-
     def norm(self, img):
         if len(img.shape) == 2:
             img = (img - img.mean()) / img.std()
@@ -194,7 +168,7 @@ class ListDataset(data.Dataset):
             img = np.moveaxis(img, -1, 0)
         return img
 
-    def __getitem__(self, index, norm=False):
+    def __getitem__(self, index, norm=True):
         mosaic = self.quad and random.random() < self.mosaic
         if mosaic:
             # Load mosaic
@@ -219,14 +193,14 @@ class ListDataset(data.Dataset):
             h, w, _ = img.shape
             bbx = np.array(bbx) * np.array([w, h, w, h])
 
-        # Normalization.
-        if norm:
-            img = self.norm(img)
-
         if HSV_AUG:
             augment_hsv(img)
             img = img_as_float32(img)
             img = img.astype(np.float32)
+
+        # Normalization.
+        if norm:
+            img = self.norm(img)
 
         # Adding channel dimension.
         img = self.torch_channels(img)
