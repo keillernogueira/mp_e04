@@ -7,6 +7,9 @@ import torch
 from dataloaders.image_dataloader import ImageDataLoader
 from networks.load_network import load_net
 
+import pickle
+import time
+
 def dividir(features, n_sub_codebooks):
     #print(features, n_sub_codebooks)
     if type(features[0])!=list:
@@ -23,7 +26,6 @@ def dividir(features, n_sub_codebooks):
 def extract_features_from_image(model, dataloader, query_label, gpu):
     """
     Function to extract features for ONE specific image.
-
     :param model: the model
     :param dataloader: dataloader used to load the images.
     :param query_label: the image query label, i.e., the ID.
@@ -93,7 +95,6 @@ def generate_rank(scores, k_rank):
 def generate_ranking_for_image(database_data, query_data, features_meta, k_rank=10, bib="numpy", gpu=False):
     """
     Make a specific query and calculate the average precision.
-
     :param database_data: features of the entire dataset.
     :param query_data: features of the image query.
     :param k_rank: number of elements in the ranking
@@ -102,80 +103,14 @@ def generate_ranking_for_image(database_data, query_data, features_meta, k_rank=
     :return: top k list (with ID and confidence) of most similar images.
     """
     
-    #print(features_meta['M'][0][0])
-    sub_codebooks = dividir(query_data["feature"][0], features_meta['M'][0][0])
-    #print(sub_codebooks)s
-    '''kmeans = features_meta['kmeans'][0]
-    cluster_centers = []
-    for kmean in kmeans:
-      cluster_centers.append(kmean[0][0][12])'''
-    vocabulary = features_meta['vocabulary']
-      
-    #print(cluster_centers)
-    
-    dists = []
-    for word in vocabulary:
-      dist = 0
-      for i in range(len(sub_codebooks)):
-        sub_codebook = sub_codebooks[i][0]
-        
-        #print("################   SUB CODEBOOK   #####################")
-        #print(sub_codebook)
-        
-        center = word[i]
-        
-        #print("################   CENTER    ##############")
-        #print(center)
-        
-        for d in range(len(sub_codebook)):
-          dist += (sub_codebook[d] - center[d]) ** 2
-        dist = np.sqrt(dist)
-            
-      #print("#####################   DIST    #######################")
-      #print(dist)
-          
-      dists.append(dist)
-          
-      #print("######################   dists    #######################")
-      #print(dists)
-        
-    #print(len(dists))
-    
-    n_assignments = 10
-    
-    idx = np.argpartition(dists, n_assignments)
-    #print(idx)
-    #indexes = vocabulary[idx[:n_assignments]]
-    indexes = idx[:n_assignments]
-    #print(indexes)
-    #print(indexes[0])
-    
-    inverted_Table = dict()
-    search_features = list()
-    included_names = list()
-    included_images = list()
-    for i in indexes:
-        print(i)
-        list_features = features_meta[str(i)]
-        print(len(list_features))
-        for person in list_features:
-          name = person[1][0]
-          image_name = person[2][0]
-          included_names.append(name)
-          included_images.append(person[2][0])
-          search_features.append(person[0][0])
-
-    search_features = np.array(search_features)
-    print("Features to Search:  ", len(search_features))
-    print('Luiz_Inacio_Lula_da_Silva' in included_names)
-    
-    
-        
     
     # normalize features
     # TODO check copy and pointer
-    #database_features = database_data['feature']
-    database_features = search_features
+    st = time.time()
+    '''query_features = query_data['feature']
+    num_features_query = query_features.shape[0]'''
+    database_features = database_data['feature']
+    #database_features = search_features
     print(database_features.shape)
     query_features = query_data['feature']
     query_bbs = query_data['bbs']
@@ -195,30 +130,104 @@ def generate_ranking_for_image(database_data, query_data, features_meta, k_rank=
     query_features = features[0:num_features_query]
     database_features = features[num_features_query:]
 
+    print(np.linalg.norm(query_features[0]))
+    print(np.linalg.norm(database_features[0]))
+    print(time.time() - st)
+    
     persons_scores = []
     all_scores = []
-    for i, q in enumerate(query_features):
+
+    norm = False
+    
+    vocabulary = list(features_meta)
+    M = len(vocabulary[0])
+    for img, q in enumerate(query_features):
+        
+        #print(features_meta['M'][0][0])
+        sub_codebooks = dividir(query_data["feature"][img], M)
+        #print(sub_codebooks)
+
+        #print(cluster_centers)
+        
+        dists = []
+        for word in vocabulary:
+          dist = 0
+          for i in range(len(sub_codebooks)):
+            sub_codebook = sub_codebooks[i][0]
+            
+            #print("################   SUB CODEBOOK   #####################")
+            #print(sub_codebook)
+            
+            center = word[i]
+            
+            #print("################   CENTER    ##############")
+            #print(center)
+            
+            for d in range(len(sub_codebook)):
+              dist += (sub_codebook[d] - center[d]) ** 2
+            dist = np.sqrt(dist)
+                
+          #print("#####################   DIST    #######################")
+          #print(dist)
+              
+          dists.append(dist)
+              
+          #print("######################   dists    #######################")
+          #print(dists)
+            
+        #print(len(dists))
+        
+        n_assignments = 10
+        
+        idx = np.argpartition(dists, n_assignments)
+        print(np.array(dists)[idx])
+        #print(idx)
+        #indexes = vocabulary[idx[:n_assignments]]
+        indexes = idx[:n_assignments]
+        
+        #print(indexes)
+        #print(indexes[0])
+        
+        inverted_Table = dict()
+        search_features = list()
+        included_names = list()
+        included_images = list()
+        for idx in indexes:
+            key = vocabulary[idx]
+            list_features = features_meta[key]
+            if(len(list_features) > 0):
+              list_features = list_features
+            for j in list_features:
+              search_features.append(j)
+               
+        print(time.time() - st)
+        # normalize features
+        # TODO check copy and pointer
+        sf = database_features[search_features]
+
+
         # calculate cosine distance
         if bib == "pytorch":
             q = torch.from_numpy(q)
-            database_features = torch.from_numpy(database_features)
+            sf = torch.from_numpy(sf)
             if gpu:
                 q = query_features.cuda()
-                database_features = database_features.cuda()
-            scores_q = q @ database_features.t()
+                sf = sf.cuda()
+            scores_q = q @ sf.t()
         else:
-            scores_q = q @ np.transpose(database_features)
+            print(np.linalg.norm(q), "aasda")
+            scores_q = q @ np.transpose(sf)
             
         print(np.argmax(scores_q))
         r = np.argmax(scores_q)
         #print(included_names[r], scores_q[r], included_images[r])
 
         # associate confidence score with the label of the dataset and sort based on the confidence
-        #scores_q = list(zip(scores_q, database_data['name'], database_data['image']))
-        scores_q = list(zip(scores_q, included_names, included_images))
+        scores_q = list(zip(scores_q, database_data['name'][search_features], database_data['image'][search_features]))
+        #scores_q = list(zip(scores_q, included_names, included_images))
         scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
-        persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
+        persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))
         all_scores.append(scores_q)
 
     return persons_scores, all_scores
