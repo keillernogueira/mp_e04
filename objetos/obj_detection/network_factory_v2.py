@@ -163,6 +163,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                     # For each img, there is an out dict with the predictions
                     for out, tgt in zip(outputs, targets):
                         # Zero detections for the img
+                        print(out['boxes'], tgt['boxes'])
                         if len(out['scores']) == 0:
                             stats.append((np.zeros((0, n_ious), dtype=bool), np.zeros(0), np.zeros(0),
                                           tgt['labels'].tolist()))
