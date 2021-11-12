@@ -161,6 +161,14 @@ class ListDataset(data.Dataset):
                 img[:, :, b] = (img[:, :, b] - img[:, :, b].mean()) / img[:, :, b].std()
         return img
 
+    def norm01(self, img):
+        mn = img.min()
+        mx = img.max()
+
+        img = (img + mn)/(mx + mn)
+
+        return img
+
     def torch_channels(self, img):
         if len(img.shape) == 2:
             img = np.expand_dims(img, axis=0)
@@ -200,7 +208,8 @@ class ListDataset(data.Dataset):
 
         # Normalization.
         if norm:
-            img = self.norm(img)
+            # img = self.norm(img)
+            img = self.norm01(img)
 
         # Adding channel dimension.
         img = self.torch_channels(img)
