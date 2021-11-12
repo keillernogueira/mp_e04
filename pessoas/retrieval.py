@@ -15,6 +15,9 @@ from plots import plot_top15_person_retrieval
 from networks.load_network import load_net
 from manipulate_json import save_retrieved_ranking, read_json
 
+import pickle
+import time
+
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
@@ -84,9 +87,10 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
         features = scipy.io.loadmat(feature_file)
     
     save_file = feature_file[:-4]
-    save_file = save_file + '_meta.mat'
+    save_file = save_file + '_meta.pkl'
     if save_file is not None and os.path.isfile(save_file):
-        features_meta = scipy.io.loadmat(save_file)
+        f = open(save_file, 'rb')
+        features_meta = pickle.load(f)
     
     feature = None
     if input_data == 'image':
@@ -105,7 +109,11 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
     assert feature is not None, "No face detected in this file."
 
     # generate ranking
+    start = time.time()
     top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, features_meta)
+    end = time.time()
+    print("###############################")
+    print(end - start)
     print(top_k_ranking)
     print("###############################")
 
