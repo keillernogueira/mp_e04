@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import random
 import math
+import matplotlib.pyplot as plt
 
 from torch.utils import data
 from torchvision import transforms as T
@@ -234,6 +235,22 @@ class ListDataset(data.Dataset):
 
     def __len__(self):
         return len(self.imgs)
+
+    def visualize(self, index, save=False):
+        img, target = self[index]
+        bbxs = target['boxes']
+        img = np.moveaxis(img, 0, -1)
+        h, w, _ = img.shape
+        for bbx in bbxs:
+            img[max(int(bbxs[0][1]), 0), max(int(bbxs[0][0]), 0):int(bbxs[0][2]), :]=1
+            img[max(int(bbxs[0][3]), 0), max(int(bbxs[0][0]), 0):int(bbxs[0][2]), :]=1
+            img[max(int(bbxs[0][1]), 0):int(bbxs[0][3]), min(max(int(bbxs[0][0]), 0), w-1), :]=1
+            img[max(int(bbxs[0][1]), 0):int(bbxs[0][3]), min(max(int(bbxs[0][2]), 0), w-1), :]=1
+
+        if save:
+            io.imsave('vis.png', img)
+
+        return img
 
 
 class ValidationListDataset(ListDataset):

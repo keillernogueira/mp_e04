@@ -109,6 +109,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_loss = 9999999.99
     best_map = -1.0
+    epoch_loss = 0.0
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=3)
 
@@ -163,7 +164,6 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                     # For each img, there is an out dict with the predictions
                     for out, tgt in zip(outputs, targets):
                         # Zero detections for the img
-                        print(out['boxes'], tgt['boxes'])
                         if len(out['scores']) == 0:
                             stats.append((np.zeros((0, n_ious), dtype=bool), np.zeros(0), np.zeros(0),
                                           tgt['labels'].tolist()))
@@ -175,8 +175,8 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
 
                         # Per target class
                         for cls in np.unique(tgt['labels']):
-                            target_ids = np.flatnonzero(cls == tgt['labels'])
-                            pred_ids = np.flatnonzero(cls == out['labels'])
+                            target_ids = np.flatnonzero(tgt['labels'] == cls)
+                            pred_ids = np.flatnonzero(out['labels'] == cls)
 
                             # Search for detections
                             if pred_ids.shape[0]:
