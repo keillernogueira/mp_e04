@@ -239,6 +239,7 @@ class ListDataset(data.Dataset):
     def visualize(self, index, save=False):
         img, target = self[index]
         bbxs = target['boxes']
+        print(img)
         img = np.moveaxis(img, 0, -1)
         h, w, _ = img.shape
         for bbx in bbxs:
