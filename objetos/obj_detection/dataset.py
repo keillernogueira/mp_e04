@@ -243,10 +243,10 @@ class ListDataset(data.Dataset):
         img = np.moveaxis(img.numpy(), 0, -1)
         h, w, _ = img.shape
         for bbx in bbxs:
-            img[max(int(bbxs[0][1]), 0), max(int(bbxs[0][0]), 0):int(bbxs[0][2]), :]=1
-            img[max(int(bbxs[0][3]), 0), max(int(bbxs[0][0]), 0):int(bbxs[0][2]), :]=1
-            img[max(int(bbxs[0][1]), 0):int(bbxs[0][3]), min(max(int(bbxs[0][0]), 0), w-1), :]=1
-            img[max(int(bbxs[0][1]), 0):int(bbxs[0][3]), min(max(int(bbxs[0][2]), 0), w-1), :]=1
+            img[max(int(bbx[1]), 0), max(int(bbx[0]), 0):int(bbx[2]), :]=1
+            img[max(int(bbx[3]), 0), max(int(bbx[0]), 0):int(bbx[2]), :]=1
+            img[max(int(bbx[1]), 0):int(bbx[3]), min(max(int(bbx[0]), 0), w-1), :]=1
+            img[max(int(bbx[1]), 0):int(bbxs[0][3]), min(max(int(bbxs[0][2]), 0), w-1), :]=1
 
         if save:
             io.imsave('vis.png', img)
