@@ -249,7 +249,6 @@ class ListDataset(data.Dataset):
 
         if save:
             io.imsave('vis.png', img)
-
         return img
 
 
