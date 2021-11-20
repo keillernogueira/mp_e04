@@ -1,0 +1,9 @@
+MobileFaceNet	39.96	77.18	91.61	38.04
+SphereFace	15.92	33.1	87.84	24.99
+FaceNet	78.51	97.42	82.76	68.11
+MobiFace	29.47	25.9	54.01	13.33
+OpenFace	11.88	11.31	17.03	52.09
+ShuffleFaceNet	85.61	77.17	67.41	16.15
+ArcFace	96.19	81.73	92.65	36.10
+CurricularFace	97.47	89.84	92.75	34.33
+CosFace	97.96	92.27	92.73	53.57
