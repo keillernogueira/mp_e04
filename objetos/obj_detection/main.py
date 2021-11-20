@@ -100,7 +100,8 @@ def main():
 
     print('......Creating dataloader......')
     dataloaders_dict = dataloader.create_dataloader(dataset_dict['root'], img_size, batch_size,
-                                                    num_classes=total_classes, is_val=is_val, normalization=norm, quad=quad)
+                                                    num_classes=total_classes, is_val=is_val,
+                                                    normalization=norm, quad=quad)
     print('......Dataloader created......')
 
     params_to_update = net.parameters()

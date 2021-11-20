@@ -39,22 +39,23 @@ import cv2
 '''
 #hyperparameters for data augmenting
 hyp = {
-'degrees': 0.0,  # image rotation (+/- deg)
-'translate': 0.1,  # image translation (+/- fraction)
-'scale': 0.5,  # image scale (+/- gain)
-'shear': 0.0,  # image shear (+/- deg)
-'perspective': 0.0,  # image perspective (+/- fraction), range 0-0.001
+    'degrees': 0.0,  # image rotation (+/- deg)
+    'translate': 0.1,  # image translation (+/- fraction)
+    'scale': 0.5,  # image scale (+/- gain)
+    'shear': 0.0,  # image shear (+/- deg)
+    'perspective': 0.0,  # image perspective (+/- fraction), range 0-0.001
 }
 
 # hsv augmentation flag
 HSV_AUG = True
 
 # normalization means and stds for different datasets
-norms = {'imagenet': {'mean': [0.485, 0.456, 0.406], 'std' : [0.229, 0.224, 0.225]}}
+norms = {'imagenet': {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}}
 
 # Class that reads a sequence of image paths from a text file and creates a data.Dataset with them.
 class ListDataset(data.Dataset):
-    def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11, make=True, normvalues=None, quad=False, mosaic=1.0, mixup=0.0):
+    def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11,
+                 make=True, normvalues=None, quad=False, mosaic=1.0, mixup=0.0):
 
         self.root = root
         # Initializing variables.
@@ -125,7 +126,7 @@ class ListDataset(data.Dataset):
         labels = []
         bbx = []
         # Reading images.
-        img = io.imread(img_path)#cv2.imread(img_path).astype(np.uint8) #io.imread(img_path)
+        img = io.imread(img_path)  # cv2.imread(img_path).astype(np.uint8) #io.imread(img_path)
         # check gray
         if len(img.shape) == 2:
             img = gray2rgb(img)
@@ -135,13 +136,13 @@ class ListDataset(data.Dataset):
                 bb_list = f.readline().split()
                 if not bb_list:
                     break
-                labels.append(int(bb_list[0]))
+                labels.append(int(bb_list[0]) + 1)
                 xmin = float(bb_list[1]) - (float(bb_list[3]) / 2)
                 ymin = float(bb_list[2]) - (float(bb_list[4]) / 2)
                 xmax = float(bb_list[1]) + (float(bb_list[3]) / 2)
                 ymax = float(bb_list[2]) + (float(bb_list[4]) / 2)
-                if xmin == xmax: xmin -= 0.1
-                if ymin == ymax: ymin -= 0.1
+                if xmin == xmax:xmin -= 0.1
+                if ymin == ymax:ymin -= 0.1
                 bbx.append([xmin, ymin, xmax, ymax])
 
         if only_bb:
@@ -151,6 +152,8 @@ class ListDataset(data.Dataset):
         img = img_as_ubyte(img)
         # img = img.astype(np.float32)
         img = img.astype(np.uint8)
+        if img.shape[-1] > 3:
+            img = img[:, :, 0:3]
 
         return img, bbx, labels
 
@@ -181,7 +184,7 @@ class ListDataset(data.Dataset):
         mosaic = self.quad and random.random() < self.mosaic
         if mosaic:
             # Load mosaic
-            img, bbx, labels = load_mosaic(self, index) # BGR Image
+            img, bbx, labels = load_mosaic(self, index)  # BGR Image
             shapes = None
 
             # MixUp https://arxiv.org/pdf/1710.09412.pdf
@@ -254,7 +257,8 @@ class ListDataset(data.Dataset):
 
 
 class ValidationListDataset(ListDataset):
-    def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11, train_size=0.8, normvalues=None, quad=True, mosaic=1.0, mixup=0.0):
+    def __init__(self, root, mode, img_size=480, class_names=[], num_classes=11, train_size=0.8,
+                 normvalues=None, quad=True, mosaic=1.0, mixup=0.0):
 
         self.root = root
         # Initializing variables.
@@ -271,11 +275,9 @@ class ValidationListDataset(ListDataset):
         self.hyp = hyp
 
         if isinstance(normvalues, dict):
-            self.normalize = T.Normalize(mean=normvalues['mean'],
-                                         std=normvalues['std'])
+            self.normalize = T.Normalize(mean=normvalues['mean'], std=normvalues['std'])
         elif isinstance(normvalues, str):
-            self.normalize = T.Normalize(mean=norms[normvalues]['mean'],
-                                         std=norms[normvalues]['std'])
+            self.normalize = T.Normalize(mean=norms[normvalues]['mean'], std=norms[normvalues]['std'])
 
         # Creating list of paths.
         self.imgs = self.make_dataset()
@@ -311,6 +313,7 @@ class ValidationListDataset(ListDataset):
         # Returning list.
         return items
 
+
 def augment_hsv(im, hgain=0.015, sgain=0.7, vgain=0.4):
     # HSV color-space augmentation
     if hgain or sgain or vgain:
@@ -325,6 +328,7 @@ def augment_hsv(im, hgain=0.015, sgain=0.7, vgain=0.4):
 
         im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
         cv2.cvtColor(im_hsv, cv2.COLOR_HSV2RGB, dst=im)  # no return needed
+
 
 def load_image(self, index):
     # loads 1 image from dataset, returns img, original hw, resized hw
@@ -393,6 +397,7 @@ def load_mosaic(self, index):
                                     border=self.mosaic_border)  # border to remove
 
     return img4, labels4[:, 1:], labels4[:, 0]  # mosaic, boundbox, labels
+
 
 def random_perspective(img, targets=(), degrees=10, translate=.1, scale=.1, shear=10, perspective=0.0,
                        border=(0, 0)):
