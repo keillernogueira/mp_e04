@@ -64,7 +64,7 @@ def main():
     epochs = args.epochs
     model = args.model
     early_stop = args.early_stop
-    total_classes = dataset_dict['nc']
+    total_classes = dataset_dict['nc'] + 1 # +1 to include the __background__ class used in the pytorch models 
     infer = args.inference
     is_val = args.is_val
     weights = args.weights
