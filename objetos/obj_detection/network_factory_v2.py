@@ -258,7 +258,7 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
             break
 
         print()
-        scheduler.step(losses)
+        scheduler.step(epoch_loss)
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
