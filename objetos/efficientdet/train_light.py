@@ -17,7 +17,7 @@ from torchvision import transforms
 from tqdm.autonotebook import tqdm
 
 from backbone import EfficientDetBackbone
-from efficientdet.dataset_ import ListDataset, Resizer, Normalizer, Augmenter, collater
+from efficientdet.dataset_ import ListDataset, collater
 from efficientdet.loss import FocalLoss
 from utils.sync_batchnorm import patch_replication_callback
 from utils.utils import replace_w_sync_bn, CustomDataParallel, get_last_weights, init_weights, boolean_string, box_iou, ap_per_class, postprocess
@@ -46,6 +46,7 @@ def get_args():
     parser.add_argument('--optim', type=str, default='adamw', help='select optimizer for training, '
                                                                    'suggest using \'admaw\' until the'
                                                                    ' very final stage then switch to \'sgd\'')
+    parser.add_argument('--schlr', type=str, default="plateau")
     parser.add_argument('--num_epochs', type=int, default=500)
     parser.add_argument('--val_interval', type=int, default=1, help='Number of epoches between valing phases')
     parser.add_argument('--save_interval', type=int, default=500, help='Number of steps between saving')
@@ -66,6 +67,9 @@ def get_args():
     parser.add_argument('--num_imgs', type=int, default=20720)
     parser.add_argument('--anchors_ratios', type=str, default='[(0.7, 1.4), (1.0, 1.0), (1.5, 0.7)]')
     parser.add_argument('--anchors_scales', type=str, default='[2 ** 0, 2 ** (1.0 / 3.0), 2 ** (2.0 / 3.0)]')
+    parser.add_argument('--normalization', type=str, default='imagenet', help='Normalization values')
+
+    parser.add_argument('--quad', action='store_true', help='Uses a four image mosaic for training.')
 
     args = parser.parse_args()
     return args
@@ -100,36 +104,42 @@ def train(opt):
         torch.cuda.manual_seed(42)
     else:
         torch.manual_seed(42)
-
+    
     opt.saved_path = opt.saved_path + f'/{opt.data_name}/'
     opt.log_path = opt.log_path + f'/{opt.data_name}/tensorboard/'
     os.makedirs(opt.log_path, exist_ok=True)
     os.makedirs(opt.saved_path, exist_ok=True)
-
+    
+    norm = opt.normalization
+    quad = opt.quad
+    
     training_params = {'batch_size': opt.batch_size,
                        'shuffle': True,
-                       'drop_last': True,
+                       'drop_last': False,
                        'collate_fn': collater,
                        'num_workers': opt.num_workers}
 
     val_params = {'batch_size': opt.batch_size,
-                  'shuffle': False,
-                  'drop_last': True,
+                  'shuffle': True,
+                  'drop_last': False,
                   'collate_fn': collater,
                   'num_workers': opt.num_workers}
 
     input_sizes = [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
-    training_set = ListDataset(root=opt.data_path, mode = 'train', num_classes = params.nc ,class_names = params.names,
+    training_set = ListDataset(root=opt.data_path, img_size=input_sizes[opt.compound_coef],  mode = 'train', num_classes = params.nc ,class_names = params.names,normvalues=norm, quad=quad)
+    _ = '''training_set = ListDataset(root=opt.data_path, mode = 'train', num_classes = params.nc ,class_names = params.names,
                                transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
                                                              Augmenter(),
-                                                             Resizer(input_sizes[opt.compound_coef])]))
+                                                             Resizer(input_sizes[opt.compound_coef])]))'''
     training_generator = DataLoader(training_set, **training_params)
 
     val_set = ListDataset(root=opt.data_path, mode="test", num_classes = params.nc ,class_names = params.names,
+                         img_size=input_sizes[opt.compound_coef], normvalues=norm, quad=quad)
+    _ = '''val_set = ListDataset(root=opt.data_path, mode="test", num_classes = params.nc ,class_names = params.names,
                          img_size=input_sizes[opt.compound_coef],
                          transform=transforms.Compose([Normalizer(mean=params.mean, std=params.std),
                                                        #Augmenter(),
-                                                       Resizer(input_sizes[opt.compound_coef])]))
+                                                       Resizer(input_sizes[opt.compound_coef])]))'''
     val_generator = DataLoader(val_set, **val_params)
 
     model = EfficientDetBackbone(num_classes=len(params.names), compound_coef=opt.compound_coef,load_weights=True,
@@ -198,14 +208,14 @@ def train(opt):
 
     if opt.optim == 'adamw':
         optimizer = torch.optim.AdamW(model.parameters(), opt.lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3)
     else:
         optimizer = torch.optim.SGD(model.parameters(), opt.lr, momentum=0.9, nesterov=True, weight_decay = 4e-5)
+    if opt.schlr == "plateau":
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3)
+    else:
         calc_lr = lambda epoch: epoch/(opt.num_imgs//opt.num_epochs)
-        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = calc_lr, last_epoch=-1)
-        #scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.num_epochs, eta_min=0)
-   
-    #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
+        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = calc_lr, last_epoch=-1)        
+
 
     epoch = 0
     best_loss = 1e5
@@ -251,7 +261,6 @@ def train(opt):
                         continue
 
                     loss.backward()
-                    # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
                     optimizer.step()
 
                     epoch_loss.append(float(loss))
@@ -269,9 +278,9 @@ def train(opt):
                     writer.add_scalar('learning_rate', current_lr, step)
 
                     step += 1
-                    if epoch == 0 and opt.optim != 'adamw':
+                    if epoch == 0 and opt.schlr != 'plateau':
                         scheduler.step()
-                        #print(scheduler.get_last_lr())
+                        
                     if step % opt.save_interval == 0 and step > 0:
                         save_checkpoint(model, f'efficientdet-d{opt.compound_coef}_{epoch}_{step}.pth')
                         print('checkpoint...')
@@ -280,14 +289,19 @@ def train(opt):
                     print('[Error]', traceback.format_exc())
                     print(e)
                     continue
-            if epoch == 0 and opt.optim != 'adamw':
-                scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.num_epochs-1, eta_min=0)
-            if epoch>0:
-                if opt.optim == 'adamw':
+            if epoch == 0:
+                if opt.schlr == 'plateau':
+                    scheduler.step(np.mean(epoch_loss))
+                else:
+                    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.num_epochs-1, eta_min=0)
+            else:
+                if opt.schlr == 'plateau':
                     scheduler.step(np.mean(epoch_loss))
                 else:
                     scheduler.step()
-            #print(scheduler.get_last_lr())
+
+            with open(os.path.join(opt.saved_path, "lr.txt"), 'a+') as f:
+                f.write('Epoch {}, lr {}\n'.format(epoch, current_lr))
 
             if epoch % opt.val_interval == 0:
                 model.requires_grad_(False)
@@ -311,7 +325,7 @@ def train(opt):
                     x = inputs
                     x = x.to(device)
                     x = x.float()
-                    #x = x.unsqueeze(0).permute(0, 3, 1, 2)
+
                     features, regression, classification, anchors = model(x,annots, test=True)
 
                     outputs = postprocess(x,
@@ -319,13 +333,11 @@ def train(opt):
                                         regressBoxes, clipBoxes,
                                         0.05, 0.5)
 
-                    #sz = input_sizes[opt.compound_coef]
+
                     outputs = [{k: torch.from_numpy(v).to(device) for k, v in out.items()} for out in outputs]
                     for out,target in zip(outputs,targets):
                         target['labels'] = target['labels'][target['labels'] != -1]
                         target['boxes'] = target['boxes'][:len(target['labels']),:]
-                        #target['boxes'] = torch.mul(target['boxes'], sz)
-                        #out['rois'] =  torch.div(out['rois'], sz)
                                                 
                         # Zero detections for the img
                         if len(out['scores']) == 0:
@@ -361,6 +373,7 @@ def train(opt):
 
                         # Append statistics (correct, conf, pred_cls, gt_cls)
                         stats.append((correct.cpu(), out['scores'].cpu(), out['class_ids'].cpu(), target['labels'].cpu()))
+
                 for iter, data in enumerate(val_generator):
                     with torch.no_grad():
                         imgs = data['img']
@@ -408,9 +421,9 @@ def train(opt):
                 print(pf % ('all', mp, mr, mAP50, mAP))
 
                 # Write metrics to file
-                with open(os.path.join(opt.saved_path, "results.txt"), 'a') as f:
+                with open(os.path.join(opt.saved_path, "results_novo.txt"), 'a+') as f:
                     if epoch==0:
-                        f.write("\n")
+                        f.write("\n %s %s %f \n"% (opt.optim, opt.schlr, opt.lr))
                     f.write('%g/%g' % (epoch, opt.num_epochs - 1) + '%10.4g' * 5 % (mp, mr, mAP50, mAP, loss/len(val_generator.dataset)) + '\n')  # append metrics, val_loss
                 
                 model.requires_grad_(True)

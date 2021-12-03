@@ -89,6 +89,7 @@ def collater(data):
     scales = [s['scale'] for s in data]
 
     imgs = torch.from_numpy(np.stack(imgs, axis=0))
+    print('after-stack_torch',imgs.shape, imgs.size())
 
     max_num_annots = max(annot.shape[0] for annot in annots)
 
@@ -103,6 +104,7 @@ def collater(data):
         annot_padded = torch.ones((len(annots), 1, 5)) * -1
 
     imgs = imgs.permute(0, 3, 1, 2)
+    print('after-permute',imgs.shape, imgs.size())
 
     return {'img': imgs, 'annot': annot_padded, 'scale': scales}
 
