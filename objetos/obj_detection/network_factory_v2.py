@@ -125,8 +125,8 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                 model.train()  # Set model to training mode
             else:
                 model.eval()  # Set model to evaluate mode
-                stats, ap, ap_class = [], [], []
-                p, r, f1, mp, mr, mAP50, mAP = 0., 0., 0., 0., 0., 0., 0.  # Precision, Recall, F1, Mean P, Mean R, mAP@0.5, mAP@[0.5:0.95]
+                stats, ap, ap_class = [], [0.], [0.]
+                p, r, f1, mp, mr, mAP50, mAP = [0.], [0.], 0., 0., 0., 0., 0.  # Precision, Recall, F1, Mean P, Mean R, mAP@0.5, mAP@[0.5:0.95]
 
             running_loss = 0.0
 
@@ -217,12 +217,16 @@ def train(model, dataloaders, optimizer, num_epochs, epochs_early_stop, tensor_b
                     ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
                     mp, mr, mAP50, mAP = p.mean(), r.mean(), ap50.mean(), ap.mean()
 
-                pf = '%20s' + '%12.3g' * 4  # print format
-                print(pf % ('all', mp, mr, mAP50, mAP))
+                total_values = 4 + len(p) + len(r) + len(ap50) + len(ap)
+                
+                pf = '%12.3g' * 4 + '[' + '%12.3g' * len(p) + ']' + '[' + '%12.3g' * len(r) + ']' + '[' + '%12.3g' * len(ap50) + ']' + '[' + '%12.3g' * len(ap) + ']' # print format
+                pf2 = '%10.4g' * 4 + '[' + '%10.4g' * len(p) + ']' + '[' + '%10.4g' * len(r) + ']' + '[' + '%10.4g' * len(ap50) + ']' + '[' + '%10.4g' * len(ap) + ']' # print file format
+                
+                print(pf % (mp, mr, mAP50, mAP, *p, *r, *ap50, *ap))
 
                 # Write metrics to file
                 with open(results_file, 'a') as f:
-                    f.write('%g/%g' % (epoch, num_epochs - 1) + '%10.4g' * 4 % (mp, mr, mAP50, mAP) + '\n')  # append metrics
+                    f.write('%g/%g' % (epoch, num_epochs - 1) + pf2 % (mp, mr, mAP50, mAP, *p, *r, *ap50, *ap) + '\n')  # append metrics
 
             # Epoch loss/ metric registry in tensorboard
             if phase == 'train':
@@ -284,8 +288,11 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
     iou_values = np.linspace(0.5, 0.95, 10)  # iou vector for mAP@0.5:0.95
     n_ious = iou_values.size
 
-    model.eval()
     stats = []
+    p, r, f1, mp, mr, mAP50, mAP = [0.], [0.], 0., 0., 0., 0., 0.  # Precision, Recall, F1, Mean P, Mean R, mAP@0.5, mAP@[0.5:0.95]
+
+    model.eval()
+    
     for inputs, targets in tqdm(dataloaders['test']):
         # inputs = inputs.to(device)
         inputs = list(inp.to(device) for inp in inputs)
@@ -338,13 +345,17 @@ def final_eval(model, dataloaders, stats_file, save_dir, plot=False):
             stats.append((correct, out['scores'], out['labels'], tgt['labels']))
 
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
+    
     if len(stats) and stats[0].any():
         p, r, ap, f1, ap_class = ap_per_class(*stats, plot=plot, save_dir=save_dir, names=class_names)
         ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
         mp, mr, mAP50, mAP = p.mean(), r.mean(), ap50.mean(), ap.mean()
-    print('%12.3g' * 4 % (mp, mr, mAP50, mAP))
+    
+    print('%12.3g' * 4  + '[' + '%12.3g' * len(p) + ']' + '[' + '%12.3g' * len(r) + ']' \
+                        + '[' + '%12.3g' * len(ap50) + ']' + '[' + '%12.3g' * len(ap) + ']' % (mp, mr, mAP50, mAP, *p, *r, *ap50, *ap))
 
     # Write metrics to file
     with open(stats_file, 'a') as f:
-        f.write('Precision, Recall, mAP@50, mAP@[50, 95]\n')
-        f.write('%10.4g' * 4 % (mp, mr, mAP50, mAP))  # append metrics
+        f.write('Precision, Recall, mAP@50, mAP@[50, 95], P(per class), R(per class), mAP@50(per class), mAP@[50, 95](per class) \n')
+        f.write('%10.4g' * 4 + '[' + '%10.4g' * len(p) + ']' + '[' + '%10.4g' * len(r) + ']' \
+                             + '[' + '%10.4g' * len(ap50) + ']' + '[' + '%10.4g' * len(ap) + ']' % (mp, mr, mAP50, mAP, *p, *r, *ap50, *ap))  # append metrics
