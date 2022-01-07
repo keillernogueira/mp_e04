@@ -1,5 +1,6 @@
 import time
 import scipy.io
+import pickle
 import numpy as np
 
 import torch.utils.data
@@ -197,10 +198,12 @@ def process_dataset(operation, model_name, batch_size,
         features = extract_features(dataloader, model=load_net(model_name, gpu=gpu),
                                     save_img_results=(False if result_sample_path is None else True), gpu=gpu)
         assert feature_file is not None
-        scipy.io.savemat(feature_file, features)
+        with open(feature_file, 'wb') as handle:
+            pickle.dump(features, handle, protocol=pickle.HIGHEST_PROTOCOL)
     elif operation == 'generate_rank':
         assert feature_file is not None
-        features = scipy.io.loadmat(feature_file)
+        with open(feature_file, 'rb') as handle:
+            features = pickle.load(handle)
         evaluate_dataset(features, save_dir=result_sample_path)
     elif operation == 'extract_generate_rank':
         if feature_file is None:
@@ -209,7 +212,8 @@ def process_dataset(operation, model_name, batch_size,
                                         save_img_results=(False if result_sample_path is None else True), gpu=gpu)
         else:
             # ...OR load the previous saved features, if possible
-            features = scipy.io.loadmat(feature_file)
+            with open(feature_file, 'rb') as handle:
+                features = pickle.load(handle)
         evaluate_dataset(features, save_dir=result_sample_path)
     else:
         raise NotImplementedError("Operation " + operation + " not implemented")

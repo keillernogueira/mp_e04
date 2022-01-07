@@ -10,6 +10,7 @@ from dataloaders.generic_dataloader import GenericDataLoader
 from processors.dataset_processor import extract_features
 from sklearn.cluster import KMeans
 from networks.load_network import load_net
+from sklearn.preprocessing import normalize
 
 
 def create_feature_segments(features, n_sub_codebooks):
@@ -50,8 +51,9 @@ def manipulate_dataset(feature_file, dataset_path,
     # load current features
     features = None
     if feature_file is not None and os.path.isfile(feature_file):
-        features = scipy.io.loadmat(feature_file)
-
+        with open(feature_file, 'rb') as handle:
+            features = pickle.load(handle)
+            
     # extracting features
     feature = extract_features(dataset_dataloader, model=load_net(model_name, model_path, gpu))
     assert feature is not None, "Not capable of extracting features"
@@ -65,10 +67,24 @@ def manipulate_dataset(feature_file, dataset_path,
         features['name'] = np.concatenate((features['name'], feature['name']), 0)
         features['image'] = np.concatenate((features['image'], feature['image']), 0)
         features['bbs'] = np.concatenate((features['bbs'], feature['bbs']), 0)
+    
     # save the current version of the features
-    scipy.io.savemat(feature_file, features)
+    mu = np.mean(features['feature'], 0)
+    mu = np.expand_dims(mu, 0)
+    # extract mean from features and add a bias
+    normalized_features = features['feature'] - (mu - 1e-18)
+    # divide by the standard deviation
+    #print(features.shape)
+    normalized_features = normalize(normalized_features, norm = 'l2', axis = 1)
+    features['normalized_feature'] = normalized_features
+    features['feature_mean'] = mu
+    with open(feature_file, 'wb') as handle:
+        pickle.dump(features, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    print(features['normalized_feature'].shape)
+    #scipy.io.savemat(feature_file, features)
+    #print(features['feature'].shape)
 
-    M = 8
+    '''M = 8
     sub_codebooks = create_feature_segments(features['feature'], M)
 
     kmeans = []
@@ -119,7 +135,7 @@ def manipulate_dataset(feature_file, dataset_path,
     save_file = feature_file[:-4] + '_meta.pkl'
     with open(save_file, 'wb') as f:
         pickle.dump(inverted_table, f)
-    f.close()
+    f.close()'''
 
 
 if __name__ == '__main__':

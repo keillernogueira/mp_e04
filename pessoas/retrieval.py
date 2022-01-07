@@ -17,12 +17,13 @@ from manipulate_json import save_retrieved_ranking, read_json
 
 import pickle
 import time
+from PyRetri import index as idx
 
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
-def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
+def retrieval(data_to_load, feature_file, save_dir,config, input_data='image', output_method="image",
               model_name="mobilefacenet", model_path=None,
               preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
     """
@@ -50,14 +51,20 @@ def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_m
                 input_data = 'video'
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
-            individual_retrieval(path, feature_file, save_dir, input_data, output_method, model_name,
+            individual_retrieval(path, feature_file, save_dir, config, input_data, output_method, model_name,
+                                 model_path, preprocessing_method, crop_size, gpu)
+    elif '.pkl' in data_to_load:
+        with open(data_to_load, 'rb') as handle:
+            feature = pickle.load(handle)
+        input_data = 'feature'
+        individual_retrieval(feature, feature_file, save_dir, config, input_data, output_method, model_name,
                                  model_path, preprocessing_method, crop_size, gpu)
     else:
-        individual_retrieval(data_to_load, feature_file, save_dir, input_data, output_method, model_name,
+        individual_retrieval(data_to_load, feature_file, save_dir,config, input_data, output_method, model_name,
                              model_path, preprocessing_method, crop_size, gpu)
 
 
-def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
+def individual_retrieval(data_to_load, feature_file, save_dir,config, input_data='image', output_method="image",
                          model_name="mobilefacenet", model_path=None,
                          preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
     """
@@ -84,13 +91,19 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
     features = None
     # load current features
     if feature_file is not None and os.path.isfile(feature_file):
-        features = scipy.io.loadmat(feature_file)
-    
-    save_file = feature_file[:-4]
-    save_file = save_file + '_meta.pkl'
-    if save_file is not None and os.path.isfile(save_file):
-        f = open(save_file, 'rb')
-        features_meta = pickle.load(f)
+        with open(feature_file, 'rb') as handle:
+            features = pickle.load(handle)
+        '''big_features = features.copy()
+        for i in range(0):
+            print(i)
+            big_features['name'] = np.concatenate((big_features['name'], features['name']), axis = 0)
+            big_features['image'] = np.concatenate((big_features['image'], features['image']), axis = 0)
+            big_features['feature'] = np.concatenate((big_features['feature'], features['feature']), axis = 0)
+            big_features['normalized_feature'] = np.concatenate((big_features['normalized_feature'], features['normalized_feature']), axis = 0)
+            big_features['bbs'] = np.concatenate((big_features['bbs'], features['bbs']), axis = 0)
+        big_features['feature_mean'] = features['feature_mean']
+        features = big_features
+        print(features['feature'].shape)'''
     
     feature = None
     if input_data == 'image':
@@ -105,17 +118,40 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
                                              return_only_one_face=True, crop_size = crop_size)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
                                               load_net(model_name, model_path, gpu))
+    elif input_data == 'feature':
+        feature = data_to_load
+
+    
 
     assert feature is not None, "No face detected in this file."
-
-    # generate ranking
     start = time.time()
-    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, features_meta)
-    end = time.time()
-    print("###############################")
-    print(end - start)
-    print(top_k_ranking)
-    print("###############################")
+
+
+    '''if(len(features['feature']) > 10000000):
+        # generate ranking
+        nDiv = int(len(features['feature'])/10000000) + 1
+        size = int(len(features['feature']) / nDiv)
+        for i in range(nDiv):
+            print((i*size,(i+1)*size))
+            if top_k is None:
+                top_k = idx.main(feature, features, config, 50, range = (i*size,(i+1)*size))
+            else:
+                
+                print(top_k.shape)
+                top_k = np.concatenate((top_k, idx.main(feature, features, config, 50, range = (i*size,(i+1)*size))), axis = 1)
+                print(top_k.shape)
+                print(top_k)
+    else:
+        top_k = idx.main(feature, features, config, 50)
+    #top_k = [list(range(len(features['feature'])))]
+'''
+
+    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, config = config)
+    #end = time.time()
+    #print("###############################")
+    #print(end - start)
+    #print(top_k_ranking)
+    #print("###############################")
 
     # exporting results
 
@@ -131,8 +167,9 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
             
             face_id = 1
             for rank in top_k_ranking:
-                face_dict = {'id': face_id, 'class': rank[1][0]['Name'],
-                             'confidence': np.float64(rank[1][0]['Confidence']), 'box': rank[0].tolist()}
+                names = {i['Name']:np.float64(i['Confidence']) for i in rank[1]}
+                face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
+                             'confidence most similar': np.float64(rank[1][0]['Confidence']), 'box': rank[0].tolist()}
                 output[0][f'face_{face_id}'] = face_dict
                 print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 # save_retrieved_ranking(output, rank[1], rank[0],
@@ -174,6 +211,7 @@ if __name__ == '__main__':
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
                         help='Pre-processing method')
+    parser.add_argument('--config', type=str, required=False,default = "PyRetri/configs/oxford.yaml")
     # parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112),
     #                     help='Crop size')
     args = parser.parse_args()
@@ -192,5 +230,5 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError("Model " + args.model_name + " not implemented")
 
-    retrieval(args.data_to_process, args.feature_file, args.save_dir, args.input_type,
+    retrieval(args.data_to_process, args.feature_file, args.save_dir,args.config, args.input_type,
               args.output_method, args.model_name, args.model_path, args.preprocessing_method, crop_size)

@@ -7,13 +7,24 @@ import torch
 from dataloaders.image_dataloader import ImageDataLoader
 from networks.load_network import load_net
 
+import pickle
 import time
+from sklearn.preprocessing import normalize
 
+from PyRetri import index as pyretri
 
-def create_feature_segments(features, n_sub_codebooks):
-    segments = np.reshape(features, (features.shape[0], n_sub_codebooks, int(features.shape[1]/n_sub_codebooks)))
-    return np.swapaxes(segments, 0, 1)
-
+def dividir(features, n_sub_codebooks):
+    #print(features, n_sub_codebooks)
+    if type(features[0])!=list:
+        features = [features]
+    sub_codebooks = [[] for x in range(n_sub_codebooks)]
+    size = int(features[0].shape[0]/n_sub_codebooks)
+    for feature in features:
+        for i in range(n_sub_codebooks):
+            sub_codebooks[i].append(feature[i*size:(i+1)*size])
+    #print("#############################")
+    #print(sub_codebooks)
+    return sub_codebooks
 
 def extract_features_from_image(model, dataloader, query_label, gpu):
     """
@@ -84,7 +95,7 @@ def generate_rank(scores, k_rank):
     return persons_scores
 
 
-def generate_ranking_for_image(database_data, query_data, features_meta, k_rank=10, bib="numpy", gpu=False):
+def generate_ranking_for_image(database_data, query_data, use_pyretri = True, k_rank=10, bib="numpy", gpu=False, config = 0):
     """
     Make a specific query and calculate the average precision.
     :param database_data: features of the entire dataset.
@@ -94,73 +105,101 @@ def generate_ranking_for_image(database_data, query_data, features_meta, k_rank=
     :param gpu: boolean to allow use gpu.
     :return: top k list (with ID and confidence) of most similar images.
     """
-    # TODO check copy and pointer
-    st = time.time()
-    database_features = database_data['feature']
+    
+    if use_pyretri:
+        st = time.time()
+        if len(database_data['feature'])>10000: # assume normalizing with query_data is not going to change too much
+            database_features = database_data['normalized_feature']
+            query_features = query_data['feature']
+            num_features_query = query_features.shape[0]
+            query_bbs = query_data['bbs']
+            # normalize query data using dataset data mean
+            query_features = query_features - (database_data['feature_mean'] - 1e-18)
+            query_features = normalize(query_features, norm = 'l2', axis = 1)
+        else:
+            database_features = database_data['feature']
+            query_features = query_data['feature']
+            num_features_query = query_features.shape[0]
+            query_bbs = query_data['bbs']
+            features = np.vstack((query_features, database_features))
+            # calculate the mean
+            mu = np.mean(features, 0)
+            mu = np.expand_dims(mu, 0)
+            # extract mean from features and add a bias
+            features = features - (mu - 1e-18)
+            # divide by the standard deviation
+            print(features.shape)
+            features = normalize(features, norm = 'l2', axis = 1)
+            print(np.linalg.norm(features[0]))
+            query_features = features[0:num_features_query]
+            database_features = features[num_features_query:]
 
-    query_features = query_data['feature']
-    query_bbs = query_data['bbs']
-    num_features_query = query_features.shape[0] # this is just to store the number of faces detected in the query image
+        top_k = pyretri.main(query_features, database_features, config, 50)
+        persons_scores = []
+        all_scores = []
+        print("Normalization Done in:", time.time() - st)
+        st = time.time()
+        print(database_data['image'][top_k[0]])
+        for i, q in enumerate(query_features):
+            #database_features = search_features
+            sf = database_features[top_k[i]]
+            if bib == "pytorch":
+                q = torch.from_numpy(q)
+                sf = torch.from_numpy(sf)
+                if gpu:
+                    q = q.cuda()
+                    sf = sf.cuda()
+                scores_q = q @ sf.t()
 
-    # normalization
-    # concatenate the features
-    features = np.vstack((query_features, database_features))
-    # calculate the mean
-    mu = np.mean(features, 0)
-    mu = np.expand_dims(mu, 0)
-    # extract mean from features and add a bias
-    features = features - mu + 1e-18
-    # divide by the standard deviation
-    features = features / np.expand_dims(np.sqrt(np.sum(np.power(features, 2), 1)), 1)
-    query_features = features[0:num_features_query]
-    database_features = features[num_features_query:]
+            else:
+                scores_q = q @ np.transpose(sf)
+
+            # associate confidence score with the label of the dataset and sort based on the confidence
+            scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]]))
+            #scores_q = list(zip(scores_q, included_names, included_images))
+            scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
+
+            persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
+            all_scores.append(scores_q)
+        print("Indexing Done In:", time.time() - st)
+
+        return persons_scores, all_scores
+
+
+    if len(database_data['feature'])>10000: # assume normalizing with query_data is not going to change too much
+        database_features = database_data['normalized_feature']
+        query_features = query_data['feature']
+        num_features_query = query_features.shape[0]
+        query_bbs = query_data['bbs']
+        # normalize query data using dataset data mean
+        query_features = query_features - (database_data['feature_mean'] - 1e-18)
+        query_features = normalize(query_features, norm = 'l2', axis = 1)
+    else:
+        database_features = database_data['feature']
+        query_features = query_data['feature']
+        num_features_query = query_features.shape[0]
+        query_bbs = query_data['bbs']
+        features = np.vstack((query_features, database_features))
+        # calculate the mean
+        mu = np.mean(features, 0)
+        mu = np.expand_dims(mu, 0)
+        # extract mean from features and add a bias
+        features = features - (mu - 1e-18)
+        # divide by the standard deviation
+        print(features.shape)
+        features = normalize(features, norm = 'l2', axis = 1)
+        print(np.linalg.norm(features[0]))
+        query_features = features[0:num_features_query]
+        database_features = features[num_features_query:]
 
     persons_scores = []
     all_scores = []
 
-    vocabulary = list(features_meta)
-    M = len(vocabulary[0])
     for img, q in enumerate(query_features):
-        sub_codebooks = create_feature_segments(q, M)
-        print(sub_codebooks.shape)
-
-        dists = []
-        for word in vocabulary:
-            dist = 0
-            for i in range(len(sub_codebooks)):
-                sub_codebook = sub_codebooks[i][0]
-                center = word[i]
-
-                for d in range(len(sub_codebook)):
-                    dist += (sub_codebook[d] - center[d]) ** 2
-                dist = np.sqrt(dist)
-            dists.append(dist)
-        
-        n_assignments = 10
-        
-        idx = np.argpartition(dists, n_assignments)
-        print(np.array(dists)[idx])
-        # print(idx)
-        # indexes = vocabulary[idx[:n_assignments]]
-        indexes = idx[:n_assignments]
-        
-        # print(indexes)
-        # print(indexes[0])
-        
-        inverted_Table = dict()
-        search_features = list()
-        included_names = list()
-        included_images = list()
-        for idx in indexes:
-            key = vocabulary[idx]
-            list_features = features_meta[key]
-            if len(list_features) > 0:
-                list_features = list_features
-            for j in list_features:
-                search_features.append(j)
-               
-        print(time.time() - st)
-        sf = database_features[search_features]
+        # normalize features
+        # TODO check copy and pointer
+        sf = database_features
+        #sf = database_features
 
         # calculate cosine distance
         if bib == "pytorch":
@@ -173,13 +212,12 @@ def generate_ranking_for_image(database_data, query_data, features_meta, k_rank=
         else:
             scores_q = q @ np.transpose(sf)
             
-        print(np.argmax(scores_q))
         r = np.argmax(scores_q)
-        # print(included_names[r], scores_q[r], included_images[r])
+        #print(included_names[r], scores_q[r], included_images[r])
 
         # associate confidence score with the label of the dataset and sort based on the confidence
         scores_q = list(zip(scores_q, database_data['name'][search_features], database_data['image'][search_features]))
-        # scores_q = list(zip(scores_q, included_names, included_images))
+        #scores_q = list(zip(scores_q, included_names, included_images))
         scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
         persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))
@@ -198,7 +236,8 @@ def process_image(operation, model_name, model_path, image_query, query_label,
     features = None
     # load current features
     if feature_file is not None and os.path.isfile(feature_file):
-        features = scipy.io.loadmat(feature_file)
+        with open(feature_file, 'rb') as handle:
+            features = pickle.load(handle)
 
     # process specific image
     if operation == 'extract_features':
@@ -220,7 +259,8 @@ def process_image(operation, model_name, model_path, image_query, query_label,
                 # print(features['feature'].shape, features['name'].shape,
                 # features['image'].shape, features['bbs'].shape)
             # save the current version of the features
-            scipy.io.savemat(feature_file, features)
+            with open(feature_file, 'wb') as handle:
+                pickle.dump(features, handle, protocol=pickle.HIGHEST_PROTOCOL)
     elif operation == 'generate_rank':
         assert features is not None, 'To generate rank, use the flag --feature_file' \
                                      ' to load previously extracted features.'

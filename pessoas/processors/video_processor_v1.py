@@ -2,6 +2,7 @@ import os
 import time
 import json
 import scipy.io
+import pickle
 from datetime import datetime
 
 from main import extract_features_from_video
@@ -21,7 +22,8 @@ def video_processor(video_path):
     features = None
     # load current features
     if feature_file is not None and os.path.isfile(feature_file):
-        features = scipy.io.loadmat(feature_file)
+        with open(feature_file, 'rb') as handle:
+            features = pickle.load(handle)
 
     now = datetime.now()
     date = now.strftime("%d%m%Y-%H%M%S")

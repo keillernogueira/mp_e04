@@ -8,6 +8,7 @@ from pathlib import Path
 
 import torch
 
+import pickle
 from dataloaders.video_dataloader import VideoDataLoader
 from networks.load_network import load_net
 from utils import generate_video
@@ -93,7 +94,8 @@ def process_video(video_query, feature_file, save_dir, model, pre_process="spher
     features = None
     # load current features
     if feature_file is not None and os.path.isfile(feature_file):
-        features = scipy.io.loadmat(feature_file)
+        with open(feature_file, 'rb') as handle:
+            features = pickle.load(handle)
 
     # Define face detection pipeline
     detection_pipeline = VideoDataLoader(batch_size=batch_size, resize=0.5, preprocessing_method=pre_process,
