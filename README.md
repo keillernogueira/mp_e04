@@ -1,5 +1,9 @@
 # MPMG: E04
 
+## Resultados
+
+[Planilha](https://docs.google.com/spreadsheets/d/1-3UkWuNJaoVz_6OtG2eQEH1DZFWOrG2IF4uQoskUsjI/edit?usp=sharing)
+
 ## Docker
 
 Criar imagem docker usando Dockerfile (este comando precisa ser executado na mesma pasta do Dockerfile):
