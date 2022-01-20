@@ -39,7 +39,6 @@ def simple_build(name: str, cfg: CfgNode, registry: Registry, **kwargs):
     Returns:
         module: a initialized instance
     """
-    print(name)
     assert name in registry
     module = registry[name]
     hps = module.default_hyper_params

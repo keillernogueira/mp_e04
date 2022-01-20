@@ -145,7 +145,7 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
 
     unique_persons = []
     i = j = 0
-    while i < 10:
+    while i < 10 and j < len(scores):
         if unique_persons:
             if scores[j][1] not in unique_persons:
                 img = read_image(scores[j][2].strip())

@@ -55,24 +55,12 @@ class SVD(DimProcessorBase):
         train_fea = train_fea['feature']
         if self._hyper_params["l2"]:
             train_fea = normalize(train_fea, norm="l2")
-        print("Partiu trenio zz")
-        print(train_fea.shape)
-        print(train_fea[0])
         train_fea = self.svd.fit_transform(train_fea)
-        print("Agora to gigante!")
         self.std = train_fea.std(axis=0, keepdims=True)
 
     def __call__(self, fea: np.ndarray) -> np.ndarray:
         ori_fea = fea
-        print("Ta na hora de mudar")
-        print(ori_fea.shape)
-        print(ori_fea[0])
-        print(self.svd)
         proj_fea = self.svd.transform(ori_fea)
-        print("Nós tá diferente")
         if self._hyper_params["whiten"]:
             proj_fea = proj_fea / (self.std + 1e-6)
-            print("Enbranquecidos")
-        print(proj_fea)
-        print(proj_fea.shape)
         return proj_fea

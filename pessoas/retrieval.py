@@ -23,9 +23,9 @@ img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
-def retrieval(data_to_load, feature_file, save_dir,config, input_data='image', output_method="image",
+def retrieval(data_to_load, feature_file, save_dir,config = "PyRetri/configs/base.yaml", input_data='image', output_method="image",
               model_name="mobilefacenet", model_path=None,
-              preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
+              preprocessing_method="sphereface", K_images = 1000, crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -58,26 +58,28 @@ def retrieval(data_to_load, feature_file, save_dir,config, input_data='image', o
             feature = pickle.load(handle)
         input_data = 'feature'
         individual_retrieval(feature, feature_file, save_dir, config, input_data, output_method, model_name,
-                                 model_path, preprocessing_method, crop_size, gpu)
+                                 model_path, preprocessing_method, K_images, crop_size, gpu)
     else:
         individual_retrieval(data_to_load, feature_file, save_dir,config, input_data, output_method, model_name,
-                             model_path, preprocessing_method, crop_size, gpu)
+                             model_path, preprocessing_method,K_images, crop_size, gpu)
 
 
-def individual_retrieval(data_to_load, feature_file, save_dir,config, input_data='image', output_method="image",
+def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri/configs/base.yaml", input_data='image', output_method="image",
                          model_name="mobilefacenet", model_path=None,
-                         preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
+                         preprocessing_method="sphereface", K_images = 1000, crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
     :param data_to_load: Data to be analysed. Can be a link or path, image or video.
     :param feature_file: Path to the file that contains extracted features from dataset images.
     :param save_dir: Path to the dir used to save the results.
+    :param config: Path to config file to be utilized by PyRetri.
     :param input_data: Type of the input data: image or video
     :param output_method: Method to export the results: json or image.
     :param model_name: String with the name of the model used.
     :param model_path: Path to a trained model
     :param preprocessing_method: String with the name of the preprocessing method used.
+    :param K_images: Number of images to be returned by PyRetri. Setting to 0 disables PyRetri.
     :param crop_size: Size of the crop based on the model used.
     :param gpu: use GPU?
     """
@@ -93,17 +95,26 @@ def individual_retrieval(data_to_load, feature_file, save_dir,config, input_data
     if feature_file is not None and os.path.isfile(feature_file):
         with open(feature_file, 'rb') as handle:
             features = pickle.load(handle)
-        '''big_features = features.copy()
-        for i in range(0):
+        '''
+        This section replicates features of the dataset to facilitate teting with big datasets.
+
+        number_of_duplications = 0  #Number of times the dataset will be replicated
+        big_features = features.copy()
+        #features['feature'] = features['feature'][0]
+        for i in range(number_of_duplications):
             print(i)
             big_features['name'] = np.concatenate((big_features['name'], features['name']), axis = 0)
             big_features['image'] = np.concatenate((big_features['image'], features['image']), axis = 0)
-            big_features['feature'] = np.concatenate((big_features['feature'], features['feature']), axis = 0)
+
+            #commenting this line reduces memory utilization
+            #big_features['feature'] = np.concatenate((big_features['feature'], features['feature']), axis = 0).astype("float16")
+
             big_features['normalized_feature'] = np.concatenate((big_features['normalized_feature'], features['normalized_feature']), axis = 0)
             big_features['bbs'] = np.concatenate((big_features['bbs'], features['bbs']), axis = 0)
         big_features['feature_mean'] = features['feature_mean']
-        features = big_features
-        print(features['feature'].shape)'''
+        features = big_features'''
+
+        print(features['normalized_feature'].shape)
     
     feature = None
     if input_data == 'image':
@@ -127,26 +138,8 @@ def individual_retrieval(data_to_load, feature_file, save_dir,config, input_data
     start = time.time()
 
 
-    '''if(len(features['feature']) > 10000000):
-        # generate ranking
-        nDiv = int(len(features['feature'])/10000000) + 1
-        size = int(len(features['feature']) / nDiv)
-        for i in range(nDiv):
-            print((i*size,(i+1)*size))
-            if top_k is None:
-                top_k = idx.main(feature, features, config, 50, range = (i*size,(i+1)*size))
-            else:
-                
-                print(top_k.shape)
-                top_k = np.concatenate((top_k, idx.main(feature, features, config, 50, range = (i*size,(i+1)*size))), axis = 1)
-                print(top_k.shape)
-                print(top_k)
-    else:
-        top_k = idx.main(feature, features, config, 50)
-    #top_k = [list(range(len(features['feature'])))]
-'''
+    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature,bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
 
-    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, config = config)
     #end = time.time()
     #print("###############################")
     #print(end - start)
@@ -211,7 +204,11 @@ if __name__ == '__main__':
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
                         help='Pre-processing method')
-    parser.add_argument('--config', type=str, required=False,default = "PyRetri/configs/oxford.yaml")
+    parser.add_argument('--config', type=str, required=False, default = "PyRetri/configs/base.yaml")
+    parser.add_argument('--no_gpu', dest='gpu', action='store_false', help='Disables GPU usage in retrieval process')
+    parser.add_argument('--K_images', type=int, required=False, default = 1000,
+                     help='Number of images to be returned by PyRetri. If set to 0, PyRetri won\' be used for indexing, and all images will be analysed.')
+    parser.set_defaults(gpu=True)
     # parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112),
     #                     help='Crop size')
     args = parser.parse_args()
@@ -231,4 +228,4 @@ if __name__ == '__main__':
         raise NotImplementedError("Model " + args.model_name + " not implemented")
 
     retrieval(args.data_to_process, args.feature_file, args.save_dir,args.config, args.input_type,
-              args.output_method, args.model_name, args.model_path, args.preprocessing_method, crop_size)
+              args.output_method, args.model_name, args.model_path, args.preprocessing_method, args.K_images, crop_size, args.gpu, )

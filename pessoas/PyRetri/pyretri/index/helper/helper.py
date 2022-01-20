@@ -77,7 +77,7 @@ class IndexHelper:
             img_path = gallery_info[idx]["path"]
             shutil.copy(img_path, os.path.join(save_path, str(idx)+'.png'))
 
-    def do_index(self, query_fea: np.ndarray, gallery_fea: np.ndarray) -> (List, np.ndarray, np.ndarray):
+    def do_index(self, query_fea: np.ndarray, gallery_fea: np.ndarray, gpu: bool) -> (List, np.ndarray, np.ndarray):
         """
         Index the query features.
 
@@ -85,34 +85,32 @@ class IndexHelper:
             query_fea (np.ndarray): query set features.
             query_info (list): a list of gallery set information.
             gallery_fea (np.ndarray): gallery set features.
+            gpu (bool): use GPU?
 
         Returns:
             tuple(List, np.ndarray, np.ndarray): query feature information, query features and gallery features after process.
         """
-        '''st = time.time()
+
+        '''
+        #This comment disables dimensionality reduction in PyRetri. 
+        #Our testing showed it to be ineffective in this case.
+
         for dim_proc in self.dim_procs:
             query_fea, gallery_fea = dim_proc(query_fea), dim_proc(gallery_fea)
-        print("Dimension Reduction done in:", time.time() - st)'''
-        st = time.time()
+        '''
 
 
 
         query_fea, gallery_fea = torch.Tensor(query_fea), torch.Tensor(gallery_fea)
-        # if torch.cuda.is_available():
-        #     query_fea = query_fea.cuda()
-        #     gallery_fea = gallery_fea.cuda()
+        device = 'cuda' if torch.cuda.is_available() and gpu else 'cpu'
+        query_fea = query_fea.to(device)
+        gallery_fea = gallery_fea.to(device)
 
         gallery_fea = self.feature_enhance(gallery_fea)
-        print('Feature Enhance done in:', time.time() - st)
-        st = time.time()
 
-        dis, sorted_index = self.metric(query_fea, gallery_fea)
-        print("KNN Done in:", time.time() - st)
-        st = time.time()
+        dis, sorted_index = self.metric(query_fea, gallery_fea, device)
 
         sorted_index = self.re_rank(query_fea, gallery_fea, dis=dis, sorted_index=sorted_index)
-        '''for i, info in enumerate(query_info):
-            query_info[info][2] = sorted_index[i].tolist()'''
-        print("ReRank Done in:", time.time() - st)
-
+        sorted_index = sorted_index.cpu()
+        
         return sorted_index, query_fea, gallery_fea
