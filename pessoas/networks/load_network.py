@@ -102,6 +102,11 @@ def load_net(model_name, model_path=None, gpu=True):
             net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'arcface':
         net = get_model('r100', dropout=0.0, fp16=True, num_features=512)
+        split_files = [os.path.join(MODEL_DIR, 'a_arcface_backbone.pth')
+                      ,os.path.join(MODEL_DIR, 'b_arcface_backbone.pth')
+                      ,os.path.join(MODEL_DIR, 'c_arcface_backbone.pth')]
+        join_files(ARCFACE_MODEL_PATH, split_files)
+        
         if gpu:
             ckpt = torch.load(ARCFACE_MODEL_PATH if model_path is None else model_path)
         else:
@@ -112,6 +117,11 @@ def load_net(model_name, model_path=None, gpu=True):
             net.load_state_dict(ckpt['net_state_dict'])
     elif model_name == 'cosface':
         net = get_model('r100', dropout=0.0, fp16=True, num_features=512)
+        split_files = [os.path.join(MODEL_DIR, 'a_cosface_backbone.pth')
+                      ,os.path.join(MODEL_DIR, 'b_cosface_backbone.pth')
+                      ,os.path.join(MODEL_DIR, 'c_cosface_backbone.pth')]
+        join_files(COSFACE_MODEL_PATH, split_files)
+        
         if gpu:
             ckpt = torch.load(COSFACE_MODEL_PATH if model_path is None else model_path)
         else:
