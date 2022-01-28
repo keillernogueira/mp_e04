@@ -124,28 +124,35 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
 
         # extract features for the query image
         feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
+        
+        assert feature is not None, "No face detected in this image."
+        
+        top_k_ranking, all_ranking = generate_ranking_for_image(features, feature,bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
+        
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
                                              return_only_one_face=True, crop_size = crop_size)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
                                               load_net(model_name, model_path, gpu))
+        
+        assert feature is not None, "No face detected in this video."
+        
+        top_k_ranking = []
+        all_ranking = []
+        #go through all faces found and getting a rank for each one
+        for i in range(len(feature['feature'])):
+            feature_face = {list(feature.keys())[j]:q[i] for j,q in enumerate(feature.values())}
+            top_k_ranking_individual, all_ranking_individual = generate_ranking_for_image(features, feature_face, bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
+            top_k_ranking.append(top_k_ranking_individual[0])
+            all_ranking.append(all_ranking_individual[0])
+    
     elif input_data == 'feature':
         feature = data_to_load
-
+        
+        assert feature is not None, "No face detected in this file."
     
-
-    assert feature is not None, "No face detected in this file."
-    start = time.time()
-
-
-    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature,bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
-
-    #end = time.time()
-    #print("###############################")
-    #print(end - start)
-    #print(top_k_ranking)
-    #print("###############################")
-
+        
+    
     # exporting results
 
     # if the method chosen was json
