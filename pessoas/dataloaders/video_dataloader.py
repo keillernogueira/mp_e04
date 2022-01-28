@@ -85,8 +85,9 @@ class VideoDataLoader:
                 if self.resize is not None:
                     frame = frame.resize([int(d * self.resize) for d in frame.size])
                 # frames.append(frame)
-
+                
                 imgl, bb = self.detector.preprocess(np.array(frame))
+                
                 if imgl.size == 0 or bb.size == 0:
                     continue
                 imglist = [imgl, imgl[:, :, ::-1, :]]
@@ -100,24 +101,27 @@ class VideoDataLoader:
                 if first:
                     # repeat because of multiple faces detected in one frame
                     frames = np.repeat(np.expand_dims(np.array(frame), axis=0), imgl.shape[0], axis=0)
-                    faces = imgs
+                    faces = [imgs]
                     crops = imgl
                     bbs = bb
                     first = False
                 else:
                     frame = np.repeat(np.expand_dims(np.array(frame), axis=0), imgl.shape[0], axis=0)
                     frames = np.concatenate((frames, frame))
-                    faces[0] = torch.cat((faces[0], imgs[0]))
-                    faces[1] = torch.cat((faces[1], imgs[1]))
+                    faces.append(imgs)
                     crops = np.concatenate((crops, imgl))
                     bbs = np.concatenate((bbs, bb))
 
                 # When batch is full, reset list
-                if len(faces[0]) % self.batch_size == 0 or j == sample[-1]:
+                if len(faces) % self.batch_size == 0 or j == sample[-1]:
                     frames_batches.append(frames)
+                    frames = []
                     img_batches.append(faces)
+                    faces = []
                     crop_batches.append(crops)
+                    crops = []
                     bb_batches.append(bbs)
+                    bbs = []
                     first = True
 
         v_cap.release()

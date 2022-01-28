@@ -18,7 +18,8 @@ def extract_features_from_video(video_file, detection_pipeline, model):
     # if a single link is used as parameter
     # if type(video_file) is str:
     #     video_file = [video_file]
-
+    
+    model.eval()
     start = time.time()
     n_processed = 0
     first = True
@@ -32,26 +33,28 @@ def extract_features_from_video(video_file, detection_pipeline, model):
         # generate_video(batches_frames, batches_bbs, 'video.avi')
 
         for j in range(len(batches_imgs)):  # batch loop
-            frames, imgs, crops, bbs = batches_frames[j], batches_imgs[j], batches_crops[j], batches_bbs[j]
-            # print(frames.shape, imgs[0].shape, imgs[1].shape, crops.shape, bbs.shape, len(frames))
-            n_processed += len(frames)
-
-            for i in range(len(imgs)):
-                imgs[i] = imgs[i].cuda()
-            res = [model(d).data.cpu().numpy() for d in imgs]
-            feature = np.concatenate((res[0], res[1]), 1)
-
-            if first:
-                all_features = feature
-                all_frames = frames
-                all_crops = crops
-                all_bbs = bbs
-                first = False
-            else:
-                all_features = np.concatenate((all_features, feature))
-                all_frames = np.concatenate((all_frames, frames))
-                all_crops = np.concatenate((all_crops, crops))
-                all_bbs = np.concatenate((all_bbs, bbs))
+            for k in range(len(batches_imgs[j])):
+                frames, imgs, crops, bbs = batches_frames[j][k], batches_imgs[j][k], batches_crops[j][k], batches_bbs[j][k]
+                # print(frames.shape, imgs[0].shape, imgs[1].shape, crops.shape, bbs.shape, len(frames))
+                n_processed += 1
+                for i in range(len(imgs)):
+                    imgs[i] = torch.stack([imgs[i]]) 
+                    imgs[i] = imgs[i].cuda()
+                    
+                res = [model(d.view(-1, d.shape[2], d.shape[3], d.shape[4])).data.cpu().numpy() for d in imgs]
+                feature = np.concatenate((res[0], res[1]), 1)
+    
+                if first:
+                    all_features = feature
+                    all_frames = frames
+                    all_crops = crops
+                    all_bbs = bbs
+                    first = False
+                else:
+                    all_features = np.concatenate((all_features, feature))
+                    all_frames = np.concatenate((all_frames, frames))
+                    all_crops = np.concatenate((all_crops, crops))
+                    all_bbs = np.concatenate((all_bbs, bbs))
 
     # print(all_features.shape, all_frames.shape, all_crops.shape, all_bbs.shape)
     print("Total time: " + str(time.time() - start))
