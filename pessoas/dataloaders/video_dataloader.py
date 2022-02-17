@@ -10,6 +10,7 @@ from pathlib import Path
 from PIL import Image
 
 from preprocessing.preprocessing_general import PreProcess
+import time
 
 
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
@@ -42,11 +43,14 @@ class VideoDataLoader:
         self.return_only_one_face = return_only_one_face
         self.detector = PreProcess(self.preprocessing_method, crop_size=self.crop_size,
                                    return_only_one_face=self.return_only_one_face)
+    
 
     def __call__(self, filename):
         if 'youtube.com/' in filename.lower() or 'youtu.be/' in filename.lower():  # if is YouTube video
             try:
+                st = time.time()
                 filename = download_youtube(filename, self.output_folder)
+                print("Video Download Concluded in", time.time() - st)
             except:
                 raise AssertionError("Could not download youtube video " + filename)
 
@@ -59,6 +63,8 @@ class VideoDataLoader:
         if self.n_frames is None:
             sample = np.arange(0, v_len)
         else:
+            if(self.n_frames <= 10):
+                self.n_frames = v_len//self.n_frames
             sample = np.linspace(0, v_len - 1, self.n_frames).astype(int)
 
         # Loop through frames

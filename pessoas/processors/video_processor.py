@@ -12,9 +12,10 @@ import pickle
 from dataloaders.video_dataloader import VideoDataLoader
 from networks.load_network import load_net
 from utils import generate_video
+from processors.FaceQNet import GetImagesScores
 
 
-def extract_features_from_video(video_file, detection_pipeline, model):
+def extract_features_from_video(video_file, detection_pipeline, model, n_best_frames = None):
     # if a single link is used as parameter
     # if type(video_file) is str:
     #     video_file = [video_file]
@@ -23,6 +24,10 @@ def extract_features_from_video(video_file, detection_pipeline, model):
     start = time.time()
     n_processed = 0
     first = True
+    all_bbs = []
+    all_features = []
+    all_frames = []
+    all_crops = []
     with torch.no_grad():
         # for i, filename in enumerate(video_file):  # loop over the videos
         #     print(i, filename)
@@ -31,9 +36,38 @@ def extract_features_from_video(video_file, detection_pipeline, model):
 
         # this method can be used to create a video with the detected bbs
         # generate_video(batches_frames, batches_bbs, 'video.avi')
+        
+        print("Loading time:", time.time() - start)
+
+        if(n_best_frames is not None):
+            assert n_best_frames > 0, f"n_best_frames({n_best_frames}) must be a positive interger"
+            assert n_best_frames < len(batches_imgs[0]), f"n_best_frames({n_best_frames}) must be smaller than batch size({len(batches_imgs[0])})."
+            idxs = []
+            s = len(batches_imgs)
+            for j in range(s):
+                frames, imgs, crops, bbs = batches_frames[j], batches_imgs[j], batches_crops[j], batches_bbs[j]
+
+                scores = GetImagesScores(imgs)
+
+                # Selects n_best_frames for full batches, and the same proportion for incomplete ones.
+                n = -n_best_frames if j < s-1 else int(-np.ceil(len(scores)/(len(batches_imgs[0])/n_best_frames)))
+                print(n)
+                idx = np.argpartition(scores, n)[n:]
+                idxs.append(idx)
+                #print(s)'''
+                
+            print("Score Calculation:", time.time() - start)
+        
+        
 
         for j in range(len(batches_imgs)):  # batch loop
-            for k in range(len(batches_imgs[j])):
+
+            if(n_best_frames is None):
+                sel_frames = batches_imgs[j]
+            else:
+                sel_frames = idxs[j]
+
+            for k in range(len(sel_frames)):
                 frames, imgs, crops, bbs = batches_frames[j][k], batches_imgs[j][k], batches_crops[j][k], batches_bbs[j][k]
                 # print(frames.shape, imgs[0].shape, imgs[1].shape, crops.shape, bbs.shape, len(frames))
                 n_processed += 1
@@ -43,8 +77,13 @@ def extract_features_from_video(video_file, detection_pipeline, model):
                     
                 res = [model(d.view(-1, d.shape[2], d.shape[3], d.shape[4])).data.cpu().numpy() for d in imgs]
                 feature = np.concatenate((res[0], res[1]), 1)
+                
+                all_features.append(feature)
+                all_frames.append(frames)
+                all_crops.append(crops)
+                all_bbs.append(bbs)
     
-                if first:
+                '''if first:
                     all_features = feature
                     all_frames = frames
                     all_crops = crops
@@ -52,9 +91,11 @@ def extract_features_from_video(video_file, detection_pipeline, model):
                     first = False
                 else:
                     all_features = np.concatenate((all_features, feature))
+                    print(all_features.shape)
                     all_frames = np.concatenate((all_frames, frames))
                     all_crops = np.concatenate((all_crops, crops))
                     all_bbs = np.concatenate((all_bbs, bbs))
+                    print(all_bbs.shape)'''
 
     # print(all_features.shape, all_frames.shape, all_crops.shape, all_bbs.shape)
     print("Total time: " + str(time.time() - start))

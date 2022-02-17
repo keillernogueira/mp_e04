@@ -13,6 +13,7 @@ from sklearn.preprocessing import normalize
 
 from PyRetri import index as pyretri
 
+
 def dividir(features, n_sub_codebooks):
     #print(features, n_sub_codebooks)
     if type(features[0])!=list:
@@ -167,7 +168,6 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
             #END OF TAB
 
         #print("Indexing Done In:", time.time() - it)
-        print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
 
         return persons_scores, all_scores
 
@@ -233,7 +233,6 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
         persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))
         all_scores.append(scores_q)
 
-    print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
     return persons_scores, all_scores
 
 

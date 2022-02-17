@@ -19,6 +19,7 @@ import pickle
 import time
 from PyRetri import index as idx
 
+
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
@@ -96,9 +97,10 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
         with open(feature_file, 'rb') as handle:
             features = pickle.load(handle)
         '''
-        This section replicates features of the dataset to facilitate teting with big datasets.
+        #This section replicates features of the dataset to facilitate teting with big datasets.
 
-        number_of_duplications = 0  #Number of times the dataset will be replicated
+        number_of_duplications = 4  #Number of times the dataset will be replicated
+
         big_features = features.copy()
         #features['feature'] = features['feature'][0]
         for i in range(number_of_duplications):
@@ -126,16 +128,20 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
         feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
         
         assert feature is not None, "No face detected in this image."
-        
+
+        st = time.time()
         top_k_ranking, all_ranking = generate_ranking_for_image(features, feature,bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
+        print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
         
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
-                                             return_only_one_face=True, crop_size = crop_size)
+                                             return_only_one_face=True, crop_size = crop_size, n_frames = 4)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
-                                              load_net(model_name, model_path, gpu))
+                                              load_net(model_name, model_path, gpu), n_best_frames = 10)
         
         assert feature is not None, "No face detected in this video."
+
+        st = time.time()
         
         top_k_ranking = []
         all_ranking = []
@@ -145,13 +151,14 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
             top_k_ranking_individual, all_ranking_individual = generate_ranking_for_image(features, feature_face, bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
             top_k_ranking.append(top_k_ranking_individual[0])
             all_ranking.append(all_ranking_individual[0])
+
+        print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
     
     elif input_data == 'feature':
         feature = data_to_load
-        
         assert feature is not None, "No face detected in this file."
-    
         
+   
     
     # exporting results
 
@@ -171,12 +178,12 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
                 face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
                              'confidence most similar': np.float64(rank[1][0]['Confidence']), 'box': rank[0].tolist()}
                 output[0][f'face_{face_id}'] = face_dict
-                print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 # save_retrieved_ranking(output, rank[1], rank[0],
                 # os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 face_id += 1
             data = {f'output{output_id}': output}
             output_id += 1
+        print("Results save at", os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
         with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w', 
                       encoding='utf-8') as f:
             json.dump(data, f, indent=4)
