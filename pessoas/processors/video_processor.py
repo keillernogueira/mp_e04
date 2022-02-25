@@ -22,18 +22,19 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
     
     model.eval()
     start = time.time()
-    n_processed = 0
     first = True
-    all_bbs = []
-    all_features = []
-    all_frames = []
-    all_crops = []
+    all_bbs = np.array([])
+    all_features = np.array([])
+    all_frames = np.array([])
+    all_crops = np.array([])
     with torch.no_grad():
         # for i, filename in enumerate(video_file):  # loop over the videos
         #     print(i, filename)
         # Load frames and find faces
-        batches_frames, batches_imgs, batches_crops, batches_bbs = detection_pipeline(video_file)
-
+        batches_frames, batches_imgs, batches_crops, batches_bbs, v_len = detection_pipeline(video_file)
+        #print(type(batches_frames[0]), type(batches_imgs[0]),type(batches_crops[0]),type(batches_bbs[0]))
+        
+        
         # this method can be used to create a video with the detected bbs
         # generate_video(batches_frames, batches_bbs, 'video.avi')
         
@@ -41,20 +42,18 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
 
         if(n_best_frames is not None):
             assert n_best_frames > 0, f"n_best_frames({n_best_frames}) must be a positive interger"
-            assert n_best_frames < len(batches_imgs[0]), f"n_best_frames({n_best_frames}) must be smaller than batch size({len(batches_imgs[0])})."
+            assert n_best_frames <= len(batches_frames[0]), f"n_best_frames({n_best_frames}) must be smaller than batch size({len(batches_frames[0])})."
             idxs = []
-            s = len(batches_imgs)
+            s = len(batches_frames)
             for j in range(s):
                 frames, imgs, crops, bbs = batches_frames[j], batches_imgs[j], batches_crops[j], batches_bbs[j]
 
                 scores = GetImagesScores(imgs)
 
                 # Selects n_best_frames for full batches, and the same proportion for incomplete ones.
-                n = -n_best_frames if j < s-1 else int(-np.ceil(len(scores)/(len(batches_imgs[0])/n_best_frames)))
-                print(n)
+                n = -n_best_frames if j < s-1 else int(-np.ceil(len(scores)/(len(batches_imgs[0][0])/n_best_frames)))
                 idx = np.argpartition(scores, n)[n:]
                 idxs.append(idx)
-                #print(s)'''
                 
             print("Score Calculation:", time.time() - start)
         
@@ -63,43 +62,45 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
         for j in range(len(batches_imgs)):  # batch loop
 
             if(n_best_frames is None):
-                sel_frames = batches_imgs[j]
+                sel_frames = batches_frames[j]
+                imgs_standard = batches_imgs[j][0]          
+                imgs_inverted = batches_imgs[j][1]
+                sel_crops = batches_crops[j]
+                sel_bbs = batches_bbs[j]
             else:
-                sel_frames = idxs[j]
-
-            for k in range(len(sel_frames)):
-                frames, imgs, crops, bbs = batches_frames[j][k], batches_imgs[j][k], batches_crops[j][k], batches_bbs[j][k]
-                # print(frames.shape, imgs[0].shape, imgs[1].shape, crops.shape, bbs.shape, len(frames))
-                n_processed += 1
-                for i in range(len(imgs)):
-                    imgs[i] = torch.stack([imgs[i]]) 
-                    imgs[i] = imgs[i].cuda()
-                    
-                res = [model(d.view(-1, d.shape[2], d.shape[3], d.shape[4])).data.cpu().numpy() for d in imgs]
-                feature = np.concatenate((res[0], res[1]), 1)
+                sel_frames = batches_frames[j][idxs[j]]
+                imgs_standard = batches_imgs[j][0][idxs[j]]
+                imgs_inverted = batches_imgs[j][1][idxs[j]]
+                sel_crops = batches_crops[j][idxs[j]]
+                sel_bbs = batches_bbs[j][idxs[j]]
                 
-                all_features.append(feature)
-                all_frames.append(frames)
-                all_crops.append(crops)
-                all_bbs.append(bbs)
-    
-                '''if first:
-                    all_features = feature
-                    all_frames = frames
-                    all_crops = crops
-                    all_bbs = bbs
-                    first = False
-                else:
-                    all_features = np.concatenate((all_features, feature))
-                    print(all_features.shape)
-                    all_frames = np.concatenate((all_frames, frames))
-                    all_crops = np.concatenate((all_crops, crops))
-                    all_bbs = np.concatenate((all_bbs, bbs))
-                    print(all_bbs.shape)'''
+                
+            imgs = [imgs_standard, imgs_inverted]
+            
+            frames, crops, bbs = sel_frames, sel_crops, sel_bbs
+            #print(frames.shape, imgs[0].shape, imgs[1].shape, crops.shape, bbs.shape, len(frames))
+            for i in range(len(imgs)):
+                imgs[i] = torch.stack([imgs[i]])
+                imgs[i] = imgs[i].cuda()
+                
+            res = [model(d.view(-1, d.shape[2], d.shape[3], d.shape[4])).data.cpu().numpy() for d in imgs]
+            feature = np.concatenate((res[0], res[1]), 1)
+            
+            if first:
+                all_features = feature
+                all_frames = frames
+                all_crops = crops
+                all_bbs = bbs
+                first = False
+            else:
+                all_features = np.concatenate((all_features,feature),0)
+                all_frames = np.concatenate((all_frames,frames),0)
+                all_crops = np.concatenate((all_crops,crops),0)
+                all_bbs = np.concatenate((all_bbs,bbs),0)
 
     # print(all_features.shape, all_frames.shape, all_crops.shape, all_bbs.shape)
     print("Total time: " + str(time.time() - start))
-    print("Frames per second: " + str(n_processed / (time.time() - start)))
+    print("Frames per second: " + str(v_len / (time.time() - start)))
     return {'feature': all_features, 'name': [None]*len(all_features), 'image': all_frames,
             'bbs': all_bbs, 'cropped_image': all_crops}
 

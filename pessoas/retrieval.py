@@ -96,25 +96,6 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
     if feature_file is not None and os.path.isfile(feature_file):
         with open(feature_file, 'rb') as handle:
             features = pickle.load(handle)
-        '''
-        #This section replicates features of the dataset to facilitate teting with big datasets.
-
-        number_of_duplications = 4  #Number of times the dataset will be replicated
-
-        big_features = features.copy()
-        #features['feature'] = features['feature'][0]
-        for i in range(number_of_duplications):
-            print(i)
-            big_features['name'] = np.concatenate((big_features['name'], features['name']), axis = 0)
-            big_features['image'] = np.concatenate((big_features['image'], features['image']), axis = 0)
-
-            #commenting this line reduces memory utilization
-            #big_features['feature'] = np.concatenate((big_features['feature'], features['feature']), axis = 0).astype("float16")
-
-            big_features['normalized_feature'] = np.concatenate((big_features['normalized_feature'], features['normalized_feature']), axis = 0)
-            big_features['bbs'] = np.concatenate((big_features['bbs'], features['bbs']), axis = 0)
-        big_features['feature_mean'] = features['feature_mean']
-        features = big_features'''
 
         print(features['normalized_feature'].shape)
     
@@ -135,9 +116,9 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
         
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
-                                             return_only_one_face=True, crop_size = crop_size, n_frames = 4)
+                                             return_only_one_face=False, crop_size = crop_size, n_frames = 8)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
-                                              load_net(model_name, model_path, gpu), n_best_frames = 10)
+                                              load_net(model_name, model_path, gpu), n_best_frames = None)
         
         assert feature is not None, "No face detected in this video."
 
