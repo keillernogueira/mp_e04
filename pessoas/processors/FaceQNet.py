@@ -18,7 +18,7 @@ def load_test(data_path):
 	
 	for imagen in [imagen for imagen in os.listdir(image_path) if os.path.isfile(os.path.join(image_path, imagen))]:
 		imagenes = os.path.join(image_path, imagen)
-		print(imagenes)
+		#print(imagenes)
 		img = cv2.resize(cv2.imread(imagenes, cv2.IMREAD_COLOR), (224, 224))
 		X_test.append(img)
 		images_names.append(imagenes)
@@ -30,17 +30,17 @@ def read_and_normalize_test_data(data_path):
     return test_data, images_names
 
 def normalize_test_data(images):
-	images_clone = images.copy()
-	print(len(images))
-	for i in range(len(images)):
-		a = images[i][0]
-		a = a.clone().double().numpy().transpose(0,2,3,1)[0]
+	images_clone = images[0].clone().numpy()
+	image_return = []
+	for i in range(len(images_clone)):
+		a = images_clone[i]
+		a = a.copy().transpose(1,2,0)
 		a = np.float32(cv2.resize(a, (224, 224)))
 		a = cv2.cvtColor(a, cv2.COLOR_BGR2RGB)
 		a = cv2.normalize(a, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
 		#a = np.array(a, copy=False, dtype=np.float32)
-		images_clone[i] = a
-	return images_clone
+		image_return.append(a)
+	return image_return
 
 
 def GetDatasetScores(data_path, model_name = 'FaceQnet_v1.h5', save_name = 'score_qualities.txt', model_dir = 'models/'):
@@ -92,7 +92,7 @@ def GetImagesScores(images, model_name = 'FaceQnet_v1.h5', model_dir = 'models/'
 	#Loading the test data
 	test_data = normalize_test_data(images)
 	y= np.array(test_data)
-
+	cv2.imwrite("res5/teste.jpg",y[2])
 	#Extract quality scores for the samples
 	score = model.predict(y, batch_size=1, verbose=0)
 
@@ -104,7 +104,6 @@ def GetDataloaderScores(dataloader, model_name = 'FaceQnet_v1.h5', save_name = '
 	preds = []
 	for imgs, img_nm, imgl, bb in dataloader:
 		imgs[:][0]
-		print(imgs[0].shape)
 
 		scores = GetImagesScores(images = imgs, model_name = model_name, model_dir = model_dir)
 		preds.extend(scores)

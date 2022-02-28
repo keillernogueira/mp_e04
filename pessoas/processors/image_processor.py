@@ -53,7 +53,7 @@ def extract_features_from_image(model, dataloader, query_label, gpu):
         if gpu:
             for i in range(len(imgs)):
                 imgs[i] = imgs[i].cuda()
-
+        
         res = [model(d.view(-1, d.shape[2], d.shape[3], d.shape[4])).data.cpu().numpy() for d in imgs]
         feature = np.concatenate((res[0], res[1]), 1)
         img_name = img_nm
@@ -192,9 +192,9 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
         # extract mean from features and add a bias
         features = features - (mu - 1e-18)
         # divide by the standard deviation
-        print(features.shape)
+        #print(features.shape)
         features = normalize(features, norm = 'l2', axis = 1)
-        print(np.linalg.norm(features[0]))
+        #print(np.linalg.norm(features[0]))
         query_features = features[0:num_features_query]
         database_features = features[num_features_query:]
 
@@ -281,7 +281,7 @@ def process_image(operation, model_name, model_path, image_query, query_label,
         if query_features is not None:
             # generate ranking
             ranking, _ = generate_ranking_for_image(features, query_features)
-            print(ranking)
+            #print(ranking)
         else:
             print("No face detected in this image.")
     else:
