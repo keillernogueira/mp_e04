@@ -4,6 +4,7 @@ import time
 import urllib.request
 import tarfile
 import argparse
+import pathlib
 
 import torch
 from torch import nn
@@ -52,7 +53,8 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     # validation dataset
     lfw_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets', 'LFW')
     if not os.path.exists(lfw_path):  # if folder does not exist
-        os.mkdir(lfw_path)  # create folder
+        # os.mkdir(lfw_path)  # create folder
+        pathlib.Path(lfw_path).mkdir(parents=True, exist_ok=True)
         # download data
         urllib.request.urlretrieve('http://vis-www.cs.umass.edu/lfw/lfw.tgz', os.path.join(lfw_path, 'lfw.tgz'))
         urllib.request.urlretrieve('http://vis-www.cs.umass.edu/lfw/people.txt', os.path.join(lfw_path, 'people.txt'))

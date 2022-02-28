@@ -24,9 +24,9 @@ img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
-def retrieval(data_to_load, feature_file, save_dir,config = "PyRetri/configs/base.yaml", input_data='image', output_method="image",
-              model_name="mobilefacenet", model_path=None,
-              preprocessing_method="sphereface", K_images = 1000, crop_size=(96, 112), gpu=True):
+def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+              output_method="image", model_name="mobilefacenet", model_path=None,
+              preprocessing_method="sphereface", K_images=1000, crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -65,9 +65,9 @@ def retrieval(data_to_load, feature_file, save_dir,config = "PyRetri/configs/bas
                              model_path, preprocessing_method,K_images, crop_size, gpu)
 
 
-def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri/configs/base.yaml", input_data='image', output_method="image",
-                         model_name="mobilefacenet", model_path=None,
-                         preprocessing_method="sphereface", K_images = 1000, crop_size=(96, 112), gpu=True):
+def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+                         output_method="image", model_name="mobilefacenet", model_path=None,
+                         preprocessing_method="sphereface", K_images=1000, crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -145,10 +145,12 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
         
         top_k_ranking = []
         all_ranking = []
-        #go through all faces found and getting a rank for each one
+        # go through all faces found and getting a rank for each one
         for i in range(len(feature['feature'])):
-            feature_face = {list(feature.keys())[j]:q[i] for j,q in enumerate(feature.values())}
-            top_k_ranking_individual, all_ranking_individual = generate_ranking_for_image(features, feature_face, bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
+            feature_face = {list(feature.keys())[j]: q[i] for j, q in enumerate(feature.values())}
+            top_k_ranking_individual, all_ranking_individual = \
+                generate_ranking_for_image(features, feature_face, bib='pytorch',
+                                           K_images=K_images, config=config, gpu=gpu)
             top_k_ranking.append(top_k_ranking_individual[0])
             all_ranking.append(all_ranking_individual[0])
 
@@ -158,8 +160,6 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
         feature = data_to_load
         assert feature is not None, "No face detected in this file."
         
-   
-    
     # exporting results
 
     # if the method chosen was json
@@ -184,8 +184,8 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config = "PyRetri
             data = {f'output{output_id}': output}
             output_id += 1
         print("Results save at", os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
-        with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w', 
-                      encoding='utf-8') as f:
+        with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w',
+                  encoding='utf-8') as f:
             json.dump(data, f, indent=4)
     # if the method chosen was image
     elif output_method.lower() == "image":
@@ -218,10 +218,11 @@ if __name__ == '__main__':
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
                         help='Pre-processing method')
-    parser.add_argument('--config', type=str, required=False, default = "PyRetri/configs/base.yaml")
+    parser.add_argument('--config', type=str, required=False, default="PyRetri/configs/base.yaml")
     parser.add_argument('--no_gpu', dest='gpu', action='store_false', help='Disables GPU usage in retrieval process')
-    parser.add_argument('--K_images', type=int, required=False, default = 1000,
-                     help='Number of images to be returned by PyRetri. If set to 0, PyRetri won\' be used for indexing, and all images will be analysed.')
+    parser.add_argument('--K_images', type=int, required=False, default=1000,
+                        help='Number of images to be returned by PyRetri. If set to 0, PyRetri wont '
+                             'be used for indexing, and all images will be analysed.')
     parser.set_defaults(gpu=True)
     # parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112),
     #                     help='Crop size')
@@ -232,7 +233,8 @@ if __name__ == '__main__':
     # selecting the size of the crop based on the network
     if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
         crop_size = (96, 112)
-    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or \
+            args.model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
         crop_size = (112, 112)
     elif args.model_name == 'openface':
         crop_size = (96, 96)
@@ -242,4 +244,5 @@ if __name__ == '__main__':
         raise NotImplementedError("Model " + args.model_name + " not implemented")
 
     retrieval(args.data_to_process, args.feature_file, args.save_dir,args.config, args.input_type,
-              args.output_method, args.model_name, args.model_path, args.preprocessing_method, args.K_images, crop_size, args.gpu, )
+              args.output_method, args.model_name, args.model_path, args.preprocessing_method,
+              args.K_images, crop_size, args.gpu)
