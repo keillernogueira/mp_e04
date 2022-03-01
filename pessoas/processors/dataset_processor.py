@@ -50,7 +50,7 @@ def extract_features(dataloader, model, save_img_results=False, gpu=True):
             print('extracing deep features from the face {}...'.format(count))
 
         res = [model(d).data.cpu().numpy() for d in imgs]
-        #print(res[0].shape, res[1].shape)
+        # print(res[0].shape, res[1].shape)
         feature = np.concatenate((res[0], res[1]), 1)
 
         if features is None:
@@ -98,8 +98,8 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
     """
     database_data = result
     query_data = result
-    st = time.time()
-    if len(database_data['feature'])>10000: # assume normalizing with query_data is not going to change too much
+
+    if len(database_data['feature']) > 10000:  # assume normalizing with query_data is not going to change too much
             database_features = database_data['normalized_feature']
             query_features = query_data['feature']
             num_features_query = query_features.shape[0]
@@ -109,7 +109,7 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
             print(query_features.shape)
             query_features = query_features - (database_data['feature_mean'] - 1e-18)
             print(query_features.shape)
-            query_features = normalize(query_features, norm = 'l2', axis = 1)
+            query_features = normalize(query_features, norm='l2', axis=1)
             print(query_features.shape)
     else:
         database_features = database_data['feature']
@@ -124,30 +124,26 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
         features = features - (mu - 1e-18)
         # divide by the standard deviation
         print(features.shape)
-        features = normalize(features, norm = 'l2', axis = 1)
+        features = normalize(features, norm='l2', axis=1)
         print(np.linalg.norm(features[0]))
         query_features = features[0:num_features_query]
         database_features = features[num_features_query:]
 
     top_k = pyretri.main(query_features, database_features, "PyRetri/configs/oxford.yaml", len(database_features))
-    persons_scores = []
-    all_scores = []
-    print("Normalization Done in:", time.time() - st)
-    
+
     people_2_class = dict()
     class_value = 1
     for name in database_data['name']:
         if name not in people_2_class.keys():
             people_2_class[name] = class_value
-            class_value+=1
-    #print(people_2_class)
-    
+            class_value += 1
+
     start = time.time()
     all_scores_q = [] 
     query_label = [] 
     query_images = []  
     for i, q in enumerate(query_features):
-        #database_features = search_features
+        # database_features = search_features
         query_images.append(query_data['image'][i])
         query_label.append(people_2_class[query_data['name'][i]])
         sf = database_features[top_k[i]]
@@ -158,17 +154,17 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
                 q = q.cuda()
                 sf = sf.cuda()
             scores_q = q @ sf.t()
-
         else:
             scores_q = q @ np.transpose(sf)
 
         # associate confidence score with the label of the dataset and sort based on the confidence
-        scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]], database_data['cropped_image'][top_k[i]], database_data['bbs'][top_k[i]]))
-        #scores_q = list(zip(scores_q, included_names, included_images))
+        scores_q = list(zip(scores_q, database_data['name'][top_k[i]],
+                            database_data['image'][top_k[i]], database_data['cropped_image'][top_k[i]],
+                            database_data['bbs'][top_k[i]]))
+        # scores_q = list(zip(scores_q, included_names, included_images))
         scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
         all_scores_q.append(scores_q)
 
-    
     aps = np.zeros((len(database_data['feature']), len(database_data['feature'])-1))
     corrects = np.zeros(len(database_data['feature']))
     
@@ -187,8 +183,7 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
                 
         scores = list(zip(scores, people, images, classes))
 
-        #scores = sorted(scores, key=lambda x: x[0], reverse=True)
-        #print(scores)
+        # scores = sorted(scores, key=lambda x: x[0], reverse=True)
         # calculate metrics, cmc or map
         if metric == 'cmc':
             cmc = compute_cmc(scores, classes[i])
@@ -210,7 +205,8 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
             metrics = [mean_ap, top1, top5, top10, top20, top50, top100]
 
             # generate top15 rank images
-            plot_top15_face_retrieval(query_data['image'][i], query_data['name'][i], scores, i + 1, metrics, query_data['cropped_image'][i], query_data['bbs'][i], save_dir)
+            plot_top15_face_retrieval(query_data['image'][i], query_data['name'][i], scores, i + 1, metrics,
+                                      query_data['cropped_image'][i], query_data['bbs'][i], save_dir)
             plot_top15_person_retrieval(query_data['image'][i], query_data['name'][i], scores, i + 1,
                                         os.path.basename(os.path.splitext(query_data['image'][i])[0]),
                                         query_data['cropped_image'][i], query_data['bbs'][i], save_dir)

@@ -25,12 +25,13 @@ vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
 def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
-              output_method="image", model_name="mobilefacenet", model_path=None,
+              output_method="image", model_name="curricularface", model_path=None,
               preprocessing_method="sphereface", K_images=1000, crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
-    :param data_to_load: Data to be analysed. Can be a link or path, image or video, or else a json file with multiple links/paths.
+    :param data_to_load: Data to be analysed. Can be a link or path, image or video,
+                         or else a json file with multiple links/paths.
     :param feature_file: Path to the file that contains extracted features from dataset images.
     :param save_dir: Path to the dir used to save the results.
     :param input_data: Type of the input data: image or video
@@ -48,7 +49,8 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
     if '.json' in data_to_load: 
         data_to_load = read_json(data_to_load)
         for path in data_to_load:
-            if any(vid_format in path.lower() for vid_format in vid_formats) or 'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
+            if any(vid_format in path.lower() for vid_format in vid_formats) or \
+                    'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
                 input_data = 'video'
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
@@ -61,12 +63,12 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
         individual_retrieval(feature, feature_file, save_dir, config, input_data, output_method, model_name,
                                  model_path, preprocessing_method, K_images, crop_size, gpu)
     else:
-        individual_retrieval(data_to_load, feature_file, save_dir,config, input_data, output_method, model_name,
-                             model_path, preprocessing_method,K_images, crop_size, gpu)
+        individual_retrieval(data_to_load, feature_file, save_dir, config, input_data, output_method, model_name,
+                             model_path, preprocessing_method, K_images, crop_size, gpu)
 
 
 def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
-                         output_method="image", model_name="mobilefacenet", model_path=None,
+                         output_method="image", model_name="curricularface", model_path=None,
                          preprocessing_method="sphereface", K_images=1000, crop_size=(96, 112), gpu=True):
     """
     Retrieving results from an specific input data.
@@ -111,14 +113,15 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
         assert feature is not None, "No face detected in this image."
 
         st = time.time()
-        top_k_ranking, all_ranking = generate_ranking_for_image(features, feature,bib = 'pytorch', K_images = K_images, config = config, gpu = gpu)
+        top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, bib='pytorch',
+                                                                K_images=K_images, config=config, gpu=gpu)
         print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
         
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
-                                             return_only_one_face=False, crop_size = crop_size, n_frames = 8)
+                                             return_only_one_face=False, crop_size=crop_size, n_frames=8)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
-                                              load_net(model_name, model_path, gpu), n_best_frames = None)
+                                              load_net(model_name, model_path, gpu), n_best_frames=None)
         
         assert feature is not None, "No face detected in this video."
 
@@ -155,7 +158,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
             
             face_id = 1
             for rank in top_k_ranking:
-                names = {i['Name']:np.float64(i['Confidence']) for i in rank[1]}
+                names = {i['Name']: np.float64(i['Confidence']) for i in rank[1]}
                 face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
                              'confidence most similar': np.float64(rank[1][0]['Confidence']), 'box': rank[0].tolist()}
                 output[0][f'face_{face_id}'] = face_dict
@@ -193,7 +196,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_method', type=str, required=False, default="image",
                         help='Method to read the data.')
 
-    parser.add_argument('--model_name', type=str, required=False, default="mobilefacenet",
+    parser.add_argument('--model_name', type=str, required=False, default="curricularface",
                         help='Name of the method.')
     parser.add_argument('--model_path', type=str, required=False, default=None,
                         help='Path to a trained model. If not set, the original trained model will be used.')

@@ -30,7 +30,7 @@ def product(*args, repeat=1):
 
 
 def manipulate_dataset(feature_file, dataset_path,
-                       model_name="mobilefacenet", model_path=None, preprocessing_method="sphereface",
+                       model_name="curricularface", model_path=None, preprocessing_method="sphereface",
                        crop_size=(96, 112), gpu=True):
     """
     Extracting new features for a dataset or for a image.
@@ -74,15 +74,15 @@ def manipulate_dataset(feature_file, dataset_path,
     # extract mean from features and add a bias
     normalized_features = features['feature'] - (mu - 1e-18)
     # divide by the standard deviation
-    #print(features.shape)
+    # print(features.shape)
     normalized_features = normalize(normalized_features, norm = 'l2', axis = 1)
     features['normalized_feature'] = normalized_features
     features['feature_mean'] = mu
     with open(feature_file, 'wb') as handle:
         pickle.dump(features, handle, protocol=pickle.HIGHEST_PROTOCOL)
     print(features['normalized_feature'].shape)
-    #scipy.io.savemat(feature_file, features)
-    #print(features['feature'].shape)
+    # scipy.io.savemat(feature_file, features)
+    # print(features['feature'].shape)
 
     '''M = 8
     sub_codebooks = create_feature_segments(features['feature'], M)
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                         help='Path to the dataset. Each person must have a separate folder with his/her name. '
                              'This parameter and the parameters --image_path and --image_id are mutually exclusive.')
 
-    parser.add_argument('--model_name', type=str, required=False, default="mobilefacenet", help='Name of the method.')
+    parser.add_argument('--model_name', type=str, required=False, default="curricularface", help='Name of the method.')
     parser.add_argument('--model_path', type=str, required=False, default=None,
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
@@ -160,7 +160,8 @@ if __name__ == '__main__':
     # selecting the size of the crop based on the network
     if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
         crop_size = (96, 112)
-    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' \
+            or args.model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
         crop_size = (112, 112)
     elif args.model_name == 'openface':
         crop_size = (96, 96)

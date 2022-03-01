@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import os
+import sys
+
 from yacs.config import CfgNode
 
 from ..datasets import get_datasets_cfg
@@ -39,8 +42,8 @@ def setup_cfg(cfg: CfgNode, cfg_file: str, cfg_opts: list or None = None) -> Cfg
     Returns:
         cfg (CfgNode): the configuration tree with settings in the config file.
     """
-    cfg.merge_from_file(cfg_file)
-    #cfg.merge_from_list(cfg_opts)
+    cfg.merge_from_file(os.path.join(sys.path[0], cfg_file))
+    # cfg.merge_from_list(cfg_opts)
     cfg.freeze()
 
     return cfg

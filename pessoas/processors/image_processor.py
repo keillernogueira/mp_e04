@@ -14,19 +14,6 @@ from sklearn.preprocessing import normalize
 from PyRetri import index as pyretri
 
 
-def dividir(features, n_sub_codebooks):
-    #print(features, n_sub_codebooks)
-    if type(features[0])!=list:
-        features = [features]
-    sub_codebooks = [[] for x in range(n_sub_codebooks)]
-    size = int(features[0].shape[0]/n_sub_codebooks)
-    for feature in features:
-        for i in range(n_sub_codebooks):
-            sub_codebooks[i].append(feature[i*size:(i+1)*size])
-    #print("#############################")
-    #print(sub_codebooks)
-    return sub_codebooks
-
 def extract_features_from_image(model, dataloader, query_label, gpu):
     """
     Function to extract features for ONE specific image.
@@ -77,7 +64,6 @@ def generate_rank(scores, k_rank):
     # if there are less than K persons in the dataset return rank
     # with the maximum possible number of persons.
 
-    #st = time.time()
     while i < k_rank and j < len(scores):
         # if unique_persons is not empty
         if unique_persons:
@@ -94,11 +80,11 @@ def generate_rank(scores, k_rank):
                                    scores[j][0], "Image": scores[j][2].strip()})
             i += 1
         j += 1
-    #print(time.time()-st)
     return persons_scores
 
 
-def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_rank=10, bib="numpy", gpu=False, config = "PyRetri/configs/base.yaml"):
+def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=10, bib="numpy",
+                               gpu=False, config="PyRetri/configs/base.yaml"):
     """
     Make a specific query and calculate the average precision.
     :param database_data: features of the entire dataset.
@@ -112,15 +98,14 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
     """
     
     if K_images:
-        st = time.time()
-        if len(database_data['feature'])>10000: # assume normalizing with query_data is not going to change too much
+        if len(database_data['feature']) > 10000:  # assume normalizing with query_data is not going to change too much
             database_features = database_data['normalized_feature']
             query_features = query_data['feature']
             num_features_query = query_features.shape[0]
             query_bbs = query_data['bbs']
             # normalize query data using dataset data mean
             query_features = query_features - (database_data['feature_mean'] - 1e-18)
-            query_features = normalize(query_features, norm = 'l2', axis = 1)
+            query_features = normalize(query_features, norm='l2', axis=1)
         else:
             database_features = database_data['feature']
             query_features = query_data['feature']
@@ -133,17 +118,17 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
             # extract mean from features and add a bias
             features = features - (mu - 1e-18)
             # divide by the standard deviation
-            features = normalize(features, norm = 'l2', axis = 1)
+            features = normalize(features, norm='l2', axis=1)
             query_features = features[0:num_features_query]
             database_features = features[num_features_query:]
 
         top_k = pyretri.main(query_features, database_features, config, K_images, gpu)
-        #scores_q = pyretri.main(query_features, database_features, config, 100)[0]
-        #print(scores_q.shape)
+        # scores_q = pyretri.main(query_features, database_features, config, 100)[0]
+        # print(scores_q.shape)
         persons_scores = []
         all_scores = []
         for i, q in enumerate(query_features):
-            #database_features = search_features
+            # database_features = search_features
             sf = database_features[top_k[i]]
             if bib == "pytorch":
                 q = torch.from_numpy(q)
@@ -157,29 +142,24 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
             else:
                 scores_q = q @ np.transpose(sf)
 
-            #associate confidence score with the label of the dataset and sort based on the confidence
+            # associate confidence score with the label of the dataset and sort based on the confidence
             scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]]))
             scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
-            #persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
+            # persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
             persons_scores.append((query_bbs, generate_rank(scores_q, k_rank)))
             all_scores.append(scores_q)
 
-            #END OF TAB
-
-        #print("Indexing Done In:", time.time() - it)
-
         return persons_scores, all_scores
 
-    st = time.time()
-    if len(database_data['feature'])>10000: # assume normalizing with query_data is not going to change too much
+    if len(database_data['feature']) > 10000:  # assume normalizing with query_data is not going to change too much
         database_features = database_data['normalized_feature']
         query_features = query_data['feature']
         num_features_query = query_features.shape[0]
         query_bbs = query_data['bbs']
         # normalize query data using dataset data mean
         query_features = query_features - (database_data['feature_mean'] - 1e-18)
-        query_features = normalize(query_features, norm = 'l2', axis = 1)
+        query_features = normalize(query_features, norm='l2', axis=1)
     else:
         database_features = database_data['feature']
         query_features = query_data['feature']
@@ -192,9 +172,7 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
         # extract mean from features and add a bias
         features = features - (mu - 1e-18)
         # divide by the standard deviation
-        #print(features.shape)
-        features = normalize(features, norm = 'l2', axis = 1)
-        #print(np.linalg.norm(features[0]))
+        features = normalize(features, norm='l2', axis=1)
         query_features = features[0:num_features_query]
         database_features = features[num_features_query:]
 
@@ -206,7 +184,6 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
         # normalize features
         # TODO check copy and pointer
         sf = database_features
-        #sf = database_features
 
         # calculate cosine distance
         if bib == "pytorch":
@@ -219,16 +196,10 @@ def generate_ranking_for_image(database_data, query_data, K_images = 1000, k_ran
             scores_q = np.array(scores_q.cpu())
         else:
             scores_q = q @ np.transpose(sf)
-            
-        
-            
-        #r = np.argmax(scores_q)
-        #print(included_names[r], scores_q[r], included_images[r])
 
         # associate confidence score with the label of the dataset and sort based on the confidence
         scores_q = list(zip(scores_q, database_data['name'], database_data['image']))
         scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
-
 
         persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))
         all_scores.append(scores_q)
@@ -281,7 +252,7 @@ def process_image(operation, model_name, model_path, image_query, query_label,
         if query_features is not None:
             # generate ranking
             ranking, _ = generate_ranking_for_image(features, query_features)
-            #print(ranking)
+            print(ranking)
         else:
             print("No face detected in this image.")
     else:
