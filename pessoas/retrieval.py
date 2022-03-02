@@ -25,8 +25,8 @@ vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
 def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
-              output_method="image", model_name="curricularface", model_path=None,
-              preprocessing_method="sphereface", K_images=1000, crop_size=(96, 112), gpu=True):
+              output_method="image", model_name="cosface", model_path=None, skipped_frames=4,
+              preprocessing_method="sphereface", K_images=1000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -55,21 +55,21 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
             individual_retrieval(path, feature_file, save_dir, config, input_data, output_method, model_name,
-                                 model_path, preprocessing_method, crop_size, gpu)
+                                 model_path, skipped_frames, preprocessing_method, crop_size, gpu)
     elif '.pkl' in data_to_load:
         with open(data_to_load, 'rb') as handle:
             feature = pickle.load(handle)
         input_data = 'feature'
         individual_retrieval(feature, feature_file, save_dir, config, input_data, output_method, model_name,
-                                 model_path, preprocessing_method, K_images, crop_size, gpu)
+                                 model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     else:
         individual_retrieval(data_to_load, feature_file, save_dir, config, input_data, output_method, model_name,
-                             model_path, preprocessing_method, K_images, crop_size, gpu)
+                             model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
 
 
 def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
-                         output_method="image", model_name="curricularface", model_path=None,
-                         preprocessing_method="sphereface", K_images=1000, crop_size=(96, 112), gpu=True):
+                         output_method="image", model_name="cosface", model_path=None, skipped_frames=4,
+                         preprocessing_method="sphereface", K_images=1000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -119,7 +119,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
         
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
-                                             return_only_one_face=False, crop_size=crop_size, n_frames=8)
+                                             return_only_one_face=False, crop_size=crop_size, n_frames=skipped_frames)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
                                               load_net(model_name, model_path, gpu), n_best_frames=None)
         
@@ -196,6 +196,9 @@ if __name__ == '__main__':
     parser.add_argument('--output_method', type=str, required=False, default="image",
                         help='Method to read the data.')
 
+    parser.add_argument('--skipped_frames', type=int, required=False, default=4,
+                        help='Number of skipped frames in video retrieval.')
+
     parser.add_argument('--model_name', type=str, required=False, default="curricularface",
                         help='Name of the method.')
     parser.add_argument('--model_path', type=str, required=False, default=None,
@@ -228,5 +231,5 @@ if __name__ == '__main__':
         raise NotImplementedError("Model " + args.model_name + " not implemented")
 
     retrieval(args.data_to_process, args.feature_file, args.save_dir,args.config, args.input_type,
-              args.output_method, args.model_name, args.model_path, args.preprocessing_method,
+              args.output_method, args.model_name, args.model_path, args.skipped_frames, args.preprocessing_method,
               args.K_images, crop_size, args.gpu)

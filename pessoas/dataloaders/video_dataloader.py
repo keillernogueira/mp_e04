@@ -65,9 +65,12 @@ class VideoDataLoader:
         if self.n_frames is None:
             sample = np.arange(0, v_len)
         else:
-            if(self.n_frames <= 20):
+            if self.n_frames>v_len:
+                print("########## Number of skipped frames greater than video length ##########")
+                sample = np.arange(0, v_len)
+            else:
                 self.n_frames = int(np.ceil(v_len/self.n_frames))
-            sample = np.linspace(0, v_len - 1, self.n_frames).astype(int)
+                sample = np.linspace(0, v_len - 1, self.n_frames).astype(int)
 
         # Loop through frames
         first = True

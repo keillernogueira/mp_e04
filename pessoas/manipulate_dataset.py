@@ -13,25 +13,9 @@ from networks.load_network import load_net
 from sklearn.preprocessing import normalize
 
 
-def create_feature_segments(features, n_sub_codebooks):
-    segments = np.reshape(features, (features.shape[0], n_sub_codebooks, int(features.shape[1]/n_sub_codebooks)))
-    return np.swapaxes(segments, 0, 1)
-
-
-def product(*args, repeat=1):
-    # product('ABCD', 'xy') --> Ax Ay Bx By Cx Cy Dx Dy
-    # product(range(2), repeat=3) --> 000 001 010 011 100 101 110 111
-    pools = [tuple(pool) for pool in args] * repeat
-    result = [[]]
-    for pool in pools:
-        result = [x+[y] for x in result for y in pool]
-    for prod in result:
-        yield tuple(prod)
-
-
 def manipulate_dataset(feature_file, dataset_path,
-                       model_name="curricularface", model_path=None, preprocessing_method="sphereface",
-                       crop_size=(96, 112), gpu=True):
+                       model_name="cosface", model_path=None, preprocessing_method="sphereface",
+                       crop_size=(112, 112), gpu=True):
     """
     Extracting new features for a dataset or for a image.
     :param feature_file: String with the name of the feature file that will be created.
@@ -81,62 +65,7 @@ def manipulate_dataset(feature_file, dataset_path,
     with open(feature_file, 'wb') as handle:
         pickle.dump(features, handle, protocol=pickle.HIGHEST_PROTOCOL)
     print(features['normalized_feature'].shape)
-    # scipy.io.savemat(feature_file, features)
-    # print(features['feature'].shape)
-
-    '''M = 8
-    sub_codebooks = create_feature_segments(features['feature'], M)
-
-    kmeans = []
-    n_clusters = 6
-    for i in range(M):
-        kmeans.append(KMeans(init="random", n_clusters=n_clusters, n_init=10, max_iter=10000, random_state=42))
-        kmeans[i].fit(sub_codebooks[i])
-
-    # mapping = dict()
-    # for i in range(M):
-    #     for j in range(len(sub_codebooks[i])):
-    #         if (i, kmeans[i].labels_[j]) in mapping.keys():
-    #             pass
-    #         else:
-    #             dist = []
-    #             cluster_center = []
-    #             idx = []
-    #             for k in range(len(kmeans[i].cluster_centers_)):
-    #                 distAB = 0
-    #                 for d in range(len(sub_codebooks[i][j])):
-    #                   distAB += (sub_codebooks[i][j][d]-kmeans[i].cluster_centers_[k][d])**2
-    #                 distAB = np.sqrt(distAB)
-    #                 dist.append(distAB)
-    #                 cluster_center.append(kmeans[i].cluster_centers_[k])
-    #             mapping[(i, kmeans[i].labels_[j])] = tuple(cluster_center[np.argmin(dist)].tolist())
-
-    idx = []
-    for i in range(M):
-        idx.append(kmeans[i].cluster_centers_[kmeans[i].labels_])
-    idx = np.reshape(np.swapaxes(np.asarray(idx), 0, 1), (np.asarray(idx).shape[1], -1))
-    # print(idx.shape)
-
-    inverted_table = dict()
-    for i in range(idx.shape[0]):
-        if tuple(idx[i, :]) not in inverted_table.keys():
-            inverted_table[tuple(idx[i, :])] = [i]
-        else:
-            inverted_table[tuple(idx[i, :])].append(i)
-    print(len(inverted_table.keys()))
-
-    # result = dict()
-    # result['kmeans'] = kmeans
-    # for i in range(len(vocabulary)):
-    #     result[str(i)] = inverted_table[vocabulary[i]]
-    # result['vocabulary'] = vocabulary
-    # result['M'] = M
-
-    save_file = feature_file[:-4] + '_meta.pkl'
-    with open(save_file, 'wb') as f:
-        pickle.dump(inverted_table, f)
-    f.close()'''
-
+    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='manipulate_dataset')
