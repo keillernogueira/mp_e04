@@ -141,7 +141,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     #     net.load_state_dict(ckpt['net_state_dict'])
     #     start_epoch = ckpt['epoch'] + 1
 
-    for epoch in range(start_epoch, num_epoch):
+    for epoch in range(start_epoch, num_epoch+1):
         # train model
         logging.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
         net.train()
