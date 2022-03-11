@@ -14,7 +14,7 @@ from sklearn.preprocessing import normalize
 
 
 def manipulate_dataset(feature_file, dataset_path,
-                       model_name="cosface", model_path=None, preprocessing_method="sphereface",
+                       model_name="curricularface", model_path=None, preprocessing_method="sphereface",
                        crop_size=(112, 112), gpu=True):
     """
     Extracting new features for a dataset or for a image.
@@ -34,6 +34,9 @@ def manipulate_dataset(feature_file, dataset_path,
 
     # load current features
     features = None
+    
+    assert os.path.isdir(os.path.dirname(feature_file)) or os.path.dirname(feature_file)=="", "Feature file directory must exist"
+
     if feature_file is not None and os.path.isfile(feature_file):
         with open(feature_file, 'rb') as handle:
             features = pickle.load(handle)

@@ -25,8 +25,8 @@ vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
 def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
-              output_method="image", model_name="cosface", model_path=None, skipped_frames=4,
-              preprocessing_method="sphereface", K_images=1000, crop_size=(112, 112), gpu=True):
+              output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
+              preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -72,8 +72,8 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
 
 
 def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
-                         output_method="image", model_name="cosface", model_path=None, skipped_frames=4,
-                         preprocessing_method="sphereface", K_images=1000, crop_size=(112, 112), gpu=True):
+                         output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
+                         preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
@@ -214,7 +214,7 @@ if __name__ == '__main__':
                         help='Pre-processing method')
     parser.add_argument('--config', type=str, required=False, default="PyRetri/configs/base.yaml")
     parser.add_argument('--no_gpu', dest='gpu', action='store_false', help='Disables GPU usage in retrieval process')
-    parser.add_argument('--K_images', type=int, required=False, default=1000,
+    parser.add_argument('--K_images', type=int, required=False, default=5000,
                         help='Number of images to be returned by PyRetri. If set to 0, PyRetri wont '
                              'be used for indexing, and all images will be analysed.')
     parser.set_defaults(gpu=True)
