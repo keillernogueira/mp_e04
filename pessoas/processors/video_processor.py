@@ -38,6 +38,7 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
         
         print("Loading time:", time.time() - start)
         if n_best_frames is not None:
+            st = time.time()
             assert n_best_frames > 0, f"n_best_frames({n_best_frames}) must be a positive integer"
             assert n_best_frames <= len(batches_frames[0]), \
                 f"n_best_frames({n_best_frames}) must be smaller than batch size({len(batches_frames[0])})."
@@ -53,8 +54,8 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
                 idx = np.argpartition(scores, n)[n:]
                 idxs.append(idx)
                 
-            print("Score Calculation:", time.time() - start)
-        
+            print("Score Calculation:", time.time() - st)
+        st = time.time()
         for j in range(len(batches_imgs)):  # batch loop
             if n_best_frames is None:
                 sel_frames = batches_frames[j]
@@ -91,8 +92,10 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
                 all_crops = np.concatenate((all_crops,crops),0)
                 all_bbs = np.concatenate((all_bbs,bbs),0)
 
+    print("Feature Extraction done in:", time.time() - st)
     # print(all_features.shape, all_frames.shape, all_crops.shape, all_bbs.shape)
     print("Total time: " + str(time.time() - start))
+    print("Selected", all_frames.shape[0], "Frames of the", v_len, "on the video")
     print("Frames per second: " + str(v_len / (time.time() - start)))
     return {'feature': all_features, 'name': [None]*len(all_features), 'image': all_frames,
             'bbs': all_bbs, 'cropped_image': all_crops}

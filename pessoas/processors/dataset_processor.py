@@ -129,8 +129,6 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
         query_features = features[0:num_features_query]
         database_features = features[num_features_query:]
 
-    top_k = pyretri.main(query_features, database_features, "PyRetri/configs/oxford.yaml", len(database_features))
-
     people_2_class = dict()
     class_value = 1
     for name in database_data['name']:
@@ -146,7 +144,7 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
         # database_features = search_features
         query_images.append(query_data['image'][i])
         query_label.append(people_2_class[query_data['name'][i]])
-        sf = database_features[top_k[i]]
+        sf = database_features
         if bib == "pytorch":
             q = torch.from_numpy(q)
             sf = torch.from_numpy(sf)
@@ -158,9 +156,9 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
             scores_q = q @ np.transpose(sf)
 
         # associate confidence score with the label of the dataset and sort based on the confidence
-        scores_q = list(zip(scores_q, database_data['name'][top_k[i]],
-                            database_data['image'][top_k[i]], database_data['cropped_image'][top_k[i]],
-                            database_data['bbs'][top_k[i]]))
+        scores_q = list(zip(scores_q, database_data['name'],
+                            database_data['image'], database_data['cropped_image'],
+                            database_data['bbs']))
         # scores_q = list(zip(scores_q, included_names, included_images))
         scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
         all_scores_q.append(scores_q)

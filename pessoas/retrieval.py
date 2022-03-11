@@ -45,6 +45,10 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
     assert data_to_load is not None, "Must set parameter data_to_load"
     assert feature_file is not None and os.path.isfile(feature_file), \
         "Must set parameter feature_file with existing file"
+    assert output_method == "image" or output_method == "json",  \
+        "Output method must be either image or json"
+    assert input_data == "video" or input_data == "image", \
+        "Input type must be either image or video"
 
     if '.json' in data_to_load: 
         data_to_load = read_json(data_to_load)
@@ -100,6 +104,13 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
             features = pickle.load(handle)
 
         print(features['normalized_feature'].shape)
+        
+    if model_name == "mobilefacenet" or model_name == "openface" or model_name == "shufflefacenet":
+        assert features['normalized_feature'].shape[1] == 256, \
+            model_name + " incompatible with loaded features"
+    else:
+        assert features['normalized_feature'].shape[1] == 1024, \
+            model_name + " incompatible with loaded features"
     
     feature = None
     if input_data == 'image':
@@ -139,10 +150,6 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
             all_ranking.append(all_ranking_individual[0])
 
         print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
-    
-    elif input_data == 'feature':
-        feature = data_to_load
-        assert feature is not None, "No face detected in this file."
         
     # exporting results
 
