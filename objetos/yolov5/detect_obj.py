@@ -47,7 +47,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
-    model = attempt_load(model_path, map_location=device)  # load FP32 model
+    model = attempt_load(model_path, map_location=device, coco_only=opt.coco_only)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
     names = model.module.names if hasattr(model, 'module') else model.names  # get class names
@@ -166,7 +166,9 @@ if __name__ == '__main__':
     parser.add_argument('--img_path', type=str, default='data/images',
                         help='Source of images/videos. Can be a folder, a single image/video file, '
                              'a url to a image/video, or a json with a list of files (local or remote)')  # file/folder, 0 for webcam
-    parser.add_argument('--model_path', nargs='+', type=str, default='yolov5s.pt', help='model.pt path')
+    parser.add_argument('--model_path', nargs='+', type=str, default='yolov5l.pt', help='model.pt path')
+    parser.add_argument('--coco_only', default=False, action='store_true', 
+                        help='if the model weigths is not found locally, download the models trained only on coco in the original repository.')
 
     parser.add_argument('--output_path', type=str, default='outputs/',
                         help='Path where the outputs generetated will be saved')

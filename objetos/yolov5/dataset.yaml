@@ -1,8 +1,11 @@
-train: Sohas_weapon-Detection-YOLOv5/obj_train_data/images/train/
-val: Sohas_weapon-Detection-YOLOv5/obj_train_data/images/test/
+# Example dataset.yaml file
 
-# number of classes
-nc: 6
+root: dataset/                   # Path to the root folder | *Optional*
+train: dataset/images/train/     # Path to the training images folder
+val: dataset/images/test/        # Path to the validation images folder
 
-# class names
-names: ['pistol', 'smartphone', 'knife', 'monedero', 'billete', 'tarjeta']
+# Number of classes
+nc: 14
+
+# Class names
+names: ['pistol', 'knife', 'bicycle', 'car', 'bus', 'motorbike', 'truck', 'machete', 'pocket/stiletto knife', 'axe', 'rifle/sniper', 'shotgun', 'machine gun', 'submachine gun']

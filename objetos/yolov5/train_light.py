@@ -141,7 +141,7 @@ def train(hyp_path='hyp.scratch.yaml', data='dataset.yaml', output_path='runs/tr
     pretrained = weights.endswith('.pt')
     if pretrained:
         with torch_distributed_zero_first(rank):
-            weights = attempt_download(weights)  # download if not found locally
+            weights = attempt_download(weights, coco_only=opt.coco_only)  # download if not found locally
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
         model = Model(opt.cfg or ckpt['model'].yaml, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
         exclude = ['anchor'] if (opt.cfg or hyp.get('anchors')) and not opt.resume else []  # exclude keys
@@ -488,6 +488,7 @@ def train(hyp_path='hyp.scratch.yaml', data='dataset.yaml', output_path='runs/tr
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='yolov5s.pt', help='initial weights path')
+    parser.add_argument('--coco_only', default=False, action='store_true', help='if the weights is not found locally, download the models trained only on coco in the original repository.')
     parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
     parser.add_argument('--data', type=str, default='dataset.yaml', help='data.yaml path')
     parser.add_argument('--hyp', type=str, default='hyp.scratch.yaml', help='hyperparameters path')

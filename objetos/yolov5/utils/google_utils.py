@@ -34,9 +34,16 @@ def safe_download(file, url, url2=None, min_bytes=1E0, error_msg=''):
         print('')
 
 
-def attempt_download(file, repo='ultralytics/yolov5'):
+def attempt_download(file, repo='ultralytics/yolov5', coco_only=False):
     # Attempt file download if does not exist
     file = Path(str(file).strip().replace("'", ''))
+
+    if coco_only:
+        repo = 'ultralytics/yolov5'
+        version = 'v5.0'
+    else:
+        repo = 'MPMG-DCC-UFMG/E04'
+        version = 'v1.0'
 
     if not file.exists():
         # URL specified
@@ -49,23 +56,21 @@ def attempt_download(file, repo='ultralytics/yolov5'):
         # GitHub assets
         file.parent.mkdir(parents=True, exist_ok=True)  # make parent dir (if required)
         try:
-            response = requests.get(f'https://api.github.com/repos/{repo}/releases/latest').json()  # github api
+            response = requests.get(f'https://api.github.com/repos/{repo}/releases/download/{version}').json()  # github api
             assets = [x['name'] for x in response['assets']]  # release assets, i.e. ['yolov5s.pt', 'yolov5m.pt', ...]
             tag = response['tag_name']  # i.e. 'v1.0'
         except:  # fallback plan
             assets = ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt',
-                      'yolov5s6.pt', 'yolov5m6.pt', 'yolov5l6.pt', 'yolov5x6.pt']
-            try:
-                tag = subprocess.check_output('git tag', shell=True, stderr=subprocess.STDOUT).decode().split()[-1]
-            except:
-                tag = 'v5.0'  # current release
+                    'yolov5s6.pt', 'yolov5m6.pt', 'yolov5l6.pt', 'yolov5x6.pt']
+            tag = 'v5.0' if coco_only else 'v1.0' # current release
 
         if name in assets:
             safe_download(file,
-                          url=f'https://github.com/{repo}/releases/download/{tag}/{name}',
-                          # url2=f'https://storage.googleapis.com/{repo}/ckpt/{name}',  # backup url (optional)
-                          min_bytes=1E5,
-                          error_msg=f'{file} missing, try downloading from https://github.com/{repo}/releases/')
+                        url=f'https://github.com/{repo}/releases/download/{tag}/{name}',
+                        # url2=f'https://storage.googleapis.com/{repo}/ckpt/{name}',  # backup url (optional)
+                        min_bytes=1E5,
+                        error_msg=f'{file} missing, try downloading from https://github.com/{repo}/releases/')
+        
 
     return str(file)
 

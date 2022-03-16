@@ -24,7 +24,8 @@ class defaultOpt():
 
 class defaultOptTrain():
     def __init__(self):
-        self.weights = 'yolov5s.pt'
+        self.weights = 'yolov5l.pt'
+        self.coco_only = False
         self.cfg = ''
         self.data = 'dataset.yaml'
         self.hyp = 'hyp.scratch.yaml'
