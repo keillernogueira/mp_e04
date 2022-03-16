@@ -4,6 +4,7 @@ import base64
 import numpy as np
 import argparse
 import time
+import pickle
 import torch.utils.data
 import torchvision
 from PIL import Image
@@ -137,8 +138,10 @@ def get_features(model_name, dataloader_loader, gpu=True, gather_cropped_images=
         print(bbs.shape)
 
     result = {'features': features, 'classes': classes, 'images': images, 'people': names}
+    
     if feature_save_file is not None:
-        scipy.io.savemat(feature_save_file, result)
+        with open(feature_save_file, 'wb') as handle:
+            pickle.dump(result, handle, protocol=pickle.HIGHEST_PROTOCOL)
     return result, cropped_images, bbs
 
 
@@ -357,7 +360,9 @@ if __name__ == '__main__':
     else:
         cropped_images = None
         bbs = None
-        features_database = scipy.io.loadmat(args.dataset_feature_load_file)
+
+        with open(args.dataset_feature_load_file, 'rb') as handle:
+            features_database = pickle.load(handle)
         classes_database = features_database['classes'][0]
 
     images_database = features_database['images']

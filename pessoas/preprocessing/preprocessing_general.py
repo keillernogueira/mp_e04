@@ -1,3 +1,5 @@
+import os
+import sys
 import logging
 
 import imageio
@@ -40,7 +42,7 @@ class PreProcess(object):
 
         self.mtcnn = MTCNN(keep_all=True, selection_method="largest", post_process=False, image_size=crop_size,
                            device=torch.device('cuda') if gpu is True else torch.device('cpu'))
-        self.openface_model = AlignDlib('landmarks/shape_predictor_68_face_landmarks.dat')
+        self.openface_model = AlignDlib(os.path.join(sys.path[0], 'landmarks', 'shape_predictor_68_face_landmarks.dat'))
 
     def preprocess(self, img):
         """

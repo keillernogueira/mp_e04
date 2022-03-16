@@ -47,6 +47,9 @@ def get_args():
                                                                    'suggest using \'admaw\' until the'
                                                                    ' very final stage then switch to \'sgd\'')
     parser.add_argument('--schlr', type=str, default="plateau")
+    parser.add_argument('--gama', type=int, default=0.1)
+    parser.add_argument('--step_size', type=int, default=30)
+    parser.add_argument('--milestones', type=list, default=[30,80])
     parser.add_argument('--num_epochs', type=int, default=500)
     parser.add_argument('--val_interval', type=int, default=1, help='Number of epoches between valing phases')
     parser.add_argument('--save_interval', type=int, default=500, help='Number of steps between saving')
@@ -210,9 +213,14 @@ def train(opt):
         optimizer = torch.optim.AdamW(model.parameters(), opt.lr)
     else:
         optimizer = torch.optim.SGD(model.parameters(), opt.lr, momentum=0.9, nesterov=True, weight_decay = 4e-5)
+    
     if opt.schlr == "plateau":
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3)
-    else:
+    elif opt.schlr == "steplr":
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=opt.gama)
+    elif opt.schlr == "multistep":
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=opt.milestones, gamma=opt.gama)
+    elif opt.schlr == 'lambda-cosine':
         calc_lr = lambda epoch: epoch/(opt.num_imgs//opt.num_epochs)
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda = calc_lr, last_epoch=-1)        
 
@@ -228,7 +236,6 @@ def train(opt):
     iou_values = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
     n_ious = iou_values.numel()
     cpu_device = torch.device("cpu")
-
     try:
         for epoch in range(opt.num_epochs):
             last_epoch = step // num_iter_per_epoch
@@ -278,7 +285,7 @@ def train(opt):
                     writer.add_scalar('learning_rate', current_lr, step)
 
                     step += 1
-                    if epoch == 0 and opt.schlr != 'plateau':
+                    if epoch == 0 and opt.schlr == 'lambda-cosine':
                         scheduler.step()
                         
                     if step % opt.save_interval == 0 and step > 0:
@@ -290,10 +297,12 @@ def train(opt):
                     print(e)
                     continue
             if epoch == 0:
-                if opt.schlr == 'plateau':
+                if opt.schlr == 'lambda-cosine':
+                    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.num_epochs-1, eta_min=0)
+                elif opt.schlr == 'plateau':
                     scheduler.step(np.mean(epoch_loss))
                 else:
-                    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=opt.num_epochs-1, eta_min=0)
+                    scheduler.step()
             else:
                 if opt.schlr == 'plateau':
                     scheduler.step(np.mean(epoch_loss))
@@ -301,7 +310,7 @@ def train(opt):
                     scheduler.step()
 
             with open(os.path.join(opt.saved_path, "lr.txt"), 'a+') as f:
-                f.write('Epoch {}, lr {}\n'.format(epoch, current_lr))
+                f.write('Epoch {}, lr {}\n'.format(epoch, scheduler.get_last_lr()))
 
             if epoch % opt.val_interval == 0:
                 model.requires_grad_(False)
@@ -424,7 +433,7 @@ def train(opt):
                 with open(os.path.join(opt.saved_path, "results_novo.txt"), 'a+') as f:
                     if epoch==0:
                         f.write("\n %s %s %f \n"% (opt.optim, opt.schlr, opt.lr))
-                    f.write('%g/%g' % (epoch, opt.num_epochs - 1) + '%10.4g' * 5 % (mp, mr, mAP50, mAP, loss/len(val_generator.dataset)) + '\n')  # append metrics, val_loss
+                    f.write('%g/%g' % (epoch, opt.num_epochs - 1) + '%10.4g' * 5 % (mp, mr, mAP50, mAP, loss) + '\n')  # append metrics, val_loss
                 
                 model.requires_grad_(True)
                 model.train()

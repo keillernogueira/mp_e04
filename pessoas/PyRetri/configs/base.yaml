@@ -1,0 +1,30 @@
+
+index:
+  # path of the query set features and gallery set features.
+  query_fea_dir: ""
+  gallery_fea_dir: ""
+
+
+  # a list of dimension process functions.
+  # This is not currently utilized
+  dim_processors:
+    names: ["L2Normalize", "L2Normalize"]
+
+  # function for enhancing the quality of features.
+  feature_enhancer:
+    name: "Identity"  # name of the feature enhancer.
+
+  # function for calculating the distance between query features and gallery features.
+  metric:
+    name: "KNN" # name of the metric.
+
+  # function for re-ranking the results.
+  re_ranker:
+    name: "Identity"  # name of the re-ranker.
+    
+evaluate:
+  # function for evaluating results.
+  evaluator:
+    name: "OverAll"  # name of the evaluator.
+
+

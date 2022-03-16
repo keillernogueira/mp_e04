@@ -17,18 +17,21 @@ from manipulate_json import save_retrieved_ranking, read_json
 
 import pickle
 import time
+from PyRetri import index as idx
+
 
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
-def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
-              model_name="mobilefacenet", model_path=None,
-              preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
+def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+              output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
+              preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
-    :param data_to_load: Data to be analysed. Can be a link or path, image or video, or else a json file with multiple links/paths.
+    :param data_to_load: Data to be analysed. Can be a link or path, image or video,
+                         or else a json file with multiple links/paths.
     :param feature_file: Path to the file that contains extracted features from dataset images.
     :param save_dir: Path to the dir used to save the results.
     :param input_data: Type of the input data: image or video
@@ -42,35 +45,48 @@ def retrieval(data_to_load, feature_file, save_dir, input_data='image', output_m
     assert data_to_load is not None, "Must set parameter data_to_load"
     assert feature_file is not None and os.path.isfile(feature_file), \
         "Must set parameter feature_file with existing file"
+    assert output_method == "image" or output_method == "json",  \
+        "Output method must be either image or json"
+    assert input_data == "video" or input_data == "image", \
+        "Input type must be either image or video"
 
     if '.json' in data_to_load: 
         data_to_load = read_json(data_to_load)
         for path in data_to_load:
-            if any(vid_format in path.lower() for vid_format in vid_formats) or 'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
+            if any(vid_format in path.lower() for vid_format in vid_formats) or \
+                    'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
                 input_data = 'video'
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
-            individual_retrieval(path, feature_file, save_dir, input_data, output_method, model_name,
-                                 model_path, preprocessing_method, crop_size, gpu)
+            individual_retrieval(path, feature_file, save_dir, config, input_data, output_method, model_name,
+                                 model_path, skipped_frames, preprocessing_method, crop_size, gpu)
+    elif '.pkl' in data_to_load:
+        with open(data_to_load, 'rb') as handle:
+            feature = pickle.load(handle)
+        input_data = 'feature'
+        individual_retrieval(feature, feature_file, save_dir, config, input_data, output_method, model_name,
+                                 model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     else:
-        individual_retrieval(data_to_load, feature_file, save_dir, input_data, output_method, model_name,
-                             model_path, preprocessing_method, crop_size, gpu)
+        individual_retrieval(data_to_load, feature_file, save_dir, config, input_data, output_method, model_name,
+                             model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
 
 
-def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image', output_method="image",
-                         model_name="mobilefacenet", model_path=None,
-                         preprocessing_method="sphereface", crop_size=(96, 112), gpu=True):
+def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+                         output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
+                         preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
     :param data_to_load: Data to be analysed. Can be a link or path, image or video.
     :param feature_file: Path to the file that contains extracted features from dataset images.
     :param save_dir: Path to the dir used to save the results.
+    :param config: Path to config file to be utilized by PyRetri.
     :param input_data: Type of the input data: image or video
     :param output_method: Method to export the results: json or image.
     :param model_name: String with the name of the model used.
     :param model_path: Path to a trained model
     :param preprocessing_method: String with the name of the preprocessing method used.
+    :param K_images: Number of images to be returned by PyRetri. Setting to 0 disables PyRetri.
     :param crop_size: Size of the crop based on the model used.
     :param gpu: use GPU?
     """
@@ -84,13 +100,17 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
     features = None
     # load current features
     if feature_file is not None and os.path.isfile(feature_file):
-        features = scipy.io.loadmat(feature_file)
-    
-    save_file = feature_file[:-4]
-    save_file = save_file + '_meta.pkl'
-    if save_file is not None and os.path.isfile(save_file):
-        f = open(save_file, 'rb')
-        features_meta = pickle.load(f)
+        with open(feature_file, 'rb') as handle:
+            features = pickle.load(handle)
+
+        print(features['normalized_feature'].shape)
+        
+    if model_name == "mobilefacenet" or model_name == "openface" or model_name == "shufflefacenet":
+        assert features['normalized_feature'].shape[1] == 256, \
+            model_name + " incompatible with loaded features"
+    else:
+        assert features['normalized_feature'].shape[1] == 1024, \
+            model_name + " incompatible with loaded features"
     
     feature = None
     if input_data == 'image':
@@ -100,23 +120,37 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
 
         # extract features for the query image
         feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
+        
+        assert feature is not None, "No face detected in this image."
+
+        st = time.time()
+        top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, bib='pytorch',
+                                                                K_images=K_images, config=config, gpu=gpu)
+        print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
+        
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
-                                             return_only_one_face=True, crop_size = crop_size)
+                                             return_only_one_face=False, crop_size=crop_size, n_frames=skipped_frames)
         feature = extract_features_from_video(data_to_load, detection_pipeline,
-                                              load_net(model_name, model_path, gpu))
+                                              load_net(model_name, model_path, gpu), n_best_frames=None)
+        
+        assert feature is not None, "No face detected in this video."
 
-    assert feature is not None, "No face detected in this file."
+        st = time.time()
+        
+        top_k_ranking = []
+        all_ranking = []
+        # go through all faces found and getting a rank for each one
+        for i in range(len(feature['feature'])):
+            feature_face = {list(feature.keys())[j]: q[i] for j, q in enumerate(feature.values())}
+            top_k_ranking_individual, all_ranking_individual = \
+                generate_ranking_for_image(features, feature_face, bib='pytorch',
+                                           K_images=K_images, config=config, gpu=gpu)
+            top_k_ranking.append(top_k_ranking_individual[0])
+            all_ranking.append(all_ranking_individual[0])
 
-    # generate ranking
-    start = time.time()
-    top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, features_meta)
-    end = time.time()
-    print("###############################")
-    print(end - start)
-    print(top_k_ranking)
-    print("###############################")
-
+        print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
+        
     # exporting results
 
     # if the method chosen was json
@@ -131,17 +165,18 @@ def individual_retrieval(data_to_load, feature_file, save_dir, input_data='image
             
             face_id = 1
             for rank in top_k_ranking:
-                face_dict = {'id': face_id, 'class': rank[1][0]['Name'],
-                             'confidence': np.float64(rank[1][0]['Confidence']), 'box': rank[0].tolist()}
+                names = {i['Name']: np.float64(i['Confidence']) for i in rank[1]}
+                face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
+                             'confidence most similar': np.float64(rank[1][0]['Confidence']), 'box': rank[0].tolist()}
                 output[0][f'face_{face_id}'] = face_dict
-                print(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 # save_retrieved_ranking(output, rank[1], rank[0],
                 # os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
                 face_id += 1
             data = {f'output{output_id}': output}
             output_id += 1
-        with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w', 
-                      encoding='utf-8') as f:
+        print("Results save at", os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
+        with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w',
+                  encoding='utf-8') as f:
             json.dump(data, f, indent=4)
     # if the method chosen was image
     elif output_method.lower() == "image":
@@ -168,12 +203,21 @@ if __name__ == '__main__':
     parser.add_argument('--output_method', type=str, required=False, default="image",
                         help='Method to read the data.')
 
-    parser.add_argument('--model_name', type=str, required=False, default="mobilefacenet",
+    parser.add_argument('--skipped_frames', type=int, required=False, default=4,
+                        help='Number of skipped frames in video retrieval.')
+
+    parser.add_argument('--model_name', type=str, required=False, default="curricularface",
                         help='Name of the method.')
     parser.add_argument('--model_path', type=str, required=False, default=None,
                         help='Path to a trained model. If not set, the original trained model will be used.')
     parser.add_argument('--preprocessing_method', type=str, required=False, default="sphereface",
                         help='Pre-processing method')
+    parser.add_argument('--config', type=str, required=False, default="PyRetri/configs/base.yaml")
+    parser.add_argument('--no_gpu', dest='gpu', action='store_false', help='Disables GPU usage in retrieval process')
+    parser.add_argument('--K_images', type=int, required=False, default=5000,
+                        help='Number of images to be returned by PyRetri. If set to 0, PyRetri wont '
+                             'be used for indexing, and all images will be analysed.')
+    parser.set_defaults(gpu=True)
     # parser.add_argument('--crop_size', type=int, nargs="+", required=False, default=(96, 112),
     #                     help='Crop size')
     args = parser.parse_args()
@@ -183,7 +227,8 @@ if __name__ == '__main__':
     # selecting the size of the crop based on the network
     if args.model_name == 'mobilefacenet' or args.model_name == 'sphereface':
         crop_size = (96, 112)
-    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or args.model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
+    elif args.model_name == 'mobiface' or args.model_name == 'shufflefacenet' or \
+            args.model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
         crop_size = (112, 112)
     elif args.model_name == 'openface':
         crop_size = (96, 96)
@@ -192,5 +237,6 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError("Model " + args.model_name + " not implemented")
 
-    retrieval(args.data_to_process, args.feature_file, args.save_dir, args.input_type,
-              args.output_method, args.model_name, args.model_path, args.preprocessing_method, crop_size)
+    retrieval(args.data_to_process, args.feature_file, args.save_dir,args.config, args.input_type,
+              args.output_method, args.model_name, args.model_path, args.skipped_frames, args.preprocessing_method,
+              args.K_images, crop_size, args.gpu)

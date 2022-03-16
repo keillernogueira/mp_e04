@@ -56,6 +56,10 @@ class GenericDataLoader(object):
         # if image is grayscale, transform into rgb by repeating the image 3 times
         if len(img.shape) == 2:
             img = np.stack([img] * 3, 2)
+        
+        #rgba to rgb
+        if img.shape[2]==4: 
+            img = img[:,:,:3]
 
         img, bb = self.preprocess.preprocess(img)
         img = img.squeeze()
@@ -80,8 +84,8 @@ class GenericDataLoader(object):
             # normalization
             for i in range(len(imglist)):
                 imglist[i] = (imglist[i] - 127.5) / 128.0
-                if self.preprocessing_method != "mtcnn":
-                    imglist[i] = imglist[i].transpose(2, 0, 1)
+                #if self.preprocessing_method != "mtcnn":
+                imglist[i] = imglist[i].transpose(2, 0, 1)
             imgs = [torch.from_numpy(i).float() for i in imglist]
 
             return imgs, cl, img, bb, self.img_list[index], self.labels_string[index]

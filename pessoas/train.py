@@ -4,6 +4,7 @@ import time
 import urllib.request
 import tarfile
 import argparse
+import pathlib
 
 import torch
 from torch import nn
@@ -16,7 +17,6 @@ from networks.cosface import CosineMarginProduct
 from networks.curricularface import CurricularFace
 from processors.dataset_processor import extract_features, evaluate_dataset
 from networks.load_network import load_net
-
 
 
 def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71):
@@ -33,7 +33,8 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     logging.basicConfig()
     logging.getLogger().setLevel(logging.INFO)
 
-    if model_name == "mobiface" or model_name == "shufflefacenet" or model_name == 'curricularface' or args.model_name == 'arcface' or args.model_name == 'cosface':
+    if model_name == "mobiface" or model_name == "shufflefacenet" or model_name == 'curricularface' \
+            or args.model_name == 'arcface' or args.model_name == 'cosface':
         crop_size = (112, 112)
     elif model_name == "sphereface" or model_name == "mobilefacenet":
         crop_size = (96, 112)
@@ -52,7 +53,8 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     # validation dataset
     lfw_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'datasets', 'LFW')
     if not os.path.exists(lfw_path):  # if folder does not exist
-        os.mkdir(lfw_path)  # create folder
+        # os.mkdir(lfw_path)  # create folder
+        pathlib.Path(lfw_path).mkdir(parents=True, exist_ok=True)
         # download data
         urllib.request.urlretrieve('http://vis-www.cs.umass.edu/lfw/lfw.tgz', os.path.join(lfw_path, 'lfw.tgz'))
         urllib.request.urlretrieve('http://vis-www.cs.umass.edu/lfw/people.txt', os.path.join(lfw_path, 'people.txt'))
@@ -128,7 +130,6 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     else:
         optimizer_ft = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
 
-
     exp_lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer_ft, milestones=[36, 52, 58], gamma=0.1)
 
     SAVE_FREQ = 5
@@ -140,7 +141,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     #     net.load_state_dict(ckpt['net_state_dict'])
     #     start_epoch = ckpt['epoch'] + 1
 
-    for epoch in range(start_epoch, num_epoch):
+    for epoch in range(start_epoch, num_epoch+1):
         # train model
         logging.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
         net.train()
