@@ -65,7 +65,7 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
             feature = pickle.load(handle)
         input_data = 'feature'
         individual_retrieval(feature, feature_file, save_dir, config, input_data, output_method, model_name,
-                                 model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
+                             model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     else:
         individual_retrieval(data_to_load, feature_file, save_dir, config, input_data, output_method, model_name,
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
@@ -121,7 +121,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
         # extract features for the query image
         feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
         
-        assert feature is not None, "No face detected in this image."
+        assert feature is not None, "No face detected - image " + data_to_load
 
         st = time.time()
         top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, bib='pytorch',
@@ -167,7 +167,8 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
             for rank in top_k_ranking:
                 names = {i['Name']: np.float64(i['Confidence']) for i in rank[1]}
                 face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
-                             'confidence most similar': np.float64(rank[1][0]['Confidence']), 'box': rank[0].tolist()}
+                             'confidence most similar': np.float64(rank[1][0]['Confidence']),
+                             'box': rank[0][face_id - 1].tolist()}
                 output[0][f'face_{face_id}'] = face_dict
                 # save_retrieved_ranking(output, rank[1], rank[0],
                 # os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))

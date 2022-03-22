@@ -103,14 +103,14 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
             database_features = database_data['normalized_feature']
             query_features = query_data['feature']
             num_features_query = query_features.shape[0]
-            print("n:", num_features_query)
+            # print("n:", num_features_query)
             query_bbs = query_data['bbs']
             # normalize query data using dataset data mean
-            print(query_features.shape)
+            # print(query_features.shape)
             query_features = query_features - (database_data['feature_mean'] - 1e-18)
-            print(query_features.shape)
+            # print(query_features.shape)
             query_features = normalize(query_features, norm='l2', axis=1)
-            print(query_features.shape)
+            # print(query_features.shape)
     else:
         database_features = database_data['feature']
         query_features = query_data['feature']
@@ -123,9 +123,9 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
         # extract mean from features and add a bias
         features = features - (mu - 1e-18)
         # divide by the standard deviation
-        print(features.shape)
+        # print(features.shape)
         features = normalize(features, norm='l2', axis=1)
-        print(np.linalg.norm(features[0]))
+        # print(np.linalg.norm(features[0]))
         query_features = features[0:num_features_query]
         database_features = features[num_features_query:]
 

@@ -13,6 +13,19 @@ from config import *
 from dataloaders.conversor import read_image
 
 
+def resize_image_for_plot(img, base_size=160):
+    h, w, _ = img.shape
+    if h > w:
+        hpercent = (base_size / float(h))
+        wsize = int((float(w) * float(hpercent)))
+        img = cv2.resize(img, (wsize, base_size))
+    else:
+        wpercent = (base_size / float(w))
+        hsize = int((float(h) * float(wpercent)))
+        img = cv2.resize(img, (base_size, hsize))
+    return img
+
+
 def plot_top15_face_retrieval(query_image, query_person, scores, query_num,
                               metrics=None, cropped_image=None, bb=None, save_dir="outputs/"):
     """
@@ -130,7 +143,6 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
     hsize = int((float(img.shape[0]) * float(wpercent)))
     hpercent = (hsize / float(img.shape[0]))
     img = cv2.resize(img, (basewidth, hsize))
-    
 
     if os.path.isfile(query_image):
         ax[0].set_title('| Query image |\nPerson: %s\nImage: %s' %
@@ -157,7 +169,7 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
     if cropped_image is not None:
         ax[4].set_title('| Cropped Face |')
         shift = 30  # this shift is only used to center the cropped image into de subplot
-        ax[4].imshow(cropped_image.astype('uint8'), extent=(shift, shift + cropped_image.shape[1], shift + cropped_image.shape[0], shift))
+        ax[4].imshow(cropped_image.astype('uint8'))  # , extent=(shift, shift + cropped_image.shape[1], shift + cropped_image.shape[0], shift))
     else:
         ax[4].set_title('| NO Cropped Face |')
 
@@ -167,22 +179,14 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
         if unique_persons:
             if scores[j][1] not in unique_persons:
                 img = read_image(scores[j][2].strip())
-                basewidth = 160
-                wpercent = (basewidth / float(img.shape[1]))
-                hsize = int((float(img.shape[0]) * float(wpercent)))
-                hpercent = (hsize / float(img.shape[0]))
-                img = cv2.resize(img, (basewidth, hsize))
+                img = resize_image_for_plot(img)
                 ax[i + 5].set_title('| %i |\n%s\n%f' % (i + 1, scores[j][1], scores[j][0]))
                 ax[i + 5].imshow(img)
                 unique_persons.append(scores[j][1])
                 i += 1
         else:
             img = read_image(scores[j][2].strip())
-            basewidth = 160
-            wpercent = (basewidth / float(img.shape[1]))
-            hsize = int((float(img.shape[0]) * float(wpercent)))
-            hpercent = (hsize / float(img.shape[0]))
-            img = cv2.resize(img, (basewidth, hsize))
+            img = resize_image_for_plot(img)
             ax[i + 5].set_title('| %i |\n%s\n%f' % (i + 1, scores[j][1], scores[j][0]))
             ax[i + 5].imshow(img)
             unique_persons.append(scores[j][1])

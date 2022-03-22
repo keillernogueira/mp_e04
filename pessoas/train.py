@@ -74,7 +74,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
     # elif model_name == "mobiface" or model_name == "sphereface" or model_name == "facenet":
     elif model_name == 'curricularface':
         print("curricularFace")
-        arc_margin = CurricularFace(in_features = 512, out_features =  train_dataset.num_classes)
+        arc_margin = CurricularFace(in_features=512, out_features=train_dataset.num_classes)
     elif model_name == 'cosface':
         arc_margin = CosineMarginProduct(512, train_dataset.num_classes)
     elif model_name == 'arcface':
@@ -132,7 +132,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
 
     exp_lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer_ft, milestones=[36, 52, 58], gamma=0.1)
 
-    SAVE_FREQ = 5
+    SAVE_FREQ = 1
     TEST_FREQ = 5
     start_epoch = 1
 

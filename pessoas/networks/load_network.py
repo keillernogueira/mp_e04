@@ -1,8 +1,7 @@
 import py7zr
-
 import gzip
-
 import torch
+import logging
 
 from config import *
 
@@ -25,6 +24,8 @@ from networks.arcface import get_model
 
 
 def load_net(model_name, model_path=None, gpu=True):
+    if model_path is not None:
+        logging.info('Loading model path ' + model_path)
     # initialize the network
     if model_name == 'mobilefacenet':
         net = MobileFacenet()
@@ -35,7 +36,8 @@ def load_net(model_name, model_path=None, gpu=True):
         try:
             net.load_state_dict(ckpt['net_state_dict'])
         except:
-            raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+            raise RuntimeError("Unable to load " + model_name +
+                               ". Check if the especified model_path and model_name are of the same network")
         
     elif model_name == 'sphereface':
         net = sphere20a(feature=True)
@@ -53,7 +55,8 @@ def load_net(model_name, model_path=None, gpu=True):
             try:
                 net.load_state_dict(ckpt['net_state_dict'])
             except:
-                raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+                raise RuntimeError("Unable to load " + model_name +
+                                   ". Check if the especified model_path and model_name are of the same network")
     elif model_name == 'mobiface':
         net = MobiFace(final_linear=True)
         if gpu:
@@ -63,7 +66,8 @@ def load_net(model_name, model_path=None, gpu=True):
         try:
             net.load_state_dict(ckpt['net_state_dict'])
         except:
-            raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+            raise RuntimeError("Unable to load " + model_name +
+                               ". Check if the especified model_path and model_name are of the same network")
     elif model_name == 'openface':
         net = OpenFaceModel()
         if gpu:
@@ -76,7 +80,8 @@ def load_net(model_name, model_path=None, gpu=True):
             try:
                 net.load_state_dict(ckpt['net_state_dict'])
             except:
-                raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+                raise RuntimeError("Unable to load " + model_name +
+                                   ". Check if the especified model_path and model_name are of the same network")
     elif model_name == 'facenet':
         net = InceptionResnetV1(pretrained='casia-webface')
         if not os.path.exists(FACENET_MODEL_PATH):
@@ -92,7 +97,8 @@ def load_net(model_name, model_path=None, gpu=True):
             try:
                 net.load_state_dict(ckpt['net_state_dict'])
             except:
-                raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+                raise RuntimeError("Unable to load " + model_name +
+                                   ". Check if the especified model_path and model_name are of the same network")
     elif model_name == 'shufflefacenet':
         net = ShuffleFaceNet()
         if gpu:
@@ -102,7 +108,8 @@ def load_net(model_name, model_path=None, gpu=True):
         try:
             net.load_state_dict(ckpt['net_state_dict'])
         except:
-            raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+            raise RuntimeError("Unable to load " + model_name +
+                               ". Check if the especified model_path and model_name are of the same network")
     elif model_name == 'curricularface':
         net = IR_101([112, 112])
         split_files = [os.path.join(MODEL_DIR, 'a_CurricularFace_Backbone.pth'),
@@ -120,7 +127,8 @@ def load_net(model_name, model_path=None, gpu=True):
             try:
                 net.load_state_dict(ckpt['net_state_dict'])
             except:
-                raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+                raise RuntimeError("Unable to load " + model_name +
+                                   ". Check if the especified model_path and model_name are of the same network")
     elif model_name == 'arcface':
         net = get_model('r100', dropout=0.0, fp16=True, num_features=512)
         split_files = [os.path.join(MODEL_DIR, 'a_arcface_backbone.pth'),
@@ -138,7 +146,8 @@ def load_net(model_name, model_path=None, gpu=True):
             try:
                 net.load_state_dict(ckpt['net_state_dict'])
             except:
-                raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+                raise RuntimeError("Unable to load " + model_name +
+                                   ". Check if the especified model_path and model_name are of the same network")
     elif model_name == 'cosface':
         net = get_model('r100', dropout=0.0, fp16=True, num_features=512)
         split_files = [os.path.join(MODEL_DIR, 'a_cosface_backbone.pth'),
@@ -156,7 +165,8 @@ def load_net(model_name, model_path=None, gpu=True):
             try:
                 net.load_state_dict(ckpt['net_state_dict'])
             except:
-                raise RuntimeError("Unable to load " + model_name + ". Check if the especified model_path and model_name are of the same network")
+                raise RuntimeError("Unable to load " + model_name +
+                                   ". Check if the especified model_path and model_name are of the same network")
 
     else:
         raise NotImplementedError("Model " + model_name + " not implemented")

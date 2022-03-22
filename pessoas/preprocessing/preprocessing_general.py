@@ -40,8 +40,10 @@ class PreProcess(object):
         self.return_only_one_face = return_only_one_face
         self.execute_default = execute_default
 
+        # question: why not use GPU?
+        # answer: https://github.com/pytorch/pytorch/issues/40403
         self.mtcnn = MTCNN(keep_all=True, selection_method="largest", post_process=False, image_size=crop_size,
-                           device=torch.device('cuda') if gpu is True else torch.device('cpu'))
+                           device=torch.device('cpu'))  # torch.device('cuda') if gpu is True else torch.device('cpu'))
         self.openface_model = AlignDlib(os.path.join(sys.path[0], 'landmarks', 'shape_predictor_68_face_landmarks.dat'))
 
     def preprocess(self, img):

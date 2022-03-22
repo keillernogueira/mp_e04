@@ -29,13 +29,14 @@ def manipulate_dataset(feature_file, dataset_path,
     # loading dataset or image
     dataset = GenericDataLoader(dataset_path, train=False,
                                 preprocessing_method=preprocessing_method, crop_size=crop_size)
-    dataset_dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True,
-                                                     num_workers=0, drop_last=False)
+    dataset_dataloader = torch.utils.data.DataLoader(dataset, batch_size=64, shuffle=True,
+                                                     num_workers=8, drop_last=False)
 
     # load current features
     features = None
     
-    assert os.path.isdir(os.path.dirname(feature_file)) or os.path.dirname(feature_file)=="", "Feature file directory must exist"
+    assert os.path.isdir(os.path.dirname(feature_file)) or os.path.dirname(feature_file)=="", \
+           "Feature file directory must exist"
 
     if feature_file is not None and os.path.isfile(feature_file):
         with open(feature_file, 'rb') as handle:
@@ -62,7 +63,7 @@ def manipulate_dataset(feature_file, dataset_path,
     normalized_features = features['feature'] - (mu - 1e-18)
     # divide by the standard deviation
     # print(features.shape)
-    normalized_features = normalize(normalized_features, norm = 'l2', axis = 1)
+    normalized_features = normalize(normalized_features, norm='l2', axis=1)
     features['normalized_feature'] = normalized_features
     features['feature_mean'] = mu
     with open(feature_file, 'wb') as handle:
