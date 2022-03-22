@@ -96,32 +96,37 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
     :param config: Path to config file to be utilized by PyRetri.
     :return: top k list (with ID and confidence) of most similar images.
     """
-    
-    if K_images:
-        if len(database_data['feature']) > 10000:  # assume normalizing with query_data is not going to change too much
-            database_features = database_data['normalized_feature']
-            query_features = query_data['feature']
-            num_features_query = query_features.shape[0]
-            query_bbs = query_data['bbs']
-            # normalize query data using dataset data mean
-            query_features = query_features - (database_data['feature_mean'] - 1e-18)
-            query_features = normalize(query_features, norm='l2', axis=1)
-        else:
-            database_features = database_data['feature']
-            query_features = query_data['feature']
-            num_features_query = query_features.shape[0]
-            query_bbs = query_data['bbs']
-            features = np.vstack((query_features, database_features))
-            # calculate the mean
-            mu = np.mean(features, 0)
-            mu = np.expand_dims(mu, 0)
-            # extract mean from features and add a bias
-            features = features - (mu - 1e-18)
-            # divide by the standard deviation
-            features = normalize(features, norm='l2', axis=1)
-            query_features = features[0:num_features_query]
-            database_features = features[num_features_query:]
 
+    # TODO checar isso
+    if len(database_data['feature']) > 10000:  # assume normalizing with query_data is not going to change too much
+        database_features = database_data['normalized_feature']
+        query_features = query_data['feature']
+        num_features_query = query_features.shape[0]
+        query_bbs = query_data['bbs']
+        # normalize query data using dataset data mean
+        query_features = query_features - (database_data['feature_mean'] - 1e-18)
+        query_features = normalize(query_features, norm='l2', axis=1)
+    else:
+        database_features = database_data['feature']
+        query_features = query_data['feature']
+        # TODO tratar isso depois - caso: criminal dataset, criminal retrieval
+        if query_features.ndim == 1:
+            num_features_query = 1
+        else:
+            num_features_query = query_features.shape[0]
+        query_bbs = query_data['bbs']
+        features = np.vstack((query_features, database_features))
+        # calculate the mean
+        mu = np.mean(features, 0)
+        mu = np.expand_dims(mu, 0)
+        # extract mean from features and add a bias
+        features = features - (mu - 1e-18)
+        # divide by the standard deviation
+        features = normalize(features, norm='l2', axis=1)
+        query_features = features[0:num_features_query]
+        database_features = features[num_features_query:]
+
+    if K_images:
         top_k = pyretri.main(query_features, database_features, config, K_images, gpu)
         # scores_q = pyretri.main(query_features, database_features, config, 100)[0]
         # print(scores_q.shape)
@@ -146,65 +151,39 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
             scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]]))
             scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
-            # persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
-            persons_scores.append((query_bbs, generate_rank(scores_q, k_rank)))
+            persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
             all_scores.append(scores_q)
 
         return persons_scores, all_scores
-
-    if len(database_data['feature']) > 10000:  # assume normalizing with query_data is not going to change too much
-        database_features = database_data['normalized_feature']
-        query_features = query_data['feature']
-        num_features_query = query_features.shape[0]
-        query_bbs = query_data['bbs']
-        # normalize query data using dataset data mean
-        query_features = query_features - (database_data['feature_mean'] - 1e-18)
-        query_features = normalize(query_features, norm='l2', axis=1)
     else:
-        database_features = database_data['feature']
-        query_features = query_data['feature']
-        num_features_query = query_features.shape[0]
-        query_bbs = query_data['bbs']
-        features = np.vstack((query_features, database_features))
-        # calculate the mean
-        mu = np.mean(features, 0)
-        mu = np.expand_dims(mu, 0)
-        # extract mean from features and add a bias
-        features = features - (mu - 1e-18)
-        # divide by the standard deviation
-        features = normalize(features, norm='l2', axis=1)
-        query_features = features[0:num_features_query]
-        database_features = features[num_features_query:]
+        persons_scores = []
+        all_scores = []
 
-    persons_scores = []
-    all_scores = []
-    st = time.time()
+        for img, q in enumerate(query_features):
+            # normalize features
+            # TODO check copy and pointer
+            sf = database_features
 
-    for img, q in enumerate(query_features):
-        # normalize features
-        # TODO check copy and pointer
-        sf = database_features
+            # calculate cosine distance
+            if bib == "pytorch":
+                q = torch.from_numpy(q)
+                sf = torch.from_numpy(sf)
+                if gpu:
+                    q = q.cuda()
+                    sf = sf.cuda()
+                scores_q = q @ sf.t()
+                scores_q = np.array(scores_q.cpu())
+            else:
+                scores_q = q @ np.transpose(sf)
 
-        # calculate cosine distance
-        if bib == "pytorch":
-            q = torch.from_numpy(q)
-            sf = torch.from_numpy(sf)
-            if gpu:
-                q = q.cuda()
-                sf = sf.cuda()
-            scores_q = q @ sf.t()
-            scores_q = np.array(scores_q.cpu())
-        else:
-            scores_q = q @ np.transpose(sf)
+            # associate confidence score with the label of the dataset and sort based on the confidence
+            scores_q = list(zip(scores_q, database_data['name'], database_data['image']))
+            scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
-        # associate confidence score with the label of the dataset and sort based on the confidence
-        scores_q = list(zip(scores_q, database_data['name'], database_data['image']))
-        scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
+            persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))
+            all_scores.append(scores_q)
 
-        persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))
-        all_scores.append(scores_q)
-
-    return persons_scores, all_scores
+        return persons_scores, all_scores
 
 
 def process_image(operation, model_name, model_path, image_query, query_label,

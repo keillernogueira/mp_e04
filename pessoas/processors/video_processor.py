@@ -87,10 +87,10 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
                 all_bbs = bbs
                 first = False
             else:
-                all_features = np.concatenate((all_features,feature),0)
-                all_frames = np.concatenate((all_frames,frames),0)
-                all_crops = np.concatenate((all_crops,crops),0)
-                all_bbs = np.concatenate((all_bbs,bbs),0)
+                all_features = np.concatenate((all_features, feature), 0)
+                all_frames = np.concatenate((all_frames, frames), 0)
+                all_crops = np.concatenate((all_crops, crops), 0)
+                all_bbs = np.concatenate((all_bbs, bbs), 0)
 
     print("Feature Extraction done in:", time.time() - st)
     # print(all_features.shape, all_frames.shape, all_crops.shape, all_bbs.shape)

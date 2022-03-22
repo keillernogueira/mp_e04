@@ -132,7 +132,7 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
     save_dir: directory where are saved the image results.
     """
     
-    fig, axes = plt.subplots(3, 5, figsize=(20, 20), sharex=True, sharey=True)
+    fig, axes = plt.subplots(3, 5, figsize=(20, 20))  # , sharex=True, sharey=True)
     ax = axes.ravel()
 
     # decode base64 file

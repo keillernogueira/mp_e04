@@ -59,7 +59,7 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
             individual_retrieval(path, feature_file, save_dir, config, input_data, output_method, model_name,
-                                 model_path, skipped_frames, preprocessing_method, crop_size, gpu)
+                                 model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     elif '.pkl' in data_to_load:
         with open(data_to_load, 'rb') as handle:
             feature = pickle.load(handle)
@@ -137,22 +137,13 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
         assert feature is not None, "No face detected in this video."
 
         st = time.time()
-        
-        top_k_ranking = []
-        all_ranking = []
-        # go through all faces found and getting a rank for each one
-        for i in range(len(feature['feature'])):
-            feature_face = {list(feature.keys())[j]: q[i] for j, q in enumerate(feature.values())}
-            top_k_ranking_individual, all_ranking_individual = \
-                generate_ranking_for_image(features, feature_face, bib='pytorch',
-                                           K_images=K_images, config=config, gpu=gpu)
-            top_k_ranking.append(top_k_ranking_individual[0])
-            all_ranking.append(all_ranking_individual[0])
-
+        top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, bib='pytorch',
+                                                                K_images=K_images, config=config, gpu=gpu)
         print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
-        
-    # exporting results
 
+    print('check', feature['feature'].shape, feature['bbs'].shape)
+
+    # exporting results
     # if the method chosen was json
     if output_method.lower() == "json":
         data = []
@@ -165,10 +156,11 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
             
             face_id = 1
             for rank in top_k_ranking:
+                print('chuck', len(top_k_ranking), rank[0].shape)
                 names = {i['Name']: np.float64(i['Confidence']) for i in rank[1]}
                 face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
                              'confidence most similar': np.float64(rank[1][0]['Confidence']),
-                             'box': rank[0][face_id - 1].tolist()}
+                             'box': rank[0].tolist()}
                 output[0][f'face_{face_id}'] = face_dict
                 # save_retrieved_ranking(output, rank[1], rank[0],
                 # os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))
@@ -204,7 +196,7 @@ if __name__ == '__main__':
     parser.add_argument('--output_method', type=str, required=False, default="image",
                         help='Method to read the data.')
 
-    parser.add_argument('--skipped_frames', type=int, required=False, default=4,
+    parser.add_argument('--skipped_frames', type=int, required=False, default=16,
                         help='Number of skipped frames in video retrieval.')
 
     parser.add_argument('--model_name', type=str, required=False, default="curricularface",
@@ -238,6 +230,6 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError("Model " + args.model_name + " not implemented")
 
-    retrieval(args.data_to_process, args.feature_file, args.save_dir,args.config, args.input_type,
+    retrieval(args.data_to_process, args.feature_file, args.save_dir, args.config, args.input_type,
               args.output_method, args.model_name, args.model_path, args.skipped_frames, args.preprocessing_method,
               args.K_images, crop_size, args.gpu)
