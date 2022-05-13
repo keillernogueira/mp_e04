@@ -1,0 +1,15 @@
+
+body {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.navbar {
+    margin: 0px;
+    height:100vh;
+}
+
+.navbar .navbar-brand {
+    color: #fff !important;
+}
