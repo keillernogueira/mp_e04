@@ -2,8 +2,98 @@
 
 {% block content %}
 
-    <div>
-        Id person
+    <div class="container">
+    <div class="row">
+        <div class="col-12"> <h3>Pessoas: Identificar Pessoa</h3></div>
+    </div>
+    <div class="row flex-row d-flex justify-content-left">
+        <div class="col-8  ">
+            <form>
+                <h4>Identificar em Imagem (Upload)</h4>
+                <div id="text-file-helper" class="form-text">
+                    Faça o upload de um conjunto de imagens em um arquivo .zip, para realizar o reconhecimento.
+                </div>
+                <div class="input-group">
+                    
+                    <input class="form-control" id="formFileZip" type="file" accept=".zip, .arj, .rar, .tar.gz, .tgz" onchange="toggleFolder(this)"/>
+                    <button class="btn btn-sm btn-outline-dark" type="button" id="removeBtn" data-mdb-ripple-color="dark" 
+                    style="border-width: 1px; border-color:#bdbdbd;color:#666666;" hidden onclick="removeFile()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    
+                </div>
+                <hr/>
+                <h4>Identificar em Batch (Pasta Local)</h4>
+                <div id="text-folder-helper" class="form-text">
+                    Informe uma pasta local do sistema para realizar o reconhecimento em imagens e vídeos nessa pasta.
+                </div>
+                <div class="form-outline">
+                    <input type="text" id="formFolderPath" class="form-control input-lg" placeholder="/home" onchange="toggleZip(this)"/>
+                    <label class="form-label" for="formFolderPath">Pasta</label>
+                </div>
+                <hr/>
+                <label><h4>Configurações</h4></label>
+
+                <div class="form-group">
+                    <label for="databaseFormControlSelect2">Banco de dados onde procurar:</label>
+                    <select multiple class="form-control" id="basedataSelection">
+                      <option>Banco de Dados 1</option>
+                      <option>Banco de Dados 2</option>
+                      <option>Banco de Dados 3</option>
+                      <option>Banco de Dados 4</option>
+                      <option>Banco de Dados 5</option>
+                    </select>
+                  </div>
+                
+                <div class="form-group form-outline">
+                    <label class="col-lg-2 control-label" for="detObjConfidence">Confiança mínima:</label>
+                    <div class="col-lg-2">
+                        <input type="number" id="detObjConfidence" class="form-control" min="0" max="100" value="50"/>
+                    </div>
+                </div>
+
+                <div class="form-check">
+                    <label class="form-check-label" for="doObjectDetection">Realizar detecção de objetos?</label>
+                    <input class="form-check-input" type="checkbox" value="" id="doObjectDetection" />
+                </div> 
+                <hr/>
+                <div class="form-group form-outline flex-row">
+                    <button type="submit" class="btn btn-info">Executar</button>
+                    <button type="submit" class="btn btn-light">Reiniciar</button>
+                </div>
+            </form>
+        </div>
+        
+    </div>
     </div>
 
+    <script>
+            function toggleZip(folderInput){
+                fzip = document.getElementById("formFileZip");
+                if (folderInput.value !== ''){
+                    fzip.disabled = true;
+                }
+                else{
+                    fzip.disabled = false;
+                }
+            }
+
+            function toggleFolder(fzipInput){
+                folder = document.getElementById("formFolderPath");
+                if (fzipInput.value !== ''){
+                    folder.disabled = true;
+                    document.getElementById("removeBtn").hidden = false;
+                }
+                else{
+                    folder.disabled = false;
+                    document.getElementById("removeBtn").hidden = true;
+                }
+            }
+
+            function removeFile(){
+                var fzip = document.getElementById("formFileZip");
+                fzip.value = '';
+                toggleFolder(fzip);
+            }
+    </script>
 {% endblock %}
