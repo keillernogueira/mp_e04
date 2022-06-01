@@ -62,3 +62,9 @@ body {
 .sidenav-item {
     padding-left: 3.1rem;
 }
+
+.invalid{
+    margin-bottom: 1rem;
+    background-image: none;
+    border-color: #f93154;
+}
