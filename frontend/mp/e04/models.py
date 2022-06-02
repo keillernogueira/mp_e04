@@ -76,8 +76,12 @@ class Database(models.Model):
     quantity = models.IntegerField()
     last_update = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.name
+
 
 class ImageDB(models.Model):
+    operation = models.ForeignKey(Operation, on_delete=models.PROTECT)
     database = models.ForeignKey(Database, on_delete=models.PROTECT)
 
     path = models.CharField(max_length=200)

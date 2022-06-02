@@ -2,8 +2,35 @@
 
 {% block content %}
 
-    <div>
-        Here we should update a db of faces
+    <div class="container">
+        <div class="row pb-4">
+            <div class="col-12"> <h3>Pessoas: Atualizar Banco de Dados</h3></div>
+        </div>
+
+        <div class="row flex-row d-flex justify-content-left">
+            <div class="col-8">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    <h4>{{ form.database.label }}</h4>
+                    <div id="text-db-helper" class="form-text">
+                        Seleciona um banco de dados de imagens para atualizar.
+                    </div>
+                    {{ form.database }}
+                    <hr/>
+
+                    <h4>{{ form.folderInput.label }}</h4>
+                    <div id="text-folder-helper" class="form-text">
+                        Informe uma pasta local do sistema.
+                    </div>
+                    {{ form.folderInput }}
+
+                    <hr/>
+                    <div class="form-group form-outline flex-row">
+                        <button type="submit" class="btn btn-info">Executar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
 {% endblock %}

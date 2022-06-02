@@ -7,8 +7,9 @@
         <div class="col-12"> <h2><b>Detecção de Objetos</b></h2></div>
     </div>
     <div class="row flex-row d-flex justify-content-left">
-        <div class="col-8  ">
-            <form method="post" enctype="multipart/form-data" action="/e04/detect_obj">{% csrf_token %}
+        <div class="col-8">
+            <form method="post" enctype="multipart/form-data" action="/e04/detect_obj">
+                {% csrf_token %}
                 <h4>Detecção em Batch (Upload)</h4>
                 <div id="text-file-helper" class="form-text">
                     Faça o upload de um conjunto de imagens em um arquivo .zip, para realizar a detecção.
@@ -29,7 +30,7 @@
                 </div>
                 <div class="form-outline">
                     <input type="text" name="folderInput" id="folderInput" class="form-control input-lg " placeholder="/home" onchange="toggleZip(this)"/>
-                    <label class="form-label" for="folderInput">Pasta</label>    
+                    <label class="form-label" for="folderInput">Pasta</label>
                 </div>
                 <div class="invalid-feedback" style="position: relative;margin-top: 0.25rem;" id="errorFolder">Please provide a valid city.</div>
 
@@ -37,9 +38,9 @@
                 <label><h4>Configurações</h4></label>
                 <br/>
                 
-                <label class="col-md-2 control-label" for="detObjConfidence">Confiança mínima:</label>
+                <label class="control-label" for="detObjConfidence">Confiança mínima:</label>
                 <div class="form-group">
-                    <div class="col-md-1">
+                    <div class="col-md-2">
                         <input type="number" id="detObjConfidence" class="form-control" min="0" max="100" value="50"/>
                     </div>
                 </div>

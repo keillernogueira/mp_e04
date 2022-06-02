@@ -1,23 +1,40 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-from .forms import DetectionForm
+from django.urls import reverse_lazy
+
+from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm
+from .models import Database
+
 
 def index(request):
     return render(request, 'e04/index.html')
 
 
 def id_person(request):
-    return render(request, 'e04/id_person.html')
+    if request.method == 'POST':
+        pass
+    else:
+        databases = Database.objects.all()
+        return render(request, 'e04/id_person.html', {'databases': databases})
 
 
 def update_db(request):
-    return render(request, 'e04/update_db.html')
+    if request.method == 'POST':
+        form = UpdateDBForm(request.POST)
+        print('---', form)
+        print(form['database'])
+        print(form['folderInput'])
+        if form.is_valid():
+            return HttpResponseRedirect(reverse_lazy('results'))
+    else:
+        form = UpdateDBForm()
+        return render(request, 'e04/update_db.html', {'form': form})
 
 
 def detect_obj(request):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
-        form = DetectionForm(request.POST, request.FILES)
+        form = ProcessingForm(request.POST, request.FILES)
         if form.is_valid():
             # process the data in form.cleaned_data as required
             # ...
@@ -26,9 +43,10 @@ def detect_obj(request):
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        form = DetectionForm()
+        pr_form = ProcessingForm()
+        det_form = DetectionForm()
 
-    return render(request, 'e04/detect_obj.html', {'form': form})
+    return render(request, 'e04/detect_obj.html', {'pr_form': pr_form, 'det_form': det_form})
 
     # return render(request, 'e04/detect_obj.html')
 
