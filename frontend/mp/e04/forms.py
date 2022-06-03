@@ -31,7 +31,7 @@ class IdPersonForm(forms.Form):
 class UpdateDBForm(forms.Form):
     database = forms.ModelChoiceField(label='Banco de dados a ser atualizado:',
                                       queryset=Database.objects.all(), required=True,
-                                      empty_label="Seleciona um banco para atualizar",
+                                      empty_label="Novo Banco",
                                       widget=forms.Select(attrs={'class': 'form-select'}))
     folderInput = forms.CharField(label='Dado a ser processado:', validators=[validateFolder], required=True,
                                   widget=forms.TextInput(attrs={'class': 'form-control input-lg'}))

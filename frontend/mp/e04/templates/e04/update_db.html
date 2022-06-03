@@ -7,6 +7,14 @@
             <div class="col-12"> <h3>Pessoas: Atualizar Banco de Dados</h3></div>
         </div>
 
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="row flex-row d-flex justify-content-left">
             <div class="col-8">
                 <form method="post" novalidate>

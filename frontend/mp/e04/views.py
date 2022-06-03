@@ -21,11 +21,17 @@ def id_person(request):
 def update_db(request):
     if request.method == 'POST':
         form = UpdateDBForm(request.POST)
-        print('---', form)
-        print(form['database'])
-        print(form['folderInput'])
+        # print(form)
+        # print(form['database'])
+        # print(form['folderInput'])
+        print('---', form.is_valid())
         if form.is_valid():
+            print(form)
+            print('----------------------------------------------')
+            print(form.cleaned_data)
             return HttpResponseRedirect(reverse_lazy('results'))
+        else:
+            return render(request, 'e04/update_db.html', {'form': form})
     else:
         form = UpdateDBForm()
         return render(request, 'e04/update_db.html', {'form': form})
