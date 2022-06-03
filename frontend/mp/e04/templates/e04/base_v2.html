@@ -27,6 +27,17 @@
     rel="stylesheet"
     />
 
+    <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" 
+    rel="stylesheet" 
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" 
+    crossorigin="anonymous"></link>
+
+    <script 
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" 
+    integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" 
+    crossorigin="anonymous"></script>
+
     <link rel="stylesheet" href="{% static 'e04/css/style.css' %}">
 </head>
 
@@ -58,6 +69,7 @@
           <a href="{% url 'results' %}" class="list-group-item list-group-item-action py-2 ripple bg-info" style="border-width: 0;"><h5>
               <i class="fa-regular fa-rectangle-list"></i><span>    Resultados</span></h5>
           </a>
+          <!-- {% if user.is_superuser %}-->
           <h5 class="list-group-item bg-info" style="display: flex;
           align-items: center;
           flex-wrap: wrap;
@@ -69,6 +81,7 @@
           <a href="{% url 'train' %}" class="list-group-item list-group-item-action py-1 ripple bg-info sidenav-item" style="border-width: 0;">
               <span>Treino</span>
           </a>
+          <!-- {%endif%} -->
         </div>
       </div>
     </nav>
@@ -96,12 +109,19 @@
   <main style="margin-top: 58px;">
     <div class="container pt-4">
         {% for message in messages %}
+          {% if message.tags == 'success' %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              {{ message }}
+            </div>
+          {% else %}
             <div class="alert {{ message.tags }} alert-dismissible" role="alert">
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
                 {{ message }}
             </div>
+          {% endif %}
         {% endfor %}
 
         {% block content %}
@@ -115,6 +135,7 @@
 type="text/javascript"
 src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/4.0.0/mdb.min.js"
 ></script>
+
 
 </body>
 
