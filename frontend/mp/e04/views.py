@@ -1,9 +1,16 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
+
 from django.urls import reverse_lazy
 
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm
 from .models import Database
+
+from .forms import ConfigForm
+from .models import GeneralConfig
+from django.contrib.auth import get_user_model
+from django.contrib import messages
+
 
 
 def index(request):
@@ -62,7 +69,43 @@ def results(request):
 
 
 def config(request):
-    return render(request, 'e04/config.html')
+
+    '''if not request.user.is_superuser:
+        return render(request, 'e04/permissiondenied.html')'''
+
+    data=GeneralConfig.objects.all()[0]
+    # Get Values from database and load as initial form value
+    form = ConfigForm(initial = {'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model, 'det_model': data.det_model, 'save_path': data.save_path})
+    print(data)
+
+
+
+    if request.method == 'POST':
+        print("Scooby")
+        print(request.POST)
+        form = ConfigForm(request.POST)
+        if form.is_valid():
+            a = form.save(commit=False)
+            print("eba")
+            a.user = request.user
+            #User = get_user_model()
+            #user = User.objects.all()[0]
+            #a.user = user
+            a.save()
+            print(request.user)
+            messages.success(request, 'As configurações Foram Salvas com Sucesso.')
+            return HttpResponseRedirect("/e04/config")
+        else:
+            print('invalid')
+            print(form.errors)
+            context = {'form': form,
+                        'message': "Falha ao Salvar as Configurações.\n" + str(form.errors)}
+            return render(request, 'e04/config.html', context)
+
+    
+    context = {'form': form}
+    print("Arri egua")
+    return render(request, 'e04/config.html', context)
 
 
 def train(request):

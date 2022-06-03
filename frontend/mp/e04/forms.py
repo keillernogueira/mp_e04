@@ -1,3 +1,4 @@
+
 import os
 
 from pathlib import Path
@@ -6,6 +7,10 @@ from .models import Database
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+
+from attr import attrs
+from django.forms import ModelForm, widgets
+from .models import GeneralConfig
 
 
 
@@ -35,3 +40,15 @@ class UpdateDBForm(forms.Form):
                                       widget=forms.Select(attrs={'class': 'form-select'}))
     folderInput = forms.CharField(label='Dado a ser processado:', validators=[validateFolder], required=True,
                                   widget=forms.TextInput(attrs={'class': 'form-control input-lg'}))
+
+class ConfigForm(ModelForm):
+    class Meta:
+        model = GeneralConfig
+        fields = ('save_path',"ret_model", 'ret_pre_process', "det_model")
+
+        widgets={
+            'save_path' : forms.TextInput(attrs={'class': 'form-control'}),
+            'ret_model' : forms.Select(attrs={'class': 'select-form'}),
+            'det_model' : forms.Select(attrs={'class': 'select-form'}),
+            'ret_pre_process' : forms.Select(attrs={'class': 'select-form'})
+        }

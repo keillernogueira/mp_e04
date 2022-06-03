@@ -63,6 +63,7 @@ class GeneralConfig(models.Model):
         SPHERE = 'SP', _('SphereFace')
         OPEN = 'OP', _('OpenFace')
     ret_pre_process = models.CharField(max_length=2, choices=PreProcess.choices)
+    save_path = models.CharField(max_length=200, default='/home')
 
     last_update = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
