@@ -1,4 +1,5 @@
 {% extends 'e04/base_v2.html' %}
+{% load bsforms %}
 
 {% block content %}
 
@@ -6,14 +7,6 @@
         <div class="row pb-4">
             <div class="col-12"> <h3>Pessoas: Atualizar Banco de Dados</h3></div>
         </div>
-
-        {% if form.non_field_errors %}
-            <div class="alert alert-danger" role="alert">
-                {% for error in form.non_field_errors %}
-                    {{ error }}
-                {% endfor %}
-            </div>
-        {% endif %}
 
         <div class="row flex-row d-flex justify-content-left">
             <div class="col-8">
@@ -24,13 +17,37 @@
                         Seleciona um banco de dados de imagens para atualizar.
                     </div>
                     {{ form.database }}
+                    {% if form.database.errors %}
+                        {% for error in form.database.errors %}
+                            <div class="d-block text-danger"><small>{{ error }}</small></div>
+                        {% endfor %}
+                    {% endif %}
                     <hr/>
+
+                    <div id="dbName">
+                        <h4>{{ form.dbName.label }}</h4>
+                        <div id="text-dbName-helper" class="form-text">
+                            Nome para o novo banco de imagens.
+                        </div>
+                        {{ form.dbName }}
+                        {% if form.dbName.errors %}
+                            {% for error in form.dbName.errors %}
+                                <div class="d-block text-danger"><small>{{ error }}</small></div>
+                            {% endfor %}
+                        {% endif %}
+                        <hr/>
+                    </div>
 
                     <h4>{{ form.folderInput.label }}</h4>
                     <div id="text-folder-helper" class="form-text">
                         Informe uma pasta local do sistema.
                     </div>
                     {{ form.folderInput }}
+                    {% if form.folderInput.errors %}
+                        {% for error in form.folderInput.errors %}
+                            <div class="d-block text-danger"><small>{{ error }}</small></div>
+                        {% endfor %}
+                    {% endif %}
 
                     <hr/>
                     <div class="form-group form-outline flex-row">
@@ -40,5 +57,22 @@
             </div>
         </div>
     </div>
+
+<script>
+
+newDB();
+
+function newDB() {
+    d = $('#id_database').find(":selected").val();
+    if (d == "0") {
+        $('#dbName').show();
+        $("#id_dbName").prop('required', true);
+    } else {
+        $('#dbName').hide();
+        $("#id_dbName").prop('required', false);
+    }
+}
+
+</script>
 
 {% endblock %}

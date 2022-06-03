@@ -1,16 +1,23 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-
 from django.urls import reverse_lazy
 
-from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm
-from .models import Database
-
-from .forms import ConfigForm
-from .models import GeneralConfig
+from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 
+from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
+from .models import Database, Operation, GeneralConfig
+
+import os
+import sys
+import inspect
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(os.path.dirname(os.path.dirname(currentdir)))
+sys.path.insert(0, parentdir)
+
+from pessoas.manipulate_dataset import manipulate_dataset
 
 
 def index(request):
@@ -28,14 +35,27 @@ def id_person(request):
 def update_db(request):
     if request.method == 'POST':
         form = UpdateDBForm(request.POST)
-        # print(form)
-        # print(form['database'])
-        # print(form['folderInput'])
-        print('---', form.is_valid())
+
+        # if new database, then the name field is required
+        required = request.POST['database'] == '0'
+        form.fields['dbName'].required = required
+
         if form.is_valid():
-            print(form)
-            print('----------------------------------------------')
             print(form.cleaned_data)
+
+            # mudar isso para usar usuario que fez a requisicao
+            op = Operation(user=User.objects.get(id=0), type=Operation.OpType.UPDATE,
+                           status=Operation.OpStatus.PROCESSING)
+            op.save()
+
+            # new db
+            if form.cleaned_data['database'] == '0':
+                db = Database(name=form.cleaned_data['dbName'])
+                db.save()
+            else:
+                db = Database.objects.get(id=int(form.cleaned_data['database']))
+
+
             return HttpResponseRedirect(reverse_lazy('results'))
         else:
             return render(request, 'e04/update_db.html', {'form': form})
@@ -69,28 +89,25 @@ def results(request):
 
 
 def config(request):
-
     '''if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')'''
 
-    data=GeneralConfig.objects.all()[0]
+    data = GeneralConfig.objects.all()[0]
     # Get Values from database and load as initial form value
-    form = ConfigForm(initial = {'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model, 'det_model': data.det_model, 'save_path': data.save_path})
+    form = ConfigForm(initial={'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model,
+                               'det_model': data.det_model, 'save_path': data.save_path})
     print(data)
 
-
-
     if request.method == 'POST':
-        print("Scooby")
         print(request.POST)
         form = ConfigForm(request.POST)
         if form.is_valid():
             a = form.save(commit=False)
             print("eba")
             a.user = request.user
-            #User = get_user_model()
-            #user = User.objects.all()[0]
-            #a.user = user
+            # User = get_user_model()
+            # user = User.objects.all()[0]
+            # a.user = user
             a.save()
             print(request.user)
             messages.success(request, 'As configurações Foram Salvas com Sucesso.')
@@ -98,13 +115,10 @@ def config(request):
         else:
             print('invalid')
             print(form.errors)
-            context = {'form': form,
-                        'message': "Falha ao Salvar as Configurações.\n" + str(form.errors)}
+            context = {'form': form, 'message': "Falha ao Salvar as Configurações.\n" + str(form.errors)}
             return render(request, 'e04/config.html', context)
-
     
     context = {'form': form}
-    print("Arri egua")
     return render(request, 'e04/config.html', context)
 
 

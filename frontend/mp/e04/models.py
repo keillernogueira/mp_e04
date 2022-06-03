@@ -11,6 +11,7 @@ class Operation(models.Model):
         TRAIN = 'TR', _('Train')
         RETRIEVAL = 'RE', _('Retrieval')
         DETECTION = 'DE', _('Detection')
+        UPDATE = 'UD', _('Update DB')
         RET_AND_DET = 'RD', _('Retrieval and Detection')
     type = models.CharField(max_length=2, choices=OpType.choices)
 
@@ -74,7 +75,7 @@ class GeneralConfig(models.Model):
 
 class Database(models.Model):
     name = models.CharField(max_length=200)
-    quantity = models.IntegerField()
+    quantity = models.IntegerField(default=0)
     last_update = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
