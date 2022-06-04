@@ -43,18 +43,20 @@ def update_db(request):
         if form.is_valid():
             print(form.cleaned_data)
 
-            # mudar isso para usar usuario que fez a requisicao
-            op = Operation(user=User.objects.get(id=0), type=Operation.OpType.UPDATE,
-                           status=Operation.OpStatus.PROCESSING)
-            op.save()
+            # # mudar isso para usar usuario que fez a requisicao
+            # op = Operation(user=User.objects.get(id=0), type=Operation.OpType.UPDATE,
+            #                status=Operation.OpStatus.PROCESSING)
+            # op.save()
+            #
+            # # new db
+            # if form.cleaned_data['database'] == '0':
+            #     db = Database(name=form.cleaned_data['dbName'])
+            #     db.save()
+            # else:
+            #     db = Database.objects.get(id=int(form.cleaned_data['database']))
 
-            # new db
-            if form.cleaned_data['database'] == '0':
-                db = Database(name=form.cleaned_data['dbName'])
-                db.save()
-            else:
-                db = Database.objects.get(id=int(form.cleaned_data['database']))
-
+            feats = manipulate_dataset(form.cleaned_data['folderInput'])
+            print(feats.keys())
 
             return HttpResponseRedirect(reverse_lazy('results'))
         else:
