@@ -2,10 +2,10 @@ import numpy as np
 
 import torch
 
-from preprocessing.preprocessing_general import PreProcess
-from dataloaders.conversor import read_image
+from ..preprocessing.preprocessing_general import PreProcess
+from ..dataloaders.conversor import read_image
 
-from utils import plot_bbs
+from ..utils import plot_bbs
 
 
 class ImageDataLoader(object):

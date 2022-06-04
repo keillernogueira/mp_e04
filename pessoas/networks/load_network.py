@@ -3,24 +3,24 @@ import gzip
 import torch
 import logging
 
-from config import *
+from ..config import *
 
 # MobileFaceNet
-from networks.mobilefacenet import MobileFacenet
+from .mobilefacenet import MobileFacenet
 # SphereFace
-from networks.sphereface import sphere20a
+from .sphereface import sphere20a
 # MobiFace
-from networks.mobiface import MobiFace
+from .mobiface import MobiFace
 # OpenFace
-from networks.openface import OpenFaceModel
+from .openface import OpenFaceModel
 # FaceNet
-from networks.inception_resnet_facenet import InceptionResnetV1
+from .inception_resnet_facenet import InceptionResnetV1
 # ShuffleFaceNet
-from networks.shufflefacenet import ShuffleFaceNet
+from .shufflefacenet import ShuffleFaceNet
 # CurricularFace
-from networks.curricularface import IR_101, IR_50
+from .curricularface import IR_101, IR_50
 # ArcFace
-from networks.arcface import get_model
+from .arcface import get_model
 
 
 def load_net(model_name, model_path=None, gpu=True):

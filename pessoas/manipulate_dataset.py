@@ -5,20 +5,20 @@ import scipy.io
 import numpy as np
 import torch
 
-from utils import str2bool
-from dataloaders.generic_dataloader import GenericDataLoader
-from processors.dataset_processor import extract_features
 from sklearn.cluster import KMeans
-from networks.load_network import load_net
 from sklearn.preprocessing import normalize
 
+from .utils import str2bool
+from .networks.load_network import load_net
+from .dataloaders.generic_dataloader import GenericDataLoader
+from .processors.dataset_processor import extract_features
 
-def manipulate_dataset(feature_file, dataset_path,
+
+def manipulate_dataset(dataset_path,
                        model_name="curricularface", model_path=None, preprocessing_method="sphereface",
                        crop_size=(112, 112), gpu=True):
     """
     Extracting new features for a dataset or for a image.
-    :param feature_file: String with the name of the feature file that will be created.
     :param dataset_path: Path to the dataset.
     :param model_name: String with the name of the model used.
     :param model_path: Path to a trained model
@@ -35,12 +35,12 @@ def manipulate_dataset(feature_file, dataset_path,
     # load current features
     features = None
     
-    assert os.path.isdir(os.path.dirname(feature_file)) or os.path.dirname(feature_file)=="", \
-           "Feature file directory must exist"
-
-    if feature_file is not None and os.path.isfile(feature_file):
-        with open(feature_file, 'rb') as handle:
-            features = pickle.load(handle)
+    # assert os.path.isdir(os.path.dirname(feature_file)) or os.path.dirname(feature_file)=="", \
+    #        "Feature file directory must exist"
+    #
+    # if feature_file is not None and os.path.isfile(feature_file):
+    #     with open(feature_file, 'rb') as handle:
+    #         features = pickle.load(handle)
             
     # extracting features
     feature = extract_features(dataset_dataloader, model=load_net(model_name, model_path, gpu))
@@ -62,19 +62,22 @@ def manipulate_dataset(feature_file, dataset_path,
     # extract mean from features and add a bias
     normalized_features = features['feature'] - (mu - 1e-18)
     # divide by the standard deviation
-    # print(features.shape)
     normalized_features = normalize(normalized_features, norm='l2', axis=1)
+
     features['normalized_feature'] = normalized_features
     features['feature_mean'] = mu
-    with open(feature_file, 'wb') as handle:
-        pickle.dump(features, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    print(features['normalized_feature'].shape)
+
+    # with open(feature_file, 'wb') as handle:
+    #     pickle.dump(features, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # print(features['normalized_feature'].shape)
+
+    return features
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='manipulate_dataset')
-    parser.add_argument('--feature_file', type=str, required=True,
-                        help='Feature file path. If exists, it will be updated. Otherwise, it will be created.')
+    # parser.add_argument('--feature_file', type=str, required=True,
+    #                     help='Feature file path. If exists, it will be updated. Otherwise, it will be created.')
     parser.add_argument('--dataset_path', type=str, required=False, default=None,
                         help='Path to the dataset. Each person must have a separate folder with his/her name. '
                              'This parameter and the parameters --image_path and --image_id are mutually exclusive.')

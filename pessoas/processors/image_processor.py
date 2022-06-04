@@ -4,14 +4,14 @@ import scipy.io
 
 import torch
 
-from dataloaders.image_dataloader import ImageDataLoader
-from networks.load_network import load_net
-
 import pickle
 import time
 from sklearn.preprocessing import normalize
 
-from PyRetri import index as pyretri
+from ..dataloaders.image_dataloader import ImageDataLoader
+from ..networks.load_network import load_net
+
+from ..PyRetri import index as pyretri
 
 
 def extract_features_from_image(model, dataloader, query_label, gpu):

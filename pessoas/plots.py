@@ -9,8 +9,8 @@ import cv2
 import validators
 from datetime import datetime
 
-from config import *
-from dataloaders.conversor import read_image
+from .config import *
+from .dataloaders.conversor import read_image
 
 
 def resize_image_for_plot(img, base_size=160):
