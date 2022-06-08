@@ -42,7 +42,10 @@
                     <div id="text-folder-helper" class="form-text">
                         Informe uma pasta local do sistema.
                     </div>
+                    <div class="form-outline">
                     {{ form.folderInput }}
+                    <label class="form-label" for="{{ form.folderInput.id }}">Pasta</label>
+                    </div>
                     {% if form.folderInput.errors %}
                         {% for error in form.folderInput.errors %}
                             <div class="d-block text-danger"><small>{{ error }}</small></div>

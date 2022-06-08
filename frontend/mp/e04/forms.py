@@ -12,21 +12,30 @@ from .models import GeneralConfig
 
 def validateFolder(value):
     if not os.path.exists(value):
-        raise ValidationError(message=f'{value} folder is invalid or doesn\'t have permission to access.')
+        raise ValidationError(message=f'{value} folder is invalid or it doesn\'t have permission to access.')
 
 
 class ProcessingForm(forms.Form):
-    zipFile = forms.FileField()
-    folderInput = forms.CharField(label='Pasta', validators=[validateFolder])
+    zipFile = forms.FileField(required=False,
+                              widget=forms.FileInput(attrs={'class': 'form-control', 
+                                                            'onchange': 'toggleFolder(this)',
+                                                            'required': True}))
+    folderInput = forms.CharField(label='Pasta', validators=[validateFolder], required=False,
+                                  widget=forms.TextInput(attrs={'class': 'form-control input-lg', 'placeholder': '/home', 
+                                                               'onchange': 'toggleZip(this)',
+                                                               'required': True}))
 
 
-class DetectionForm(forms.Form):
-    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=100, initial=50)
+class DetectionForm(ProcessingForm):
+    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+                                            widget=forms.NumberInput(attrs={'class': 'form-control', }))
+    doFaceRetrieval = forms.BooleanField(label=u'Realizar reconhecimento de pessoas?', required=False,
+                                            widget=forms.CheckboxInput(attrs={'class': 'form-check-input',}))
 
 
-class IdPersonForm(forms.Form):
+class IdPersonForm(ProcessingForm):
     database = forms.ChoiceField()
-    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=100, initial=50)
+    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50)
 
 
 def dbs_as_choices():
@@ -49,7 +58,7 @@ class UpdateDBForm(forms.Form):
                              widget=forms.TextInput(attrs={'class': 'form-control input-lg'}))
 
     folderInput = forms.CharField(label='Dado a ser processado:', validators=[validateFolder], required=True,
-                                  widget=forms.TextInput(attrs={'class': 'form-control input-lg'}))
+                                  widget=forms.TextInput(attrs={'class': 'form-control input-lg', 'placeholder': '/home'}))
 
 
 class ConfigForm(ModelForm):

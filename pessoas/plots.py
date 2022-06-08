@@ -6,7 +6,6 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import imageio
 import cv2
-import validators
 from datetime import datetime
 
 from .config import *

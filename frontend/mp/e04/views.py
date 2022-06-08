@@ -69,19 +69,28 @@ def update_db(request):
 def detect_obj(request):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
-        form = ProcessingForm(request.POST, request.FILES)
+        form = DetectionForm(request.POST, request.FILES, auto_id='%s')
+        # print("REQ", [x for x in request.POST.items()], "\n")
+        # print("REQ", [x for x in request.FILES.items()], "\n")
+        # both_empty = (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == '')
+        if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
+            form.add_error(None, "Either a zip file or a local folder should be informed.")
+            form.add_error('folderInput', "*")
+            form.add_error('zipFile', "*")
+ 
         if form.is_valid():
+            print(form.cleaned_data)
             # process the data in form.cleaned_data as required
             # ...
             # redirect to a new URL:
-            return HttpResponseRedirect('e04/results.html')
+            return HttpResponseRedirect(reverse_lazy('results'))
+        else:
+            return render(request, 'e04/detect_obj.html', {'form': form})
 
     # if a GET (or any other method) we'll create a blank form
     else:
-        pr_form = ProcessingForm()
-        det_form = DetectionForm()
-
-    return render(request, 'e04/detect_obj.html', {'pr_form': pr_form, 'det_form': det_form})
+        form = DetectionForm(auto_id='%s')
+        return render(request, 'e04/detect_obj.html', {'form': form})
 
     # return render(request, 'e04/detect_obj.html')
 
