@@ -17,8 +17,8 @@ import torch
 import yaml
 from PIL import Image, ImageDraw, ImageFont
 
-from utils.general import xywh2xyxy, xyxy2xywh
-from utils.metrics import fitness
+from .general import xywh2xyxy, xyxy2xywh
+from .metrics import fitness
 
 # Settings
 matplotlib.rc('font', **{'size': 11})

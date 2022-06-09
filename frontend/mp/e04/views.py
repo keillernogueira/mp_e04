@@ -1,5 +1,5 @@
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy
 
 from django.contrib.auth.models import User
@@ -7,11 +7,12 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
-from .models import Database, Operation, GeneralConfig
+from .models import Database, Operation, GeneralConfig, Model
 
 import os
 import sys
 import inspect
+from pathlib import Path
 from zipfile import ZipFile
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -20,7 +21,14 @@ sys.path.insert(0, parentdir)
 
 from pessoas.manipulate_dataset import manipulate_dataset
 from objetos.yolov5.utils.data import img_formats, vid_formats
+from objetos.yolov5.utils.options import defaultOpt
 
+def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
+    with ZipFile(zip_file, 'r') as zipObj:
+        file_objects = [item for item in zipObj.namelist() if os.path.splitext(item)[1].replace('.', '') in img_formats + vid_formats]
+
+        for item in file_objects:
+            zipObj.extract(item, path=extract_path)
 
 def index(request):
     return render(request, 'e04/index.html')
@@ -28,10 +36,76 @@ def index(request):
 
 def id_person(request):
     if request.method == 'POST':
-        pass
+        form = IdPersonForm(request.POST, request.FILES, auto_id='%s')
+        print(form.data)
+        if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
+            form.add_error(None, "Either a zip file or a local folder should be informed.")
+            form.add_error('folderInput', "*")
+            form.add_error('zipFile', "*")
+
+        if form.is_valid():
+            form_data = form.cleaned_data
+            print(form_data)
+
+            operation = Operation()
+            operation.user = request.user
+            operation.type = Operation.OpType.RETRIEVAL if not form_data['doObjectDetection'] else Operation.OpType.RET_AND_DET
+            operation.status = Operation.OpStatus.PENDING
+            operation.save()
+
+            img_folder = Path('.')
+
+            config_data = GeneralConfig.objects.all()
+            config_data = config_data[0] if len(config_data) else GeneralConfig()
+
+            zip_file = request.FILES.get('zipFile', '')
+            if zip_file != '':
+                extractPath = Path(os.path.join(config_data.save_path, str(operation.id), 'input_files'))
+                extractFilesFromZip(zip_file, extractPath)
+                img_folder = extractPath
+            else:
+                img_folder = Path(form_data['folderInput'])
+
+            ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
+            print(ret_model.model_path, ret_model.name)
+            ret_options = defaultOpt()
+            ret_options.conf_thres = float(form_data['retrievalThreshold'])/100.0
+
+            # Retrieval
+            try:
+                operation.status = Operation.OpStatus.PROCESSING
+                operation.save()
+
+                # Features in DB? Load features here
+                # Need to change retrieval implementation
+                
+            except:
+                operation.status = Operation.OpStatus.ERROR
+            
+            # Detection
+            if form_data['doObjectDetection']:
+                det_model = Model.objects.filter(id=config_data.det_model_id)[0]
+                print(det_model.model_path)
+                det_options = defaultOpt()
+                det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
+
+                try:
+                    # rodar o modelo de detecção
+                    pass
+                except:
+                    operation.status = Operation.OpStatus.ERROR
+
+            # If in thread it will be different
+            if operation.status != Operation.OpStatus.ERROR:
+                operation.status = Operation.OpStatus.FINISHED
+
+            # redirect to a new URL:
+            return HttpResponseRedirect(reverse_lazy('results'))
+        else:
+            return render(request, 'e04/id_person.html', {'form': form})
     else:
-        databases = Database.objects.all()
-        return render(request, 'e04/id_person.html', {'databases': databases})
+        form = IdPersonForm(auto_id='%s')
+        return render(request, 'e04/id_person.html', {'form': form})
 
 
 def update_db(request):
@@ -70,32 +144,73 @@ def update_db(request):
 
 def detect_obj(request):
     # if this is a POST request we need to process the form data
+    print(request.user, request.user.id)
     if request.method == 'POST':
         form = DetectionForm(request.POST, request.FILES, auto_id='%s')
-        # print("REQ", [x for x in request.POST.items()], "\n")
-        # print("REQ", [x for x in request.FILES.items()], "\n")
-        # both_empty = (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == '')
+
         if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
             form.add_error(None, "Either a zip file or a local folder should be informed.")
             form.add_error('folderInput', "*")
             form.add_error('zipFile', "*")
  
         if form.is_valid():
-            print(form.cleaned_data)
+            form_data = form.cleaned_data
+            print(form_data)
 
-            config_data = GeneralConfig.objects.all()[0]
-            latest_id = Operation.objects.latest('id')
-            print(latest_id)
+            operation = Operation()
+            operation.user = request.user
+            operation.type = Operation.OpType.DETECTION if not form_data['doFaceRetrieval'] else Operation.OpType.RET_AND_DET
+            operation.status = Operation.OpStatus.PENDING
+            operation.save()
 
-            if request.FILES.get('zipFile', '') is not '':
-                with ZipFile(myFile, 'r') as zipObj:
-                    file_objects = [item for item in zipObj.namelist() if os.path.splitext(item)[1] in img_formats + vid_formats]
+            img_folder = Path('.')
 
-                    for item in file_objects:
-                        zipObj.extract(item, path=config_data.save_path)
-                    
-            # process the data in form.cleaned_data as required
-            # ...
+            config_data = GeneralConfig.objects.all()
+            config_data = config_data[0] if len(config_data) else GeneralConfig()
+
+            zip_file = request.FILES.get('zipFile', '')
+            if zip_file != '':
+                extractPath = Path(os.path.join(config_data.save_path, str(operation.id), 'input_files'))
+                extractFilesFromZip(zip_file, extractPath)
+                img_folder = extractPath
+            else:
+                img_folder = Path(form_data['folderInput'])
+
+            det_model = Model.objects.filter(id=config_data.det_model_id)[0]
+            print(det_model.model_path)
+            det_options = defaultOpt()
+            det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
+
+            # TODO Class Filters
+            # det_options.classes = [1, 2, ...]
+
+            # Detection
+            try:
+                operation.status = Operation.OpStatus.PROCESSING
+                operation.save()
+                # rodar o modelo de detecção
+                
+            except:
+                operation.status = Operation.OpStatus.ERROR
+            
+            # Retrieval
+            if form_data['doFaceRetrieval']:
+                ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
+                print(ret_model.model_path, ret_model.name)
+
+                # Features in DB? Load features here
+                # Need to change retrieval implementation
+
+                try:
+                    # rodar o modelo de retrieval
+                    pass
+                except:
+                    operation.status = Operation.OpStatus.ERROR
+
+            # If in thread it will be different
+            if operation.status != Operation.OpStatus.ERROR:
+                operation.status = Operation.OpStatus.FINISHED
+
             # redirect to a new URL:
             return HttpResponseRedirect(reverse_lazy('results'))
         else:
@@ -105,8 +220,6 @@ def detect_obj(request):
     else:
         form = DetectionForm(auto_id='%s')
         return render(request, 'e04/detect_obj.html', {'form': form})
-
-    # return render(request, 'e04/detect_obj.html')
 
 
 def results(request):
