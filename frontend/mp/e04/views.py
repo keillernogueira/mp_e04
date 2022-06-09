@@ -12,12 +12,14 @@ from .models import Database, Operation, GeneralConfig
 import os
 import sys
 import inspect
+from zipfile import ZipFile
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(os.path.dirname(currentdir)))
 sys.path.insert(0, parentdir)
 
 from pessoas.manipulate_dataset import manipulate_dataset
+from objetos.yolov5.utils.data import img_formats, vid_formats
 
 
 def index(request):
@@ -80,6 +82,18 @@ def detect_obj(request):
  
         if form.is_valid():
             print(form.cleaned_data)
+
+            config_data = GeneralConfig.objects.all()[0]
+            latest_id = Operation.objects.latest('id')
+            print(latest_id)
+
+            if request.FILES.get('zipFile', '') is not '':
+                with ZipFile(myFile, 'r') as zipObj:
+                    file_objects = [item for item in zipObj.namelist() if os.path.splitext(item)[1] in img_formats + vid_formats]
+
+                    for item in file_objects:
+                        zipObj.extract(item, path=config_data.save_path)
+                    
             # process the data in form.cleaned_data as required
             # ...
             # redirect to a new URL:
