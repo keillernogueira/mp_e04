@@ -24,7 +24,7 @@ img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
-def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
               output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
               preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
@@ -32,8 +32,9 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
 
     :param data_to_load: Data to be analysed. Can be a link or path, image or video,
                          or else a json file with multiple links/paths.
-    :param feature_file: Path to the file that contains extracted features from dataset images.
+    :param db_features: Features from dataset images.
     :param save_dir: Path to the dir used to save the results.
+    :param config: Path to the configuration of the PyRetri
     :param input_data: Type of the input data: image or video
     :param output_method: Method to export the results: json or image.
     :param model_name: String with the name of the model used.
@@ -43,8 +44,8 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
     :param gpu: use GPU?
     """
     assert data_to_load is not None, "Must set parameter data_to_load"
-    assert feature_file is not None and os.path.isfile(feature_file), \
-        "Must set parameter feature_file with existing file"
+    # assert feature_file is not None and os.path.isfile(feature_file), \
+    #     "Must set parameter feature_file with existing file"
     assert output_method == "image" or output_method == "json",  \
         "Output method must be either image or json"
     assert input_data == "video" or input_data == "image", \
@@ -58,27 +59,27 @@ def retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base
                 input_data = 'video'
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
-            individual_retrieval(path, feature_file, save_dir, config, input_data, output_method, model_name,
+            individual_retrieval(path, db_features, save_dir, config, input_data, output_method, model_name,
                                  model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     elif '.pkl' in data_to_load:
         with open(data_to_load, 'rb') as handle:
             feature = pickle.load(handle)
         input_data = 'feature'
-        individual_retrieval(feature, feature_file, save_dir, config, input_data, output_method, model_name,
+        individual_retrieval(feature, db_features, save_dir, config, input_data, output_method, model_name,
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     else:
-        individual_retrieval(data_to_load, feature_file, save_dir, config, input_data, output_method, model_name,
+        individual_retrieval(data_to_load, db_features, save_dir, config, input_data, output_method, model_name,
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
 
 
-def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+def individual_retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
                          output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
                          preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
 
     :param data_to_load: Data to be analysed. Can be a link or path, image or video.
-    :param feature_file: Path to the file that contains extracted features from dataset images.
+    :param db_features: Features from dataset images.
     :param save_dir: Path to the dir used to save the results.
     :param config: Path to config file to be utilized by PyRetri.
     :param input_data: Type of the input data: image or video
@@ -97,19 +98,19 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # read feature file to perform the retrieval
-    features = None
+    # features = None
     # load current features
-    if feature_file is not None and os.path.isfile(feature_file):
-        with open(feature_file, 'rb') as handle:
-            features = pickle.load(handle)
-
-        print(features['normalized_feature'].shape)
+    # if feature_file is not None and os.path.isfile(feature_file):
+    #     with open(feature_file, 'rb') as handle:
+    #         features = pickle.load(handle)
+    #
+    #     print(features['normalized_feature'].shape)
         
     if model_name == "mobilefacenet" or model_name == "openface" or model_name == "shufflefacenet":
-        assert features['normalized_feature'].shape[1] == 256, \
+        assert db_features['normalized_feature'].shape[1] == 256, \
             model_name + " incompatible with loaded features"
     else:
-        assert features['normalized_feature'].shape[1] == 1024, \
+        assert db_features['normalized_feature'].shape[1] == 1024, \
             model_name + " incompatible with loaded features"
     
     feature = None
@@ -124,10 +125,10 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
         assert feature is not None, "No face detected - image " + data_to_load
 
         st = time.time()
-        top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, bib='pytorch',
+        top_k_ranking, all_ranking = generate_ranking_for_image(db_features, feature, bib='pytorch',
                                                                 K_images=K_images, config=config, gpu=gpu)
         print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
-        
+
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
                                              return_only_one_face=False, crop_size=crop_size, n_frames=skipped_frames)
@@ -137,7 +138,7 @@ def individual_retrieval(data_to_load, feature_file, save_dir, config="PyRetri/c
         assert feature is not None, "No face detected in this video."
 
         st = time.time()
-        top_k_ranking, all_ranking = generate_ranking_for_image(features, feature, bib='pytorch',
+        top_k_ranking, all_ranking = generate_ranking_for_image(db_features, feature, bib='pytorch',
                                                                 K_images=K_images, config=config, gpu=gpu)
         print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
 

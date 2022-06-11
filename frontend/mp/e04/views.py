@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
-from .models import Database, Operation, GeneralConfig, Model
+from .models import Database, Operation, GeneralConfig, Model, ImageDB
 
 import os
 import sys
@@ -23,12 +23,14 @@ from pessoas.manipulate_dataset import manipulate_dataset
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
 
+
 def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
     with ZipFile(zip_file, 'r') as zipObj:
         file_objects = [item for item in zipObj.namelist() if os.path.splitext(item)[1].replace('.', '') in img_formats + vid_formats]
 
         for item in file_objects:
             zipObj.extract(item, path=extract_path)
+
 
 def index(request):
     return render(request, 'e04/index.html')
@@ -117,22 +119,33 @@ def update_db(request):
         form.fields['dbName'].required = required
 
         if form.is_valid():
-            print(form.cleaned_data)
+            # mudar isso para usar usuario que fez a requisicao
+            op = Operation(user=User.objects.get(id=1), type=Operation.OpType.UPDATE,
+                           status=Operation.OpStatus.PROCESSING)
+            op.save()
 
-            # # mudar isso para usar usuario que fez a requisicao
-            # op = Operation(user=User.objects.get(id=0), type=Operation.OpType.UPDATE,
-            #                status=Operation.OpStatus.PROCESSING)
-            # op.save()
-            #
-            # # new db
-            # if form.cleaned_data['database'] == '0':
-            #     db = Database(name=form.cleaned_data['dbName'])
-            #     db.save()
-            # else:
-            #     db = Database.objects.get(id=int(form.cleaned_data['database']))
+            # new db
+            if form.cleaned_data['database'] == '0':
+                db = Database(name=form.cleaned_data['dbName'])
+                db.save()
+            else:
+                db = Database.objects.get(id=int(form.cleaned_data['database']))
 
             feats = manipulate_dataset(form.cleaned_data['folderInput'])
             print(feats.keys())
+
+            data = []
+            for i in range(len(feats['name'])):
+                data.append(ImageDB(operation=op, database=db,
+                                    path=feats['image'][i], bb=feats['bbs'][i],
+                                    features=feats['feature'][i], label=feats['name'][i]))
+            ImageDB.objects.bulk_create(data)
+
+            op.status = Operation.OpStatus.FINISHED
+            op.save()
+
+            db.quantity = db.quantity + len(feats['name'])
+            db.save()
 
             return HttpResponseRedirect(reverse_lazy('results'))
         else:
