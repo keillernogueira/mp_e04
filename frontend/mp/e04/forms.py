@@ -42,16 +42,16 @@ class DetectionForm(ProcessingForm):
                                                                              'onclick': 'toggleRet()'}))
 
     # Retrieval configs
-    databases = forms.ChoiceField(label='Banco de dados onde procurar:', required=False,
+    databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
                                  choices=dbs_as_choices(insert_new=False),
-                                 widget=forms.Select(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
     retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
 class IdPersonForm(ProcessingForm):
-    databases = forms.ChoiceField(label='Banco de dados onde procurar:', required=True,
+    databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
                                  choices=dbs_as_choices(insert_new=False),
-                                 widget=forms.Select(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
     retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 

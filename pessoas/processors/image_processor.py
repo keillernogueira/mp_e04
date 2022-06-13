@@ -72,12 +72,12 @@ def generate_rank(scores, k_rank):
                 unique_persons.append(scores[j][1])
                 # append tuple with person id, score and image path
                 persons_scores.append({"Name": scores[j][1].strip(), "Confidence": scores[j][0],
-                                       "Image": scores[j][2].strip()})
+                                       "Image": scores[j][2].strip(), "Id": scores[j][3].strip()})
                 i += 1
         else:
             unique_persons.append(scores[j][1])
-            persons_scores.append({"Name": scores[j][1].strip(), "Confidence":
-                                   scores[j][0], "Image": scores[j][2].strip()})
+            persons_scores.append({"Name": scores[j][1].strip(), "Confidence": scores[j][0],
+                                   "Image": scores[j][2].strip(), "Id": scores[j][3].strip()})
             i += 1
         j += 1
     return persons_scores
@@ -148,7 +148,7 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
                 scores_q = q @ np.transpose(sf)
 
             # associate confidence score with the label of the dataset and sort based on the confidence
-            scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]]))
+            scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]], database_data['id'][top_k[i]]))
             scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
             persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
@@ -177,7 +177,7 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
                 scores_q = q @ np.transpose(sf)
 
             # associate confidence score with the label of the dataset and sort based on the confidence
-            scores_q = list(zip(scores_q, database_data['name'], database_data['image']))
+            scores_q = list(zip(scores_q, database_data['name'], database_data['image'], database_data['id']))
             scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
             persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))
