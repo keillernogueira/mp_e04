@@ -66,19 +66,19 @@ def generate_rank(scores, k_rank):
 
     while i < k_rank and j < len(scores):
         # if unique_persons is not empty
-        print(scores[j][1], type(scores[j][1]), scores[j][0], type(scores[j][0]), scores[j][2], type(scores[j][2]), scores[j][3], type(scores[j][3]))
+        # print(scores[j][1], type(scores[j][1]), scores[j][0], type(scores[j][0]), scores[j][2], type(scores[j][2]), scores[j][3], type(scores[j][3]))
         if unique_persons:
             # if the i person in the scores list is note in unique_persons
             if scores[j][1] not in unique_persons:
                 unique_persons.append(scores[j][1])
                 # append tuple with person id, score and image path
                 persons_scores.append({"Name": scores[j][1].strip(), "Confidence": scores[j][0],
-                                       "Image": scores[j][2].strip(), "Id": scores[j][3].strip()})
+                                       "Image": scores[j][2].strip(), "Id": scores[j][3]})
                 i += 1
         else:
             unique_persons.append(scores[j][1])
             persons_scores.append({"Name": scores[j][1].strip(), "Confidence": scores[j][0],
-                                   "Image": scores[j][2].strip(), "Id": scores[j][3].strip()})
+                                   "Image": scores[j][2].strip(), "Id": scores[j][3]})
             i += 1
         j += 1
     return persons_scores
