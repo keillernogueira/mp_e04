@@ -46,7 +46,7 @@ def getImageFolder(request, form_data, operation, config):
     else:
         img_folder = Path(form_data['folderInput'])
 
-    return img_folder
+    return str(img_folder)
 
 def newOperation(request, form_data, optype="det"):
     op = {'det': Operation.OpType.DETECTION, 'ret': Operation.OpType.RETRIEVAL}

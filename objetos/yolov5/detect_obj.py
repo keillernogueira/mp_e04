@@ -34,7 +34,6 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
     else:
         save_as = [save_as]
 
-    img_path = str(img_path)
     if '.json' in img_path: 
         img_path = read_json(img_path)
 
