@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
-from .models import Database, Operation, GeneralConfig, Model, ImageDB, Processed, Output, Ranking
+from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking
 
 import os
 import sys
@@ -182,6 +182,13 @@ def id_person(request):
             conf_thres = float(form_data['retrievalThreshold'])/100.0
             print(ret_model.model_path, ret_model.name)
 
+            # Operation Configs
+            operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB, value=repr(form_data['databases']))
+            operation_config_db.save()
+
+            operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
+            operation_config_rt.save()
+
             # Retrieval
             try:
                 operation.status = Operation.OpStatus.PROCESSING
@@ -214,6 +221,9 @@ def id_person(request):
                 det_options = defaultOpt()
                 det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
                 print(det_model.model_path)
+
+                operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF, value=det_options.conf_thres)
+                operation_config_dt.save()
 
                 if not debug:
                     try:
@@ -323,6 +333,10 @@ def detect_obj(request):
             det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
             print(det_model.model_path, det_options.conf_thres)
 
+            # Operation Configs
+            operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF, value=det_options.conf_thres)
+            operation_config_dt.save()
+
             # TODO Class Filters
             # det_options.classes = [1, 2, ...]
 
@@ -348,6 +362,12 @@ def detect_obj(request):
                 preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
                 conf_thres = float(form_data['retrievalThreshold'])/100.0
                 print(ret_model.model_path, ret_model.name, preprocessing)
+
+                operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB, value=repr(form_data['databases']))
+                operation_config_db.save()
+
+                operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
+                operation_config_rt.save()
 
                 # Features in DB? Load features here
                 db_features = loadDatabaseFeatures(form_data['databases'])
