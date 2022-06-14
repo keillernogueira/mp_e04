@@ -142,7 +142,7 @@ def index(request):
     print(ch, dict(ch), dict(ch)['MT'].lower())
     return render(request, 'e04/index.html')
 
-debug = True
+debug = False
 def id_person(request):
     if request.method == 'POST':
         form = IdPersonForm(request.POST, request.FILES, auto_id='%s')
@@ -265,7 +265,9 @@ def update_db(request):
 
             init_qnt = db.quantity
             db.quantity = db.quantity + len(feats['name'])
-            db.feature_mean = (db.feature_mean * init_qnt + feats['feature_mean'] * len(feats['name'])) / db.quantity
+            db_ft_mean = np.array(eval(db.feature_mean))
+            db_ft_mean_to_save = (db_ft_mean * init_qnt + feats['feature_mean'] * len(feats['name'])) / db.quantity
+            db.feature_mean = repr(db_ft_mean_to_save.tolist())
             db.save()
 
             return HttpResponseRedirect(reverse_lazy('results'))

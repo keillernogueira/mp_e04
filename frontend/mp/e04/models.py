@@ -77,7 +77,7 @@ class Database(models.Model):
     name = models.CharField(max_length=200)
     quantity = models.IntegerField(default=0)
     last_update = models.DateTimeField(auto_now_add=True)
-    feature_mean = models.FloatField(default=0)
+    feature_mean = models.CharField(max_length=12000)
 
     def __str__(self):
         return self.name
