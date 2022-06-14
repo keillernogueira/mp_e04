@@ -94,6 +94,9 @@ def loadDatabaseFeatures(databases):
         db_features['id'] += img_id
 
     db_features['feature'] = np.array(db_features['feature'])
+    db_features['image'] = np.array(db_features['feature'])
+    db_features['name'] = np.array(db_features['name'])
+    db_features['id'] = np.array(db_features['id'])
     db_features['normalized_feature'] = db_features['feature'] - (db_features['feature_mean'] - 1e-18)
     #[feat - db_features['feature_mean'] for feat in db_features['feature']]
 
@@ -315,7 +318,7 @@ def detect_obj(request):
             det_model = Model.objects.filter(id=config_data.det_model_id)[0]
             det_options = defaultOpt()
             det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
-            print(det_model.model_path)
+            print(det_model.model_path, det_options.conf_thres)
 
             # TODO Class Filters
             # det_options.classes = [1, 2, ...]
