@@ -27,7 +27,7 @@ class ImageDataLoader(object):
                                      return_only_one_face=self.return_only_one_face)
 
     def __getitem__(self, index):
-        # print(self.image)
+        print(self.image)
         imgl = read_image(self.image)
 
         # if image is grayscale, transform into rgb by repeating the image 3 times
