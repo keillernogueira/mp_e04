@@ -61,7 +61,7 @@ def newOperation(request, form_data, optype="det"):
     
 def loadDatabaseFeatures(databases):
     db_features = {}
-    db_features['feature_mean'] = 0.0
+    db_features['feature_mean'] = np.array([[0.0]])
     db_features['len'] = 0
     db_features['feature'] = []
     db_features['normalized_feature'] = []
@@ -76,6 +76,12 @@ def loadDatabaseFeatures(databases):
 
         new_len = db_features['len'] + database.quantity
         db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + database.feature_mean * database.quantity) / new_len
+        
+        db_ft_mean = np.array(eval(database.feature_mean))
+        db_ft_mean_to_save = (db_ft_mean * init_qnt + feats['feature_mean'][0] * len(feats['name'])) / db.quantity
+        db.feature_mean = repr(db_ft_mean_to_save.tolist())
+        
+        db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + db_ft_mean * database.quantity) / new_len
         db_features['len'] = new_len
 
         img_features = [np.array(eval(feat.features)) for feat in features]
@@ -88,7 +94,9 @@ def loadDatabaseFeatures(databases):
         db_features['name'] += img_name
         db_features['id'] += img_id
 
-    db_features['normalized_feature'] = [feat - db_features['feature_mean'] for feat in db_features['feature']]
+    db_features['feature'] = np.array(db_features['feature'])
+    db_features['normalized_feature'] = db_features['feature'] - (db_features['feature_mean'] - 1e-18)
+    #[feat - db_features['feature_mean'] for feat in db_features['feature']]
 
     return db_features
 
