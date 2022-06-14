@@ -84,7 +84,7 @@ def retrieval(data_to_load, db_features, save_dir, config="pessoas/PyRetri/confi
             data = individual_retrieval(path, db_features, save_dir, config, input_data, output_method, model_name,
                                  model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
             out_data.append(data)
-            return out_data
+        return out_data
     else:
         individual_retrieval(data_to_load, db_features, save_dir, config, input_data, output_method, model_name,
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
