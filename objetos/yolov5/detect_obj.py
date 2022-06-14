@@ -17,6 +17,7 @@ from .utils.torch_utils import select_device, load_classifier, time_synchronized
 from .utils.data import read_json, DetectLoadImages
 from .utils.options import defaultOpt
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @torch.no_grad()
 def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), output_file='obj_detections.json'):
@@ -25,7 +26,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
     - inferencia usando o modelo salvo
     - gerar a saida de acordo com o formato
     """
-    check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
+    check_requirements(requirements=os.path.join(ROOT_DIR, 'requirements.txt'), exclude=('tensorboard', 'pycocotools', 'thop'))
 
     assert save_as in ['img', 'json', 'both'], f"Output format <{save_as}> not supported. The available options are: ['img', 'json', 'both']."
     if save_as == 'both': 

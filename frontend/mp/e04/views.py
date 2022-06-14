@@ -308,6 +308,7 @@ def detect_obj(request):
             config_data = config_data[0] if len(config_data) else GeneralConfig()
 
             img_folder = getImageFolder(request, form_data, operation, config_data)
+            print(img_folder)
 
             det_model = Model.objects.filter(id=config_data.det_model_id)[0]
             det_options = defaultOpt()
