@@ -52,6 +52,7 @@ def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.
         "Input type must be either image or video"
 
     out_data = []
+    print("ret")
     p = str(Path(data_to_load).absolute())  # os-agnostic absolute path
     if '.json' in data_to_load: 
         data_to_load = read_json(data_to_load)
@@ -70,8 +71,9 @@ def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.
         individual_retrieval(feature, db_features, save_dir, config, input_data, output_method, model_name,
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     elif os.path.isdir(p):
+        print("isdir")
         files = sorted(glob.glob(os.path.join(p, '*.*')))  # dir
-        print(files)
+        print("AA", files)
         for path in files:
             if any(vid_format in path.lower() for vid_format in vid_formats) or \
                     'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
