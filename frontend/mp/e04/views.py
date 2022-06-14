@@ -25,7 +25,7 @@ from pessoas.manipulate_dataset import manipulate_dataset
 from pessoas.retrieval import individual_retrieval as face_retrieval
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
-import objetos.yolov5.detect_obj as detect_obj 
+from objetos.yolov5.detect_obj import retrieval as detect_object 
 
 
 def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
@@ -213,7 +213,7 @@ def id_person(request):
                         operation.save()
                         
                         # run obejct detection 
-                        data = detect_obj.retrieval(img_folder,
+                        data = detect_object(img_folder,
                                                     det_model.model_path,
                                                     os.path.join(config_data.save_path, str(operation.id), 'results'),
                                                     'both', opt=det_options)
@@ -323,7 +323,7 @@ def detect_obj(request):
                 operation.save()
                 # run obejct detection 
                 if not debug:
-                    data = detect_obj.retrieval(img_folder,
+                    data = detect_object(img_folder,
                                                 det_model.model_path,
                                                 os.path.join(config_data.save_path, str(operation.id), 'results'),
                                                 'both', opt=det_options)
