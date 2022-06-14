@@ -131,6 +131,7 @@ def saveDetectionResults(operation, data):
     for i, img in enumerate(data):
         prc = Processed(operation=operation, path=img['path'], frame=img['frame'])
         prc_data.append(prc)
+        print(data)
         for obj_id in range(1, data['objects'] + 1):
             obj = data[f'object_{obj_id}']
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']))
@@ -169,8 +170,7 @@ def id_person(request):
             config_data = config_data[0] if len(config_data) else GeneralConfig()
 
             img_folder = getImageFolder(request, form_data, operation, config_data)
-            print(os.listdir(img_folder))
-
+            
             ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
             preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
             conf_thres = float(form_data['retrievalThreshold'])/100.0
