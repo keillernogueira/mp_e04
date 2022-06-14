@@ -105,8 +105,9 @@ def loadDatabaseFeatures(databases):
 def saveRetrievalResults(operation, data, confidence):
     out_data = []
     rkg_data = []
-    prc_data = []
+    
     for i, img in enumerate(data):
+        prc_data = []
         for key, face in img.items():
             if 'face' not in key: continue
             if face['confidence most similar'] < confidence: continue
@@ -124,7 +125,7 @@ def saveRetrievalResults(operation, data, confidence):
                 ranking = Ranking(processed=prc, imagedb=imgdb, position=r+1, value=person[0])
                 rkg_data.append(ranking)
 
-    Processed.objects.bulk_create(prc_data)
+        Processed.objects.bulk_create(prc_data)
     Ranking.objects.bulk_create(rkg_data)
     Output.objects.bulk_create(out_data)
 
@@ -134,6 +135,7 @@ def saveDetectionResults(operation, data):
     for i, img in enumerate(data):
         prc = Processed(operation=operation, path=img['path'], frame=img['frame'])
         prc_data.append(prc)
+        # prc.save()
         # print(img)
         for obj_id in range(1, img['objects'] + 1):
             obj = img[f'object_{obj_id}']
