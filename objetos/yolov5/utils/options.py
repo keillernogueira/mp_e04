@@ -16,6 +16,8 @@ class defaultOpt():
         self.hide_labels = False    # Hide labels
         self.hide_conf = False      # Hide confidences
 
+        self.coco_only = False
+
     def __str__(self):
         return f"{x for x in self.__dict__.items()}"
 
