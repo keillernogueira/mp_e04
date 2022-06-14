@@ -2,8 +2,45 @@
 
 {% block content %}
 
+<body>
     <div>
-        Here we should present the executed analyses
+        <h1><strong>Resultados</strong></h1>
+        <div>
+            <form method=GET class="mt-3">
+                {{myFilter.form}}
+                <button class="btnc btn-primary" type=submit> Search </button>
+            </form>
+        </div>
+        <table class="table table-striped mx-auto mt-3 shadow p-3 mb-5 bg-white rounded">
+            <thead class="bg-info text-black">
+                <tr>
+                    <th>Resultados</th>
+                    <th>Tipo</th>
+                    <th class="lth">Data da operação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results_list %}
+                <tr>
+                    <td class="ftd"> <a href="">Resultado_{{ result.id }}</a>  </td>
+                    <td> 
+                        {%if result.type == 'TR' %}
+                            Treino
+                        {%elif result.type == 'RE' %}
+                            Recuperação
+                        {%elif result.type == 'DE' %}
+                            Detecção
+                        {%elif result.type == 'RD' %}
+                            Recuperação e Detecção
+                        {%endif%} 
+                    </td>
+                       <!--{{ result.type }} --> 
+                    <td class="ltd"> {{ result.date }} </td>
+                </tr>                 
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
+</body>
 
 {% endblock %}

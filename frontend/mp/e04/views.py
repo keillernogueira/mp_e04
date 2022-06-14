@@ -15,6 +15,9 @@ import inspect
 from pathlib import Path
 from zipfile import ZipFile
 
+from .models import Operation
+from .filters import OperationFilter
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(os.path.dirname(currentdir)))
 sys.path.insert(0, parentdir)
@@ -236,7 +239,11 @@ def detect_obj(request):
 
 
 def results(request):
-    return render(request, 'e04/results.html')
+    results_list = Operation.objects.all()
+    myFilter = OperationFilter(request.GET, queryset=results_list)
+    results_list = myFilter.qs
+    context = {'results_list':results_list, 'myFilter':myFilter }
+    return render(request, 'e04/results.html', context)
 
 
 def config(request):
