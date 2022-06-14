@@ -110,7 +110,7 @@ def saveRetrievalResults(operation, data, confidence):
         for key, face in img.items():
             if 'face' not in key: continue
             if face['confidence most similar'] < confidence: continue
-            prc = Processed(operation=operation, path=img['path'])
+            prc = Processed(operation=operation, path=img['path'], frame=0)
             prc_data.append(prc)
             
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(face['box']))
