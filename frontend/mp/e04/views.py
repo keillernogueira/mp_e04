@@ -131,7 +131,7 @@ def saveDetectionResults(operation, data):
     for i, img in enumerate(data):
         prc = Processed(operation=operation, path=img['path'], frame=img['frame'])
         prc_data.append(prc)
-        print(data)
+        # print(img)
         for obj_id in range(1, img['objects'] + 1):
             obj = img[f'object_{obj_id}']
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']))
