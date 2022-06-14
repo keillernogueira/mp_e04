@@ -89,7 +89,7 @@ def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
 
 
-def individual_retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri/configs/base.yaml", input_data='image',
                          output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
                          preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
