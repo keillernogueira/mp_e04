@@ -128,6 +128,7 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
 
     if K_images:
         top_k = pyretri.main(query_features, database_features, config, K_images, gpu)
+        print(top_k[0])
         # scores_q = pyretri.main(query_features, database_features, config, 100)[0]
         # print(scores_q.shape)
         persons_scores = []
