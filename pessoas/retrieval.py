@@ -74,7 +74,7 @@ def retrieval(data_to_load, db_features, save_dir, config="pessoas/PyRetri/confi
     elif os.path.isdir(p):
         # print("isdir")
         files = sorted(glob.glob(os.path.join(p, '*.*')))  # dir
-        # print("AA", files)
+        print(files)
         for path in files:
             if any(vid_format in path.lower() for vid_format in vid_formats) or \
                     'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():

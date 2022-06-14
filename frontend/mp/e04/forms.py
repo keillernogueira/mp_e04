@@ -26,7 +26,7 @@ def dbs_as_choices(insert_new=True):
 class ProcessingForm(forms.Form):
     zipFile = forms.FileField(required=False,
                               widget=forms.FileInput(attrs={'class': 'form-control', 
-                                                            'onchange': 'toggleFolder(this)',
+                                                            'onchange': 'toggleFolder(this)', 'accept': '.zip, .arj, .rar, .tar.gz, .tgz',
                                                             'required': True}))
     folderInput = forms.CharField(label='Pasta', validators=[validateFolder], required=False,
                                   widget=forms.TextInput(attrs={'class': 'form-control input-lg', 'placeholder': '/home', 
