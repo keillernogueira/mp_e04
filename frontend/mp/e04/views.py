@@ -75,12 +75,9 @@ def loadDatabaseFeatures(databases):
         # print(db, database.quantity, len(features))
 
         new_len = db_features['len'] + database.quantity
-        db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + database.feature_mean * database.quantity) / new_len
+        # db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + database.feature_mean * database.quantity) / new_len
         
-        db_ft_mean = np.array(eval(database.feature_mean))
-        db_ft_mean_to_save = (db_ft_mean * init_qnt + feats['feature_mean'][0] * len(feats['name'])) / db.quantity
-        db.feature_mean = repr(db_ft_mean_to_save.tolist())
-        
+        db_ft_mean = np.array(eval(database.feature_mean))        
         db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + db_ft_mean * database.quantity) / new_len
         db_features['len'] = new_len
 
