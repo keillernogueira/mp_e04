@@ -85,7 +85,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, opt.classes, opt.agnostic_nms,
                                    max_det=opt.max_det)
         t2 = time_synchronized()
-
+        print(len(pred))
         # Process detections (for each image in the batch, default 1)
         for i, det in enumerate(pred):  # detections per image
             p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
