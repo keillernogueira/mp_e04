@@ -104,7 +104,7 @@ def saveRetrievalResults(operation, data, confidence):
     rkg_data = []
     prc_data = []
     for i, img in enumerate(data):
-        for key, face in data.items():
+        for key, face in img.items():
             if 'face' not in key: continue
             if face['confidence most similar'] < confidence: continue
             prc = Processed(operation=operation, path=img['path'])
@@ -132,8 +132,8 @@ def saveDetectionResults(operation, data):
         prc = Processed(operation=operation, path=img['path'], frame=img['frame'])
         prc_data.append(prc)
         print(data)
-        for obj_id in range(1, data['objects'] + 1):
-            obj = data[f'object_{obj_id}']
+        for obj_id in range(1, img['objects'] + 1):
+            obj = img[f'object_{obj_id}']
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']))
             out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']))
             out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']))
