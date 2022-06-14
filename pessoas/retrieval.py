@@ -71,7 +71,7 @@ def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
     elif os.path.isdir(p):
         files = sorted(glob.glob(os.path.join(p, '*.*')))  # dir
-        for files in files:
+        for path in files:
             if any(vid_format in path.lower() for vid_format in vid_formats) or \
                     'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
                 input_data = 'video'
