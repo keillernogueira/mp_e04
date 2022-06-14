@@ -121,7 +121,7 @@
         createMultiSelect();
 
         function toggleZip(folderInput){
-            fzip = document.getElementById("formFileZip");
+            fzip = document.getElementById("zipFile");
             if (folderInput.value !== ''){
                 fzip.disabled = true;
             }
@@ -131,7 +131,7 @@
         }
 
         function toggleFolder(fzipInput){
-            folder = document.getElementById("formFolderPath");
+            folder = document.getElementById("folderInput");
             if (fzipInput.value !== ''){
                 folder.disabled = true;
                 document.getElementById("removeBtn").hidden = false;
@@ -143,7 +143,7 @@
         }
 
         function removeFile(){
-            var fzip = document.getElementById("formFileZip");
+            var fzip = document.getElementById("zipFile");
             fzip.value = '';
             toggleFolder(fzip);
         }
