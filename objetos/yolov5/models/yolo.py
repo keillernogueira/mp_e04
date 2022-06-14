@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 
 from .common import *
 from .experimental import *
-from ..utils.autoanchor import check_anchor_order
-from ..utils.general import make_divisible, check_file, set_logging
-from ..utils.torch_utils import time_synchronized, fuse_conv_and_bn, model_info, scale_img, initialize_weights, \
+from objetos.yolov5.utils.autoanchor import check_anchor_order
+from objetos.yolov5.utils.general import make_divisible, check_file, set_logging
+from objetos.yolov5.utils.torch_utils import time_synchronized, fuse_conv_and_bn, model_info, scale_img, initialize_weights, \
     select_device, copy_attr
 
 try:
