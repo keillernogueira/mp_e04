@@ -66,6 +66,7 @@ def generate_rank(scores, k_rank):
 
     while i < k_rank and j < len(scores):
         # if unique_persons is not empty
+        print(scores[j][1], type(scores[j][1]), scores[j][0], type(scores[j][0]), scores[j][2], type(scores[j][2]), scores[j][3], type(scores[j][3]))
         if unique_persons:
             # if the i person in the scores list is note in unique_persons
             if scores[j][1] not in unique_persons:
