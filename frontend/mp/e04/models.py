@@ -77,6 +77,7 @@ class Database(models.Model):
     name = models.CharField(max_length=200)
     quantity = models.IntegerField(default=0)
     last_update = models.DateTimeField(auto_now_add=True)
+    feature_mean = models.CharField(max_length=12000, default='0')
 
     def __str__(self):
         return self.name
@@ -88,7 +89,7 @@ class ImageDB(models.Model):
 
     path = models.CharField(max_length=200)
     bb = models.CharField(max_length=100)
-    features = models.CharField(max_length=2000)
+    features = models.CharField(max_length=12000)
     label = models.CharField(max_length=100)
 
 

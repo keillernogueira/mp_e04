@@ -7,6 +7,7 @@ import numpy as np
 
 
 def process_base64(base64_img):
+    img = None
     if base64_img[0] == "b":
         img = imread(io.BytesIO(base64.b64decode(base64_img[1:])))
     elif base64_img[:4] == "data":
@@ -18,6 +19,7 @@ def process_base64(base64_img):
 
 def read_image(image):
     try:
+        img = None
         # if type is array, just return
         if type(image) is np.ndarray:
             return image

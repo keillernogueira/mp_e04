@@ -9,7 +9,7 @@ import torch
 from pathlib import Path
 import validators
 
-from preprocessing.preprocessing_general import preprocess
+from ..preprocessing.preprocessing_general import preprocess
 
 
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']

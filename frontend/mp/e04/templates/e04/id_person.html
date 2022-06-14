@@ -15,7 +15,7 @@
                 <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()">
                     {% csrf_token %}
                     <h4>Identificação em Imagem (Upload)</h4>
-                    <div id="text-file-helper" class="form-text">
+                    <div id="text-file-helper" class="form-text" style="margin-bottom: 0.5rem;">
                         Faça o upload de um conjunto de imagens em um arquivo .zip, para realizar o reconhecimento.
                     </div>
                     <!-- File Input    -->
@@ -37,7 +37,7 @@
                     <br/>
 
                     <h4>Identificar em Batch (Pasta Local)</h4>
-                    <div id="text-folder-helper" class="form-text">
+                    <div id="text-folder-helper" class="form-text" style="margin-bottom: 0.5rem;">
                         Informe uma pasta local do sistema para realizar o reconhecimento em imagens e vídeos nessa pasta.
                     </div>
                     <div class="form-outline">
@@ -121,7 +121,7 @@
         createMultiSelect();
 
         function toggleZip(folderInput){
-            fzip = document.getElementById("formFileZip");
+            fzip = document.getElementById("zipFile");
             if (folderInput.value !== ''){
                 fzip.disabled = true;
             }
@@ -131,7 +131,7 @@
         }
 
         function toggleFolder(fzipInput){
-            folder = document.getElementById("formFolderPath");
+            folder = document.getElementById("folderInput");
             if (fzipInput.value !== ''){
                 folder.disabled = true;
                 document.getElementById("removeBtn").hidden = false;
@@ -143,7 +143,7 @@
         }
 
         function removeFile(){
-            var fzip = document.getElementById("formFileZip");
+            var fzip = document.getElementById("zipFile");
             fzip.value = '';
             toggleFolder(fzip);
         }

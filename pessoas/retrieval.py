@@ -4,27 +4,28 @@ import torch
 import numpy as np
 import argparse
 import json
+import glob
 from pathlib import Path
 
 from datetime import datetime
-from dataloaders.image_dataloader import ImageDataLoader
-from dataloaders.video_dataloader import VideoDataLoader
-from processors.image_processor import extract_features_from_image, generate_ranking_for_image
-from processors.video_processor import extract_features_from_video
-from plots import plot_top15_person_retrieval
-from networks.load_network import load_net
-from manipulate_json import save_retrieved_ranking, read_json
+from .dataloaders.image_dataloader import ImageDataLoader
+from .dataloaders.video_dataloader import VideoDataLoader
+from .processors.image_processor import extract_features_from_image, generate_ranking_for_image
+from .processors.video_processor import extract_features_from_video
+from .plots import plot_top15_person_retrieval
+from .networks.load_network import load_net
+from .manipulate_json import save_retrieved_ranking, read_json
 
 import pickle
 import time
-from PyRetri import index as idx
+from .PyRetri import index as idx
 
 
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
-def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+def retrieval(data_to_load, db_features, save_dir, config="pessoas/PyRetri/configs/base.yaml", input_data='image',
               output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
               preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
@@ -51,6 +52,9 @@ def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.
     assert input_data == "video" or input_data == "image", \
         "Input type must be either image or video"
 
+    out_data = []
+    # print("ret")
+    p = str(Path(data_to_load).absolute())  # os-agnostic absolute path
     if '.json' in data_to_load: 
         data_to_load = read_json(data_to_load)
         for path in data_to_load:
@@ -67,12 +71,26 @@ def retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.
         input_data = 'feature'
         individual_retrieval(feature, db_features, save_dir, config, input_data, output_method, model_name,
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
+    elif os.path.isdir(p):
+        # print("isdir")
+        files = sorted(glob.glob(os.path.join(p, '*.*')))  # dir
+        print(files)
+        for path in files:
+            if any(vid_format in path.lower() for vid_format in vid_formats) or \
+                    'youtube.com/' in path.lower() or 'youtu.be/' in path.lower():
+                input_data = 'video'
+            elif any(img_format in path.lower() for img_format in img_formats):
+                input_data = 'image'
+            data = individual_retrieval(path, db_features, save_dir, config, input_data, output_method, model_name,
+                                 model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
+            out_data.append(data)
+        return out_data
     else:
         individual_retrieval(data_to_load, db_features, save_dir, config, input_data, output_method, model_name,
                              model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
 
 
-def individual_retrieval(data_to_load, db_features, save_dir, config="PyRetri/configs/base.yaml", input_data='image',
+def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri/configs/base.yaml", input_data='image',
                          output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
                          preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
@@ -147,7 +165,7 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="PyRetri/co
     # exporting results
     # if the method chosen was json
     if output_method.lower() == "json":
-        data = []
+        data = {}
         output_id = 1
         for i in range(len([data_to_load])):
             output = []
@@ -158,7 +176,7 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="PyRetri/co
             face_id = 1
             for rank in top_k_ranking:
                 print('chuck', len(top_k_ranking), rank[0].shape)
-                names = {i['Name']: np.float64(i['Confidence']) for i in rank[1]}
+                names = {i['Name']: [np.float64(i['Confidence']), np.int(i['Id'])] for i in rank[1]}
                 face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
                              'confidence most similar': np.float64(rank[1][0]['Confidence']),
                              'box': rank[0].tolist()}
@@ -172,6 +190,8 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="PyRetri/co
         with open(os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'), 'w',
                   encoding='utf-8') as f:
             json.dump(data, f, indent=4)
+
+        return output[0]
     # if the method chosen was image
     elif output_method.lower() == "image":
         for i in range(len(all_ranking)):

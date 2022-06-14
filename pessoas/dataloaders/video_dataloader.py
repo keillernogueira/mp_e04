@@ -9,7 +9,7 @@ import torch
 from pathlib import Path
 from PIL import Image
 
-from preprocessing.preprocessing_general import PreProcess
+from ..preprocessing.preprocessing_general import PreProcess
 import time
 
 

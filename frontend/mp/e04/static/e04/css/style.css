@@ -68,3 +68,7 @@ body {
     background-image: none;
     border-color: #f93154;
 }
+
+.form-check-input:checked[type=checkbox] {
+    background-image: none;
+}

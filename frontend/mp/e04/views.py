@@ -7,11 +7,13 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
-from .models import Database, Operation, GeneralConfig, Model, ImageDB
+from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking
 
 import os
 import sys
+import traceback
 import inspect
+import numpy as np
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -23,8 +25,10 @@ parentdir = os.path.dirname(os.path.dirname(os.path.dirname(currentdir)))
 sys.path.insert(0, parentdir)
 
 from pessoas.manipulate_dataset import manipulate_dataset
+from pessoas.retrieval import retrieval as face_retrieval
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
+from objetos.yolov5.detect_obj import retrieval as detect_object 
 
 
 def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
@@ -34,11 +38,128 @@ def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
         for item in file_objects:
             zipObj.extract(item, path=extract_path)
 
+def getImageFolder(request, form_data, operation, config):
+    img_folder = Path('.')
+        
+    zip_file = request.FILES.get('zipFile', '')
+    if zip_file != '':
+        extractPath = Path(os.path.join(config.save_path, str(operation.id), 'input_files'))
+        extractPath.mkdir(parents=True, exist_ok=True)
+        extractFilesFromZip(zip_file, extractPath)
+        img_folder = extractPath
+    else:
+        img_folder = Path(form_data['folderInput'])
+
+    return str(img_folder)
+
+def newOperation(request, form_data, optype="det"):
+    op = {'det': Operation.OpType.DETECTION, 'ret': Operation.OpType.RETRIEVAL}
+    fkey = {'det': 'doFaceRetrieval', 'ret': 'doObjectDetection'}
+
+    operation = Operation()
+    operation.user = request.user
+    operation.type = op[optype] if not form_data[fkey[optype]] else Operation.OpType.RET_AND_DET
+    operation.status = Operation.OpStatus.PENDING
+    operation.save()
+
+    return operation
+    
+def loadDatabaseFeatures(databases):
+    db_features = {}
+    db_features['feature_mean'] = np.array([[0.0]])
+    db_features['len'] = 0
+    db_features['feature'] = []
+    db_features['normalized_feature'] = []
+    db_features['name'] = []
+    db_features['image'] = []
+    db_features['id'] = []
+    for db in databases:
+        
+        features = ImageDB.objects.filter(database=db)
+        database = Database.objects.filter(id=db)[0]
+        # print(db, database.quantity, len(features))
+
+        new_len = db_features['len'] + database.quantity
+        # db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + database.feature_mean * database.quantity) / new_len
+        
+        db_ft_mean = np.array(eval(database.feature_mean))        
+        db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + db_ft_mean * database.quantity) / new_len
+        db_features['len'] = new_len
+
+        img_features = [np.array(eval(feat.features)) for feat in features]
+        img_path = [feat.path for feat in features]
+        img_name = [feat.label for feat in features]
+        img_id = [feat.id for feat in features]
+
+        db_features['feature'] += img_features
+        db_features['image'] += img_path
+        db_features['name'] += img_name
+        db_features['id'] += img_id
+
+    db_features['feature'] = np.array(db_features['feature'])
+    db_features['image'] = np.array(db_features['image'])
+    db_features['name'] = np.array(db_features['name'])
+    db_features['id'] = np.array(db_features['id'])
+    db_features['normalized_feature'] = db_features['feature'] - (db_features['feature_mean'] - 1e-18)
+    #[feat - db_features['feature_mean'] for feat in db_features['feature']]
+
+    return db_features
+
+def saveRetrievalResults(operation, data, confidence):
+    out_data = []
+    rkg_data = []
+    
+    for i, img in enumerate(data):
+        prc_data = []
+        for key, face in img.items():
+            if 'face' not in key: continue
+            if face['confidence most similar'] < confidence: continue
+            prc = Processed(operation=operation, path=img['path'], frame=0)
+            prc.save()
+            # prc_data.append(prc)
+            
+            out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(face['box']))
+            out_data.append(out_bb)
+
+            # r ranking, k name, person [score, imgdb_id]
+            for r, (k, person) in enumerate(sorted(face['top options'].items(), key=lambda x: x[1][0], reverse=True)):
+                # save only rankings higher than threshold
+                if person[0] < confidence: break
+                imgdb = ImageDB.objects.filter(id=person[1])[0]
+                ranking = Ranking(processed=prc, imagedb=imgdb, position=r+1, value=person[0])
+                rkg_data.append(ranking)
+
+        # Processed.objects.bulk_create(prc_data)
+    Ranking.objects.bulk_create(rkg_data)
+    Output.objects.bulk_create(out_data)
+
+def saveDetectionResults(operation, data):
+    out_data = []
+    prc_data = []
+    for i, img in enumerate(data):
+        prc = Processed(operation=operation, path=img['path'], frame=img['frame'])
+        # prc_data.append(prc)
+        prc.save()
+        # print(img)
+        for obj_id in range(1, img['objects'] + 1):
+            obj = img[f'object_{obj_id}']
+            out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']))
+            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']))
+            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']))
+            out_data.append(out_bb)
+            out_data.append(out_score)
+            out_data.append(out_label)
+
+    # Processed.objects.bulk_create(prc_data)
+    Output.objects.bulk_create(out_data)
+
 
 def index(request):
+    ch = GeneralConfig.PreProcess.choices
+    print(ch, dict(ch), dict(ch)['MT'].lower())
     return render(request, 'e04/index.html')
 
-
+debug = False
 def id_person(request):
     if request.method == 'POST':
         form = IdPersonForm(request.POST, request.FILES, auto_id='%s')
@@ -52,37 +173,47 @@ def id_person(request):
             form_data = form.cleaned_data
             print(form_data)
 
-            operation = Operation()
-            operation.user = request.user
-            operation.type = Operation.OpType.RETRIEVAL if not form_data['doObjectDetection'] else Operation.OpType.RET_AND_DET
-            operation.status = Operation.OpStatus.PENDING
-            operation.save()
-
-            img_folder = Path('.')
+            operation = newOperation(request, form_data, optype='ret')
 
             config_data = GeneralConfig.objects.all()
             config_data = config_data[0] if len(config_data) else GeneralConfig()
 
-            zip_file = request.FILES.get('zipFile', '')
-            if zip_file != '':
-                extractPath = Path(os.path.join(config_data.save_path, str(operation.id), 'input_files'))
-                extractFilesFromZip(zip_file, extractPath)
-                img_folder = extractPath
-            else:
-                img_folder = Path(form_data['folderInput'])
-
+            img_folder = getImageFolder(request, form_data, operation, config_data)
+            
             ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
+            preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
+            conf_thres = float(form_data['retrievalThreshold'])/100.0
             print(ret_model.model_path, ret_model.name)
-            ret_options = defaultOpt()
-            ret_options.conf_thres = float(form_data['retrievalThreshold'])/100.0
+
+            # Operation Configs
+            operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB, value=repr(form_data['databases']))
+            operation_config_db.save()
+
+            operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
+            operation_config_rt.save()
 
             # Retrieval
             try:
                 operation.status = Operation.OpStatus.PROCESSING
                 operation.save()
+                
+                db_features = loadDatabaseFeatures(form_data['databases'])
 
-                # Features in DB? Load features here
-                # Need to change retrieval implementation
+                if not debug:
+                    try:
+                        # run face retrieval
+                        data = face_retrieval(img_folder,
+                                              db_features,
+                                              os.path.join(config_data.save_path, str(operation.id), 'results'),
+                                              input_data='image', output_method='json', 
+                                              model_name=ret_model.name, model_path=ret_model.model_path,
+                                              preprocessing_method=preprocessing)
+                        # Saving in sql
+                        saveRetrievalResults(operation, data, conf_thres)
+
+                    except Exception:
+                        operation.status = Operation.OpStatus.ERROR
+                        traceback.print_exc()
                 
             except:
                 operation.status = Operation.OpStatus.ERROR
@@ -90,15 +221,28 @@ def id_person(request):
             # Detection
             if form_data['doObjectDetection']:
                 det_model = Model.objects.filter(id=config_data.det_model_id)[0]
-                print(det_model.model_path)
                 det_options = defaultOpt()
                 det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
+                print(det_model.model_path)
 
-                try:
-                    # rodar o modelo de detecção
-                    pass
-                except:
-                    operation.status = Operation.OpStatus.ERROR
+                operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF, value=det_options.conf_thres)
+                operation_config_dt.save()
+
+                if not debug:
+                    try:
+                        operation.status = Operation.OpStatus.PROCESSING
+                        operation.save()
+                        
+                        # run obejct detection 
+                        data = detect_object(img_folder,
+                                                    det_model.model_path,
+                                                    os.path.join(config_data.save_path, str(operation.id), 'results'),
+                                                    'both', opt=det_options)
+                        # Saving in sql
+                        saveDetectionResults(operation, data)
+                    except Exception:
+                        operation.status = Operation.OpStatus.ERROR
+                        traceback.print_exc()
 
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:
@@ -123,7 +267,8 @@ def update_db(request):
 
         if form.is_valid():
             # mudar isso para usar usuario que fez a requisicao
-            op = Operation(user=User.objects.get(id=1), type=Operation.OpType.UPDATE,
+            op = Operation(user=request.user, #User.objects.get(id=1)
+                           type=Operation.OpType.UPDATE,
                            status=Operation.OpStatus.PROCESSING)
             op.save()
 
@@ -140,14 +285,18 @@ def update_db(request):
             data = []
             for i in range(len(feats['name'])):
                 data.append(ImageDB(operation=op, database=db,
-                                    path=feats['image'][i], bb=feats['bbs'][i],
-                                    features=feats['feature'][i], label=feats['name'][i]))
+                                    path=feats['image'][i], bb=repr(feats['bbs'][i].tolist()),
+                                    features=repr(feats['feature'][i].tolist()), label=feats['name'][i]))
             ImageDB.objects.bulk_create(data)
 
             op.status = Operation.OpStatus.FINISHED
             op.save()
 
+            init_qnt = db.quantity
             db.quantity = db.quantity + len(feats['name'])
+            db_ft_mean = np.array(eval(db.feature_mean))
+            db_ft_mean_to_save = (db_ft_mean * init_qnt + feats['feature_mean'] * len(feats['name'])) / db.quantity
+            db.feature_mean = repr(db_ft_mean_to_save.tolist())
             db.save()
 
             return HttpResponseRedirect(reverse_lazy('results'))
@@ -163,7 +312,8 @@ def detect_obj(request):
     print(request.user, request.user.id)
     if request.method == 'POST':
         form = DetectionForm(request.POST, request.FILES, auto_id='%s')
-
+        form.fields['databases'].required = 'doFaceRetrieval' in form.data.keys()
+        
         if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
             form.add_error(None, "Either a zip file or a local folder should be informed.")
             form.add_error('folderInput', "*")
@@ -173,29 +323,22 @@ def detect_obj(request):
             form_data = form.cleaned_data
             print(form_data)
 
-            operation = Operation()
-            operation.user = request.user
-            operation.type = Operation.OpType.DETECTION if not form_data['doFaceRetrieval'] else Operation.OpType.RET_AND_DET
-            operation.status = Operation.OpStatus.PENDING
-            operation.save()
-
-            img_folder = Path('.')
+            operation = newOperation(request, form_data, optype='det')
 
             config_data = GeneralConfig.objects.all()
             config_data = config_data[0] if len(config_data) else GeneralConfig()
 
-            zip_file = request.FILES.get('zipFile', '')
-            if zip_file != '':
-                extractPath = Path(os.path.join(config_data.save_path, str(operation.id), 'input_files'))
-                extractFilesFromZip(zip_file, extractPath)
-                img_folder = extractPath
-            else:
-                img_folder = Path(form_data['folderInput'])
+            img_folder = getImageFolder(request, form_data, operation, config_data)
+            print(img_folder)
 
             det_model = Model.objects.filter(id=config_data.det_model_id)[0]
-            print(det_model.model_path)
             det_options = defaultOpt()
             det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
+            print(det_model.model_path, det_options.conf_thres)
+
+            # Operation Configs
+            operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF, value=det_options.conf_thres)
+            operation_config_dt.save()
 
             # TODO Class Filters
             # det_options.classes = [1, 2, ...]
@@ -204,24 +347,52 @@ def detect_obj(request):
             try:
                 operation.status = Operation.OpStatus.PROCESSING
                 operation.save()
-                # rodar o modelo de detecção
-                
-            except:
+                # run obejct detection 
+                if not debug:
+                    data = detect_object(img_folder,
+                                                det_model.model_path,
+                                                os.path.join(config_data.save_path, str(operation.id), 'results'),
+                                                'both', opt=det_options)
+                    # Saving in sql
+                    saveDetectionResults(operation, data)
+            except Exception:
                 operation.status = Operation.OpStatus.ERROR
+                traceback.print_exc()
             
             # Retrieval
             if form_data['doFaceRetrieval']:
                 ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
-                print(ret_model.model_path, ret_model.name)
+                preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
+                conf_thres = float(form_data['retrievalThreshold'])/100.0
+                print(ret_model.model_path, ret_model.name, preprocessing)
+
+                operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB, value=repr(form_data['databases']))
+                operation_config_db.save()
+
+                operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
+                operation_config_rt.save()
 
                 # Features in DB? Load features here
-                # Need to change retrieval implementation
+                db_features = loadDatabaseFeatures(form_data['databases'])
+                
+                # for k, v in db_features.items():
+                #     print(k, len(v) if type(v) is list else v)
 
-                try:
-                    # rodar o modelo de retrieval
-                    pass
-                except:
-                    operation.status = Operation.OpStatus.ERROR
+                if not debug:
+                    try:
+                        # run face retrieval
+                        data = face_retrieval(img_folder,
+                                              db_features,
+                                              os.path.join(config_data.save_path, str(operation.id), 'results'),
+                                              input_data='image', output_method='json', 
+                                              model_name=ret_model.name, model_path=ret_model.model_path,
+                                              preprocessing_method=preprocessing)
+                        # Saving in sql
+                        saveRetrievalResults(operation, data, conf_thres)
+
+                    except Exception:
+                        operation.status = Operation.OpStatus.ERROR
+                        traceback.print_exc()
 
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:

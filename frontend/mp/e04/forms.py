@@ -26,7 +26,7 @@ def dbs_as_choices(insert_new=True):
 class ProcessingForm(forms.Form):
     zipFile = forms.FileField(required=False,
                               widget=forms.FileInput(attrs={'class': 'form-control', 
-                                                            'onchange': 'toggleFolder(this)',
+                                                            'onchange': 'toggleFolder(this)', 'accept': '.zip, .arj, .rar, .tar.gz, .tgz',
                                                             'required': True}))
     folderInput = forms.CharField(label='Pasta', validators=[validateFolder], required=False,
                                   widget=forms.TextInput(attrs={'class': 'form-control input-lg', 'placeholder': '/home', 
@@ -35,23 +35,23 @@ class ProcessingForm(forms.Form):
 
 
 class DetectionForm(ProcessingForm):
-    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
     doFaceRetrieval = forms.BooleanField(label=u'Realizar reconhecimento de pessoas?', required=False,
                                             widget=forms.CheckboxInput(attrs={'class': 'form-check-input',
                                                                              'onclick': 'toggleRet()'}))
 
     # Retrieval configs
-    databases = forms.ChoiceField(label='Banco de dados onde procurar:', required=False,
+    databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
                                  choices=dbs_as_choices(insert_new=False),
-                                 widget=forms.Select(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
     retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
 class IdPersonForm(ProcessingForm):
-    databases = forms.ChoiceField(label='Banco de dados onde procurar:', required=True,
+    databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
                                  choices=dbs_as_choices(insert_new=False),
-                                 widget=forms.Select(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
     retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
@@ -60,7 +60,7 @@ class IdPersonForm(ProcessingForm):
                                                                               'onclick': 'toggleDet()',}))
 
     # Detection configs
-    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
 
