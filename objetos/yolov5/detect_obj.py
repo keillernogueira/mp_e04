@@ -34,13 +34,14 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
     else:
         save_as = [save_as]
 
+    img_path = str(img_path)
     if '.json' in img_path: 
         img_path = read_json(img_path)
 
     imgsz = opt.img_size  # Get Image size to resize inputs if necessary
 
     save_dir = Path(output_path)
-    save_dir.mkdir(parents=True, exist_ok=True)  # Make output foledr directory
+    save_dir.mkdir(parents=True, exist_ok=True)  # Make output folder directory
 
     # Initialize
     set_logging()
