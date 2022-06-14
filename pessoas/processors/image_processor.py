@@ -84,7 +84,7 @@ def generate_rank(scores, k_rank):
 
 
 def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=10, bib="numpy",
-                               gpu=False, config="../PyRetri/configs/base.yaml"):
+                               gpu=False, config="pessoas/PyRetri/configs/base.yaml"):
     """
     Make a specific query and calculate the average precision.
     :param database_data: features of the entire dataset.

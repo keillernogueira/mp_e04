@@ -35,7 +35,7 @@ class ProcessingForm(forms.Form):
 
 
 class DetectionForm(ProcessingForm):
-    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
     doFaceRetrieval = forms.BooleanField(label=u'Realizar reconhecimento de pessoas?', required=False,
                                             widget=forms.CheckboxInput(attrs={'class': 'form-check-input',
@@ -60,7 +60,7 @@ class IdPersonForm(ProcessingForm):
                                                                               'onclick': 'toggleDet()',}))
 
     # Detection configs
-    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
 
