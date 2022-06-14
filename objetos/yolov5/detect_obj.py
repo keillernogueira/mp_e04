@@ -80,7 +80,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
         # Inference
         t1 = time_synchronized()
         pred = model(img, augment=opt.augment)[0]
-
+        print(len(pred))
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, opt.classes, opt.agnostic_nms,
                                    max_det=opt.max_det)
@@ -101,7 +101,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
             data_dict['name'] = p.name # Name of the file
             data_dict['path'] = str(p.resolve()) # Absolute path of the file
             data_dict['frame'] = str(frame)
-            
+
             object_id = 1
             if len(det):
                 # Rescale boxes from img_size to im0 size
