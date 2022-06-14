@@ -41,6 +41,7 @@ def getImageFolder(request, form_data, operation, config):
     zip_file = request.FILES.get('zipFile', '')
     if zip_file != '':
         extractPath = Path(os.path.join(config.save_path, str(operation.id), 'input_files'))
+        extractPath.mkdir(parents=True, exist_ok=True)
         extractFilesFromZip(zip_file, extractPath)
         img_folder = extractPath
     else:
