@@ -169,6 +169,7 @@ def id_person(request):
             config_data = config_data[0] if len(config_data) else GeneralConfig()
 
             img_folder = getImageFolder(request, form_data, operation, config_data)
+            print(os.listdir(img_folder))
 
             ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
             preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()

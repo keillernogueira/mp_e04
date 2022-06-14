@@ -101,7 +101,8 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
             data_dict['name'] = p.name # Name of the file
             data_dict['path'] = str(p.resolve()) # Absolute path of the file
             data_dict['frame'] = str(frame)
-
+            
+            object_id = 1
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -112,7 +113,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                 # Write results
                 
-                object_id = 1
+                
                 for *xyxy, conf, cls in reversed(det):
                     if 'json' in save_as:  # Write to file                        
                         object_dict = {}
