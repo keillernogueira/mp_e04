@@ -94,7 +94,7 @@ def loadDatabaseFeatures(databases):
         db_features['id'] += img_id
 
     db_features['feature'] = np.array(db_features['feature'])
-    db_features['image'] = np.array(db_features['feature'])
+    db_features['image'] = np.array(db_features['image'])
     db_features['name'] = np.array(db_features['name'])
     db_features['id'] = np.array(db_features['id'])
     db_features['normalized_feature'] = db_features['feature'] - (db_features['feature_mean'] - 1e-18)
