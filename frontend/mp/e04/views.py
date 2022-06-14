@@ -112,7 +112,8 @@ def saveRetrievalResults(operation, data, confidence):
             if 'face' not in key: continue
             if face['confidence most similar'] < confidence: continue
             prc = Processed(operation=operation, path=img['path'], frame=0)
-            prc_data.append(prc)
+            prc.save()
+            # prc_data.append(prc)
             
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(face['box']))
             out_data.append(out_bb)
@@ -125,7 +126,7 @@ def saveRetrievalResults(operation, data, confidence):
                 ranking = Ranking(processed=prc, imagedb=imgdb, position=r+1, value=person[0])
                 rkg_data.append(ranking)
 
-        Processed.objects.bulk_create(prc_data)
+        # Processed.objects.bulk_create(prc_data)
     Ranking.objects.bulk_create(rkg_data)
     Output.objects.bulk_create(out_data)
 
@@ -134,8 +135,8 @@ def saveDetectionResults(operation, data):
     prc_data = []
     for i, img in enumerate(data):
         prc = Processed(operation=operation, path=img['path'], frame=img['frame'])
-        prc_data.append(prc)
-        # prc.save()
+        # prc_data.append(prc)
+        prc.save()
         # print(img)
         for obj_id in range(1, img['objects'] + 1):
             obj = img[f'object_{obj_id}']
@@ -146,7 +147,7 @@ def saveDetectionResults(operation, data):
             out_data.append(out_score)
             out_data.append(out_label)
 
-    Processed.objects.bulk_create(prc_data)
+    # Processed.objects.bulk_create(prc_data)
     Output.objects.bulk_create(out_data)
 
 
