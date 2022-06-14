@@ -120,8 +120,8 @@ def saveRetrievalResults(operation, data, confidence):
             for r, (k, person) in enumerate(sorted(face['top options'].items(), key=lambda x: x[1][0], reverse=True)):
                 # save only rankings higher than threshold
                 if person[0] < confidence: break
-                # imgdb = ImageDB.objects.filter(id=person[1])[0]
-                ranking = Ranking(processed=prc, imagedb=person[1], position=r+1, value=person[0])
+                imgdb = ImageDB.objects.filter(id=person[1])[0]
+                ranking = Ranking(processed=prc, imagedb=imgdb, position=r+1, value=person[0])
                 rkg_data.append(ranking)
 
     Processed.objects.bulk_create(prc_data)
