@@ -11,6 +11,7 @@ from .models import Database, Operation, GeneralConfig, Model, ImageDB, Processe
 
 import os
 import sys
+import traceback
 import inspect
 import numpy as np
 from pathlib import Path
@@ -192,8 +193,9 @@ def id_person(request):
                         # Saving in sql
                         saveRetrievalResults(operation, data, conf_thres)
 
-                    except:
+                    except Exception:
                         operation.status = Operation.OpStatus.ERROR
+                        traceback.print_exc()
                 
             except:
                 operation.status = Operation.OpStatus.ERROR
@@ -217,8 +219,9 @@ def id_person(request):
                                                     'both', opt=det_options)
                         # Saving in sql
                         saveDetectionResults(operation, data)
-                    except:
+                    except Exception:
                         operation.status = Operation.OpStatus.ERROR
+                        traceback.print_exc()
 
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:
@@ -326,8 +329,9 @@ def detect_obj(request):
                                                 'both', opt=det_options)
                     # Saving in sql
                     saveDetectionResults(operation, data)
-            except:
+            except Exception:
                 operation.status = Operation.OpStatus.ERROR
+                traceback.print_exc()
             
             # Retrieval
             if form_data['doFaceRetrieval']:
@@ -354,8 +358,9 @@ def detect_obj(request):
                         # Saving in sql
                         saveRetrievalResults(operation, data, conf_thres)
 
-                    except:
+                    except Exception:
                         operation.status = Operation.OpStatus.ERROR
+                        traceback.print_exc()
 
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:
