@@ -22,7 +22,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.dirname(currentdir)))
 sys.path.insert(0, parentdir)
 
 from pessoas.manipulate_dataset import manipulate_dataset
-from pessoas.retrieval import individual_retrieval as face_retrieval
+from pessoas.retrieval import retrieval as face_retrieval
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
 from objetos.yolov5.detect_obj import retrieval as detect_object 
