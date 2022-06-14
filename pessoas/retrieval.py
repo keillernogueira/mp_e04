@@ -25,7 +25,7 @@ img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
-def retrieval(data_to_load, db_features, save_dir, config="../PyRetri/configs/base.yaml", input_data='image',
+def retrieval(data_to_load, db_features, save_dir, config="pessoas/PyRetri/configs/base.yaml", input_data='image',
               output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
               preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
