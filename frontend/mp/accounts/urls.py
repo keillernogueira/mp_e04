@@ -1,13 +1,14 @@
 from django.urls import path
 
-from .views import SignUpView, ProfileView, activate
+from .views import ConfirmEmail, SignUpView, ProfileView, activate, ConfirmEmail, ValidatedEmail
 
 
 urlpatterns = [
     path("signup/", SignUpView, name="signup"),
     path("profile/", ProfileView, name="profile"),
-    path('activate/(?P<uidb64>[0-9A-Za-z_\-]+)/(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/',  
-        activate, name='activate'),  
+    path('activate/(<uidb64>/<token>/', activate, name='activate'),  
+    path('confirm_email/', ConfirmEmail, name = 'ConfirmEmail'),
+    path('validated_email/', ValidatedEmail, name = 'ValidatedEmail'),
 
     
 ]
