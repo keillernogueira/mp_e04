@@ -1,22 +1,23 @@
 import time
 import scipy.io
 import numpy as np
+import pickle
+
+from sklearn.preprocessing import normalize
 
 import torch.utils.data
 
-from config import *
-from utils import *
-from networks.load_network import load_net
-from plots import plot_top15_face_retrieval, plot_top15_person_retrieval
-from sklearn.preprocessing import normalize
-from PyRetri import index as pyretri
+from ..config import *
+from ..utils import *
+from ..networks.load_network import load_net
+from ..plots import plot_top15_face_retrieval, plot_top15_person_retrieval
+# from .image_processor import generate_ranking_for_image
 
-import pickle
-from processors.image_processor import generate_ranking_for_image
+from ..dataloaders.LFW_dataloader import LFW
+# from ..dataloaders.LFW_UPDATE_dataloader import LFW_UPDATE
+from ..dataloaders.yale_dataloader import YALE
 
-from dataloaders.LFW_dataloader import LFW
-# from dataloaders.LFW_UPDATE_dataloader import LFW_UPDATE
-from dataloaders.yale_dataloader import YALE
+# from ..PyRetri import index as pyretri
 
 
 def extract_features(dataloader, model, save_img_results=False, gpu=True):

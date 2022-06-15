@@ -4,14 +4,14 @@ import scipy.io
 
 import torch
 
-from dataloaders.image_dataloader import ImageDataLoader
-from networks.load_network import load_net
-
 import pickle
 import time
 from sklearn.preprocessing import normalize
 
-from PyRetri import index as pyretri
+from ..dataloaders.image_dataloader import ImageDataLoader
+from ..networks.load_network import load_net
+
+from ..PyRetri import index as pyretri
 
 
 def extract_features_from_image(model, dataloader, query_label, gpu):
@@ -66,25 +66,26 @@ def generate_rank(scores, k_rank):
 
     while i < k_rank and j < len(scores):
         # if unique_persons is not empty
+        # print(scores[j][1], type(scores[j][1]), scores[j][0], type(scores[j][0]), scores[j][2], type(scores[j][2]), scores[j][3], type(scores[j][3]))
         if unique_persons:
             # if the i person in the scores list is note in unique_persons
             if scores[j][1] not in unique_persons:
                 unique_persons.append(scores[j][1])
                 # append tuple with person id, score and image path
                 persons_scores.append({"Name": scores[j][1].strip(), "Confidence": scores[j][0],
-                                       "Image": scores[j][2].strip()})
+                                       "Image": scores[j][2].strip(), "Id": scores[j][3]})
                 i += 1
         else:
             unique_persons.append(scores[j][1])
-            persons_scores.append({"Name": scores[j][1].strip(), "Confidence":
-                                   scores[j][0], "Image": scores[j][2].strip()})
+            persons_scores.append({"Name": scores[j][1].strip(), "Confidence": scores[j][0],
+                                   "Image": scores[j][2].strip(), "Id": scores[j][3]})
             i += 1
         j += 1
     return persons_scores
 
 
 def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=10, bib="numpy",
-                               gpu=False, config="PyRetri/configs/base.yaml"):
+                               gpu=False, config="pessoas/PyRetri/configs/base.yaml"):
     """
     Make a specific query and calculate the average precision.
     :param database_data: features of the entire dataset.
@@ -128,6 +129,7 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
 
     if K_images:
         top_k = pyretri.main(query_features, database_features, config, K_images, gpu)
+        print(top_k[0], type(top_k[0]), top_k[0].dtype)
         # scores_q = pyretri.main(query_features, database_features, config, 100)[0]
         # print(scores_q.shape)
         persons_scores = []
@@ -148,7 +150,7 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
                 scores_q = q @ np.transpose(sf)
 
             # associate confidence score with the label of the dataset and sort based on the confidence
-            scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]]))
+            scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]], database_data['id'][top_k[i]]))
             scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
             persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))
@@ -177,7 +179,7 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
                 scores_q = q @ np.transpose(sf)
 
             # associate confidence score with the label of the dataset and sort based on the confidence
-            scores_q = list(zip(scores_q, database_data['name'], database_data['image']))
+            scores_q = list(zip(scores_q, database_data['name'], database_data['image'], database_data['id']))
             scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
             persons_scores.append((query_bbs[img], generate_rank(scores_q, k_rank)))

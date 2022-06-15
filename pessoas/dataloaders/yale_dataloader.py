@@ -5,7 +5,7 @@ from sklearn import preprocessing
 
 import torch
 
-from preprocessing.preprocessing_general import PreProcess
+from ..preprocessing.preprocessing_general import PreProcess
 
 
 class YALE(object):

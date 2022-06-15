@@ -37,6 +37,7 @@ def safe_download(file, url, url2=None, min_bytes=1E0, error_msg=''):
 def attempt_download(file, repo='ultralytics/yolov5', coco_only=False):
     # Attempt file download if does not exist
     file = Path(str(file).strip().replace("'", ''))
+    print(file, file.exists())
 
     if coco_only:
         repo = 'ultralytics/yolov5'

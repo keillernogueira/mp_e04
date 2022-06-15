@@ -9,9 +9,9 @@ import sys
 
 import time
 
-from PyRetri.pyretri.config import get_defaults_cfg, setup_cfg
-from PyRetri.pyretri.index import build_index_helper, feature_loader
-from PyRetri.pyretri.evaluate import build_evaluate_helper
+from .pyretri.config import get_defaults_cfg, setup_cfg
+from .pyretri.index import build_index_helper, feature_loader
+from .pyretri.evaluate import build_evaluate_helper
 
 
 def parse_args():

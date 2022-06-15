@@ -6,8 +6,8 @@ import os
 import io
 from sklearn import preprocessing
 
-from preprocessing.preprocessing_general import preprocess
-from preprocessing.align_dlib import *
+from ..preprocessing.preprocessing_general import preprocess
+from ..preprocessing.align_dlib import *
 
 
 class LFW_UPDATE(object):

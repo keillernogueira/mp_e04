@@ -6,11 +6,10 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 import imageio
 import cv2
-import validators
 from datetime import datetime
 
-from config import *
-from dataloaders.conversor import read_image
+from .config import *
+from .dataloaders.conversor import read_image
 
 
 def resize_image_for_plot(img, base_size=160):

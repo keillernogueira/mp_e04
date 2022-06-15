@@ -13,7 +13,7 @@
                 <form method="post" novalidate>
                     {% csrf_token %}
                     <h4>{{ form.database.label }}</h4>
-                    <div id="text-db-helper" class="form-text">
+                    <div id="text-db-helper" class="form-text" style="margin-bottom: 0.5rem;">
                         Seleciona um banco de dados de imagens para atualizar.
                     </div>
                     {{ form.database }}
@@ -26,7 +26,7 @@
 
                     <div id="dbName">
                         <h4>{{ form.dbName.label }}</h4>
-                        <div id="text-dbName-helper" class="form-text">
+                        <div id="text-dbName-helper" class="form-text" style="margin-bottom: 0.5rem;">
                             Nome para o novo banco de imagens.
                         </div>
                         {{ form.dbName }}
@@ -39,10 +39,13 @@
                     </div>
 
                     <h4>{{ form.folderInput.label }}</h4>
-                    <div id="text-folder-helper" class="form-text">
+                    <div id="text-folder-helper" class="form-text" style="margin-bottom: 0.5rem;">
                         Informe uma pasta local do sistema.
                     </div>
+                    <div class="form-outline">
                     {{ form.folderInput }}
+                    <label class="form-label" for="{{ form.folderInput.id }}">Pasta</label>
+                    </div>
                     {% if form.folderInput.errors %}
                         {% for error in form.folderInput.errors %}
                             <div class="d-block text-danger"><small>{{ error }}</small></div>

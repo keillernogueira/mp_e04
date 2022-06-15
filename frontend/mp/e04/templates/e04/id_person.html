@@ -2,60 +2,106 @@
 
 {% block content %}
     <div class="container">
-        <div class="row">
-            <div class="col-12"> <h3>Pessoas: Identificar Pessoa</h3></div>
+        <div class="row" style="padding-bottom: 1em;">
+            <div class="col-12"> <h2><b>Pessoas: Identificar Pessoas</b></h2></div>
         </div>
         <div class="row flex-row d-flex justify-content-left">
             <div class="col-8">
-                <form>
-                    <h4>Identificar em Imagem (Upload)</h4>
-                    <div id="text-file-helper" class="form-text">
+                {% if form.non_field_errors %}
+                        {% for error in form.non_field_errors %}
+                            <div class="d-block text-danger"><small>{{ error }}</small></div>
+                        {% endfor %}
+                {% endif %}
+                <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()">
+                    {% csrf_token %}
+                    <h4>Identificação em Imagem (Upload)</h4>
+                    <div id="text-file-helper" class="form-text" style="margin-bottom: 0.5rem;">
                         Faça o upload de um conjunto de imagens em um arquivo .zip, para realizar o reconhecimento.
                     </div>
+                    <!-- File Input    -->
                     <div class="input-group">
-                        <input class="form-control" name="zipFile" id="zipFile" type="file"
-                               accept=".zip, .arj, .rar, .tar.gz, .tgz" onchange="toggleFolder(this)"/>
-                        <button class="btn btn-sm btn-outline-dark" type="button" id="removeBtn"
-                                data-mdb-ripple-color="dark"
-                                style="border-width: 1px; border-color:#bdbdbd;color:#666666;"
-                                hidden onclick="removeFile()">
+                        {{ form.zipFile }}
+                        <button class="btn btn-sm btn-outline-dark" type="button" id="removeBtn" data-mdb-ripple-color="dark" 
+                        style="border-width: 1px; border-color:#bdbdbd;color:#666666;" hidden onclick="removeFile()">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
-                    <hr/>
+                    {% if form.zipFile.errors %}
+                            {% for error in form.zipFile.errors %}
+                                <div class="d-block text-danger"><small>{{ error }}</small></div>
+                            {% endfor %}
+                    {% endif %}
+                    <!-- End File Input -->
+                    <br/>
+                    <h4>Ou</h4>
+                    <br/>
 
                     <h4>Identificar em Batch (Pasta Local)</h4>
-                    <div id="text-folder-helper" class="form-text">
+                    <div id="text-folder-helper" class="form-text" style="margin-bottom: 0.5rem;">
                         Informe uma pasta local do sistema para realizar o reconhecimento em imagens e vídeos nessa pasta.
                     </div>
                     <div class="form-outline">
-                        <input type="text" id="formFolderPath" class="form-control input-lg" placeholder="/home" onchange="toggleZip(this)"/>
-                        <label class="form-label" for="formFolderPath">Pasta</label>
+                        {{ form.folderInput }}
+                        <label class="form-label" for="folderInput">{{ form.folderInput.label }}</label>
                     </div>
+                    {% if form.folderInput.errors %}
+                        {% for error in form.folderInput.errors %}
+                            <div class="d-block text-danger"><small>{{ error }}</small></div>
+                        {% endfor %}
+                    {% endif %}
                     <hr/>
 
                     <label><h4>Configurações</h4></label>
+                    <div id="databaseSelectContainer">
                     <div class="form-group">
-                        <label for="databaseFormControlSelect2">Banco de dados onde procurar:</label>
-                        <select multiple class="form-control" id="basedataSelection">
-                            <option><i>Nova database</i></option>
-                            {% for db in databases.all %}
-                                <option>{{ db.name }}</option>
+                        <label for="databases">{{ form.databases.label }}</label>
+                        {{ form.databases }}
+                    </div>
+                    {% if form.databases.errors %}
+                            {% for error in form.databases.errors %}
+                                <div class="d-block text-danger"><small>{{ error }}</small></div>
                             {% endfor %}
-                        </select>
-                      </div>
-
-                    <div class="form-group form-outline">
-                        <label class="control-label" for="detObjConfidence">Confiança mínima:</label>
-                        <div class="col-lg-2">
-                            <input type="number" id="detObjConfidence" class="form-control" min="0" max="100" value="50"/>
+                    {% endif %}
+                    </div>
+                    <!-- Retrieval Threshold Input -->
+                    <div>
+                    <div class="form-group">
+                        <label class="control-label" for="retrievalThreshold">{{ form.retrievalThreshold.label }}</label>
+                        <div class="col-md-2">
+                            {{ form.retrievalThreshold }}
                         </div>
                     </div>
-
-                    <div class="form-check">
-                        <label class="form-check-label" for="doObjectDetection">Realizar detecção de objetos?</label>
-                        <input class="form-check-input" type="checkbox" value="" id="doObjectDetection" />
+                    {% if form.retrievalThreshold.errors %}
+                            {% for error in form.retrievalThreshold.errors %}
+                                <div class="d-block text-danger"><small>{{ error }}</small></div>
+                            {% endfor %}
+                    {% endif %}
                     </div>
+                    <!-- End Retrieval Threshold Input -->
+                    <br/>
+                    <div class="form-check ">
+                        {{ form.doObjectDetection }}
+                        <label class="form-check-label" for="doObjectDetection">{{ form.doObjectDetection.label }}</label>
+                    </div>
+                    <br/>
+                    <!-- Detection Threshold Input -->
+                    <div id="detThContainer" style="display: none;">
+                        <label><h5><i>Configurações para Detecção</i></h5></label>
+                    <div class="form-group">
+                        <label class="control-label" for="detectionThreshold">{{ form.detectionThreshold.label }}</label>
+                        <div class="col-md-2">
+                            {{ form.detectionThreshold }}
+                            <!-- <input type="number" name="detectionThreshold" id="detectionThreshold" class="form-control" min="0" max="100" value="50"/> -->
+                        </div>
+                    </div>
+                    {% if form.detectionThreshold.errors %}
+                            {% for error in form.detectionThreshold.errors %}
+                                <div class="d-block text-danger"><small>{{ error }}</small></div>
+                            {% endfor %}
+                    {% endif %}
+                    </div>
+                    <!-- End Detection Threshold Input -->
+
                     <hr/>
                     <div class="form-group form-outline flex-row">
                         <button type="submit" class="btn btn-info">Executar</button>
@@ -65,34 +111,60 @@
             </div>
         </div>
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.0/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@dashboardcode/bsmultiselect@1.1.18/dist/js/BsMultiSelect.min.js"></script>
     <script>
-            function toggleZip(folderInput){
-                fzip = document.getElementById("formFileZip");
-                if (folderInput.value !== ''){
-                    fzip.disabled = true;
-                }
-                else{
-                    fzip.disabled = false;
-                }
-            }
+        function createMultiSelect(){
+            var $bsMultiSelects = $('#databases')
+            $bsMultiSelects.bsMultiSelect({ cssPatch : {  choices: {columnCount:'3' }}});
+        }
+        createMultiSelect();
 
-            function toggleFolder(fzipInput){
-                folder = document.getElementById("formFolderPath");
-                if (fzipInput.value !== ''){
-                    folder.disabled = true;
-                    document.getElementById("removeBtn").hidden = false;
-                }
-                else{
-                    folder.disabled = false;
-                    document.getElementById("removeBtn").hidden = true;
-                }
+        function toggleZip(folderInput){
+            fzip = document.getElementById("zipFile");
+            if (folderInput.value !== ''){
+                fzip.disabled = true;
             }
+            else{
+                fzip.disabled = false;
+            }
+        }
 
-            function removeFile(){
-                var fzip = document.getElementById("formFileZip");
-                fzip.value = '';
-                toggleFolder(fzip);
+        function toggleFolder(fzipInput){
+            folder = document.getElementById("folderInput");
+            if (fzipInput.value !== ''){
+                folder.disabled = true;
+                document.getElementById("removeBtn").hidden = false;
             }
+            else{
+                folder.disabled = false;
+                document.getElementById("removeBtn").hidden = true;
+            }
+        }
+
+        function removeFile(){
+            var fzip = document.getElementById("zipFile");
+            fzip.value = '';
+            toggleFolder(fzip);
+        }
+
+        function resetFields() {
+                $('#folderInput').prop('disabled', false);
+                $('#folderInput').prop('required', true);
+                $('#zipFile').prop('disabled', false);
+                $('#folderInput').prop('required', true);
+        }
+
+        function checkDisplay(){
+            if ($('#doObjectDetection').is(':checked')){
+                toggleDet();
+            }
+        }
+        checkDisplay();
+        
+        function toggleDet(){
+            $('#detThContainer').toggle();
+        }
+
     </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import inspect
 
 import imageio
 from PIL import Image
@@ -44,7 +45,9 @@ class PreProcess(object):
         # answer: https://github.com/pytorch/pytorch/issues/40403
         self.mtcnn = MTCNN(keep_all=True, selection_method="largest", post_process=False, image_size=crop_size,
                            device=torch.device('cpu'))  # torch.device('cuda') if gpu is True else torch.device('cpu'))
-        self.openface_model = AlignDlib(os.path.join(sys.path[0], 'landmarks', 'shape_predictor_68_face_landmarks.dat'))
+
+        p = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
+        self.openface_model = AlignDlib(os.path.join(p, 'landmarks', 'shape_predictor_68_face_landmarks.dat'))
 
     def preprocess(self, img):
         """

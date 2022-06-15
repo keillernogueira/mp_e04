@@ -9,10 +9,10 @@ from pathlib import Path
 import torch
 
 import pickle
-from dataloaders.video_dataloader import VideoDataLoader
-from networks.load_network import load_net
-from utils import generate_video
-from processors.FaceQNet import get_images_scores
+from ..dataloaders.video_dataloader import VideoDataLoader
+from ..networks.load_network import load_net
+from ..utils import generate_video
+from .FaceQNet import get_images_scores
 
 
 def extract_features_from_video(video_file, detection_pipeline, model, n_best_frames=None):

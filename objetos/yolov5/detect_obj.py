@@ -1,3 +1,4 @@
+import os
 import argparse
 import time
 import json
@@ -7,25 +8,26 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 
-from models.experimental import attempt_load
-from utils.datasets import LoadStreams, LoadImages
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
+from objetos.yolov5.models.experimental import attempt_load
+from objetos.yolov5.utils.datasets import LoadStreams, LoadImages
+from objetos.yolov5.utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
     scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path, save_one_box
-from utils.plots import colors, plot_one_box
-from utils.torch_utils import select_device, load_classifier, time_synchronized
+from objetos.yolov5.utils.plots import colors, plot_one_box
+from objetos.yolov5.utils.torch_utils import select_device, load_classifier, time_synchronized
 
-from utils.data import read_json, DetectLoadImages
-from utils.options import defaultOpt
+from objetos.yolov5.utils.data import read_json, DetectLoadImages
+from objetos.yolov5.utils.options import defaultOpt
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @torch.no_grad()
-def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), output_file='detections.json'):
+def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), output_file='obj_detections.json'):
     """
     - abrir imagem (seja local, ou por download)
     - inferencia usando o modelo salvo
     - gerar a saida de acordo com o formato
     """
-    check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
+    check_requirements(requirements=os.path.join(ROOT_DIR, 'requirements.txt'), exclude=('tensorboard', 'pycocotools', 'thop'))
 
     assert save_as in ['img', 'json', 'both'], f"Output format <{save_as}> not supported. The available options are: ['img', 'json', 'both']."
     if save_as == 'both': 
@@ -39,7 +41,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
     imgsz = opt.img_size  # Get Image size to resize inputs if necessary
 
     save_dir = Path(output_path)
-    save_dir.mkdir(parents=True, exist_ok=True)  # Make output foledr directory
+    save_dir.mkdir(parents=True, exist_ok=True)  # Make output folder directory
 
     # Initialize
     set_logging()
@@ -78,12 +80,12 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
         # Inference
         t1 = time_synchronized()
         pred = model(img, augment=opt.augment)[0]
-
+        print(len(pred))
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, opt.classes, opt.agnostic_nms,
                                    max_det=opt.max_det)
         t2 = time_synchronized()
-
+        print(len(pred))
         # Process detections (for each image in the batch, default 1)
         for i, det in enumerate(pred):  # detections per image
             p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
@@ -98,7 +100,9 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
             data_dict = {}
             data_dict['name'] = p.name # Name of the file
             data_dict['path'] = str(p.resolve()) # Absolute path of the file
+            data_dict['frame'] = str(frame)
 
+            object_id = 1
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -109,7 +113,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                 # Write results
                 
-                object_id = 1
+                
                 for *xyxy, conf, cls in reversed(det):
                     if 'json' in save_as:  # Write to file                        
                         object_dict = {}
@@ -126,6 +130,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
                         c = int(cls)  # integer class
                         label = None if opt.hide_labels else (names[c] if opt.hide_conf else f'{names[c]} {conf:.2f}')
                         plot_one_box(xyxy, im0, label=label, color=colors(c, True), line_thickness=opt.line_thickness)
+            data_dict['objects'] = object_id - 1 
 
             # Print time (inference + NMS)
             print(f'{s}Done. ({t2 - t1:.3f}s)')
@@ -159,6 +164,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
 
     print(f"Results saved to {save_dir}{s}")
     print(f'Done. ({time.time() - t0:.3f}s)')
+    return out_file_data
 
 
 if __name__ == '__main__':

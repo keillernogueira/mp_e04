@@ -12,28 +12,56 @@ from .models import GeneralConfig
 
 def validateFolder(value):
     if not os.path.exists(value):
-        raise ValidationError(message=f'{value} folder is invalid or doesn\'t have permission to access.')
+        raise ValidationError(message=f'{value} folder is invalid or it doesn\'t have permission to access.')
 
-
-class ProcessingForm(forms.Form):
-    zipFile = forms.FileField()
-    folderInput = forms.CharField(label='Pasta', validators=[validateFolder])
-
-
-class DetectionForm(forms.Form):
-    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=100, initial=50)
-
-
-class IdPersonForm(forms.Form):
-    database = forms.ChoiceField()
-    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=100, initial=50)
-
-
-def dbs_as_choices():
-    choices = [['', ''], [0, 'Novo Banco']]
+def dbs_as_choices(insert_new=True):
+    choices = []
+    if insert_new: 
+        choices.append(['', ''])
+        choices.append([0, 'Novo Banco'])
     for db in Database.objects.all():
         choices.append([db.pk, db.name])
     return choices
+
+class ProcessingForm(forms.Form):
+    zipFile = forms.FileField(required=False,
+                              widget=forms.FileInput(attrs={'class': 'form-control', 
+                                                            'onchange': 'toggleFolder(this)', 'accept': '.zip, .arj, .rar, .tar.gz, .tgz',
+                                                            'required': True}))
+    folderInput = forms.CharField(label='Pasta', validators=[validateFolder], required=False,
+                                  widget=forms.TextInput(attrs={'class': 'form-control input-lg', 'placeholder': '/home', 
+                                                               'onchange': 'toggleZip(this)',
+                                                               'required': True}))
+
+
+class DetectionForm(ProcessingForm):
+    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
+                                            widget=forms.NumberInput(attrs={'class': 'form-control', }))
+    doFaceRetrieval = forms.BooleanField(label=u'Realizar reconhecimento de pessoas?', required=False,
+                                            widget=forms.CheckboxInput(attrs={'class': 'form-check-input',
+                                                                             'onclick': 'toggleRet()'}))
+
+    # Retrieval configs
+    databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
+                                 choices=dbs_as_choices(insert_new=False),
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+                                            widget=forms.NumberInput(attrs={'class': 'form-control', }))
+
+class IdPersonForm(ProcessingForm):
+    databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
+                                 choices=dbs_as_choices(insert_new=False),
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+                                            widget=forms.NumberInput(attrs={'class': 'form-control', }))
+
+    doObjectDetection = forms.BooleanField(label=u'Realizar detecção de objetos?', required=False,
+                                            widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 
+                                                                              'onclick': 'toggleDet()',}))
+
+    # Detection configs
+    detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
+                                            widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
 
 class UpdateDBForm(forms.Form):
@@ -49,7 +77,7 @@ class UpdateDBForm(forms.Form):
                              widget=forms.TextInput(attrs={'class': 'form-control input-lg'}))
 
     folderInput = forms.CharField(label='Dado a ser processado:', validators=[validateFolder], required=True,
-                                  widget=forms.TextInput(attrs={'class': 'form-control input-lg'}))
+                                  widget=forms.TextInput(attrs={'class': 'form-control input-lg', 'placeholder': '/home'}))
 
 
 class ConfigForm(ModelForm):
