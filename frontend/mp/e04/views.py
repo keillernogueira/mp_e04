@@ -17,13 +17,17 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(os.path.dirname(os.path.dirname(currentdir)))
 sys.path.insert(0, parentdir)
 
-from pessoas.manipulate_dataset import manipulate_dataset
+#from pessoas.manipulate_dataset import manipulate_dataset
+
+from django.contrib.auth.decorators import login_required
 
 
+
+@login_required
 def index(request):
     return render(request, 'e04/index.html')
 
-
+@login_required
 def id_person(request):
     if request.method == 'POST':
         pass
@@ -31,7 +35,7 @@ def id_person(request):
         databases = Database.objects.all()
         return render(request, 'e04/id_person.html', {'databases': databases})
 
-
+@login_required
 def update_db(request):
     if request.method == 'POST':
         form = UpdateDBForm(request.POST)
@@ -63,7 +67,7 @@ def update_db(request):
         form = UpdateDBForm()
         return render(request, 'e04/update_db.html', {'form': form})
 
-
+@login_required
 def detect_obj(request):
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
@@ -83,15 +87,16 @@ def detect_obj(request):
 
     # return render(request, 'e04/detect_obj.html')
 
-
+@login_required
 def results(request):
     return render(request, 'e04/results.html')
 
-
+@login_required
 def config(request):
     '''if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')'''
 
+    
     data = GeneralConfig.objects.all()[0]
     # Get Values from database and load as initial form value
     form = ConfigForm(initial={'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model,
@@ -115,12 +120,16 @@ def config(request):
         else:
             print('invalid')
             print(form.errors)
-            context = {'form': form, 'message': "Falha ao Salvar as Configurações.\n" + str(form.errors)}
-            return render(request, 'e04/config.html', context)
+            messages.error(request, 'Falha ao salvar as configurações.')
+            form = ConfigForm(initial={'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model,
+                               'det_model': data.det_model, 'save_path': data.save_path})
     
     context = {'form': form}
     return render(request, 'e04/config.html', context)
 
-
+@login_required
 def train(request):
     return render(request, 'e04/train.html')
+@login_required
+def login(request):
+    return render(request, 'e04/login.html')

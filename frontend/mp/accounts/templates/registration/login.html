@@ -1,0 +1,66 @@
+{% extends "registration/accounts_base.html" %}
+
+{% load static %}
+
+{% block content %}
+
+<body>
+
+  <link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+
+    {% if next %}
+      {% if user.is_authenticated %}
+        <p>Your account doesn't have access to this page. To proceed,
+        please login with an account that has access.</p>
+      {% else %}
+        <p>Please login to see this page.</p>
+      {% endif %}
+    {% endif %}
+
+    <div class = 'background_box'>
+
+      <div class = 'login_box'>
+
+        <h5>Faça o seu Login</h5>
+        <hr>
+
+        <div class = 'form_box'>
+          <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <table>
+              <tr>
+                <td>Usuário:</td>
+                <td>{{ form.username }}</td>
+              </tr>
+              <tr>
+                <td>Senha:</td>
+                <td>{{ form.password }}</td>
+              </tr>
+            </table>
+            <input class = 'btn btn-primary' type="submit" value="login" style="margin-top:1rem;"/>
+            <input type="hidden" name="next" value="{{ next }}" />
+          </form>
+        </div>
+
+        <p><a href = "{% url 'signup' %}"> Ainda não tem uma conta? </a> </p>
+
+        {# Assumes you setup the password_reset view in your URLconf #}
+        <p><a href="{% url 'password_reset' %}">Esqueceu a Senha?</a></p>
+
+      </div>
+
+      <div>
+        <h6>E04</h6>
+      </div>
+
+    </div>
+
+    {% if form.errors %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert" style="width:40rem;margin:2rem;border-radius: 1rem;;">
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <p>Usuário ou senha incorretos. Por favor tente novamente.</p>
+    </div>
+    {% endif %}
+  </body>
+
+  {% endblock %}
