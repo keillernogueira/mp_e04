@@ -13,6 +13,7 @@ urlpatterns = [
 
     # potencial para usar o list generic aqui
     path('results/', views.results, name='results'),
+    path('results/<int:operation_id>/', views.processed_list, name='processed_list' ),
 
     path('config/', views.config, name='config'),
     path('train/', views.train, name='train'),

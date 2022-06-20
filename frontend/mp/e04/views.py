@@ -423,6 +423,12 @@ def results(request):
     return render(request, 'e04/results.html', context)
 
 @login_required
+def processed_list(request,operation_id):
+    processeds_list = Processed.objects.filter(operation__id=operation_id)
+    context= {'processeds_list':processeds_list}
+    return render(request,'e04/results_detail.html',context)    
+
+@login_required
 def config(request):
     '''if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')'''
