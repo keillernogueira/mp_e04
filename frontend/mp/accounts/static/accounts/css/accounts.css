@@ -1,0 +1,58 @@
+.background_box{
+    margin-top: 5rem;
+    border-radius: 2rem;
+    width:28rem;
+    height: 20rem;
+    flex-direction: 'column';
+    display: flex;
+    border: 1px solid gray;
+    
+
+
+
+}
+
+.signup_box{
+
+    border: 0.1rem solid grey;
+    border-radius: 1rem;
+    width:28rem;
+    height: auto;
+    margin:2rem;
+}
+
+.login_box{
+    width:22rem;
+    border-right: 2px solid black;
+}
+
+.fg_box{
+    border: 0.1rem solid grey;
+    border-radius: 1rem;
+    width:20rem;
+    height: 14rem;
+    margin:2rem;
+}
+
+.new_pass_box{
+    border: 0.1rem solid grey;
+    border-radius: 1rem;
+    width:24rem;
+    height: auto;
+    margin:2rem;
+}
+
+.form_box{
+    margin-top:4rem;
+}
+
+.signup_form{
+    margin:0.5rem;
+    height:4.2rem;
+    border-radius: 0.8rem;
+}
+
+.btn-primary{
+    background-color: rgb(57,192,237);
+    align-self: center;
+}

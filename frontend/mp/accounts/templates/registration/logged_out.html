@@ -1,0 +1,17 @@
+
+{% extends "registration/accounts_base.html" %}
+
+{% load static %}
+
+
+
+{% block content %}
+
+<body>
+  <link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+
+  <p>Você saiu do sistema.</p>
+  <a href="{% url 'login'%}">Clique aqui para logar novamente.</a>
+</body>
+
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "registration/accounts_base.html" %}
+
+{% load static %}
+
+
+
+{% block content %}
+
+<body>
+    <link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+    <div>
+        <h5>Um email de validação foi enviado para o seu endereço.</h5>
+        <form method="post"> 
+            {% csrf_token %} 
+            <button type="submit" name="python_code">O Email não Chegou? Clique aqui para reenviá0lo.</button> 
+        </form>
+    </div>
+</body>
+
+
+{% endblock %}

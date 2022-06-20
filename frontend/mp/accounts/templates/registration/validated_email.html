@@ -1,0 +1,18 @@
+{% extends "registration/accounts_base.html" %}
+
+{% load static %}
+
+
+
+{% block content %}
+
+<body>
+    <link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+    <div>
+        <h5>Email validado com Sucesso.</h5>
+        <a href ="/accounts/login" >Clique aqui para fazer o login.</a>
+    </div>
+</body>
+
+
+{% endblock %}

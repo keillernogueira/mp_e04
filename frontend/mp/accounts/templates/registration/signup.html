@@ -1,0 +1,93 @@
+{% extends "registration/accounts_base.html" %}
+
+{% load static %}
+
+
+{% block content %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, post-check=0, pre-check=0" /> 
+<meta http-equiv="Pragma" content="no-cache" />
+
+<body>
+
+    <link rel="stylesheet" href="{% static 'accounts/css/accounts.css' %}">
+    <div class = "signup_box">
+        <h3>Crie uma conta</h3>
+        <hr>
+        <form method="post">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+
+            {% if form.username.errors %}
+                <div class = "signup_form alert-danger">
+            {% else %}
+                <div class = "signup_form">  
+            {% endif %}  
+                <h6>Insira seu Usuário:</h6>
+                {{ form.username }}          
+            </div>
+
+            {% if form.email.errors %}
+                <div class = "signup_form alert-danger">
+            {% else %}
+                <div class = "signup_form">  
+            {% endif %} 
+                <h6>Insira seu Email:</h6>
+                {{ form.email }}         
+            </div>
+
+            {% if form.password2.errors %}
+                <div class = "signup_form alert-danger">
+            {% else %}
+                <div class = "signup_form">  
+            {% endif %} 
+                <h6>Insira sua Senha:</h6>
+                {{ form.password1 }}
+            
+            </div>
+
+            {% if form.password2.errors %}
+                <div class = "signup_form alert-danger">
+            {% else %}
+                <div class = "signup_form">  
+            {% endif %} 
+                <h6>Confirme sua Senha:</h6>
+                {{ form.password2 }}        
+            </div>
+
+
+            
+            <button class = 'btn btn-primary' type="submit" style="margin:0.4rem;">Sign Up</button>
+
+            <div style="margin:0.3rem">
+                {% if form.username.errors %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            Nome de usuário já existe.
+                        </div>
+                {% elif form.email.errors %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            {{form.email.errors}}
+                        </div>
+                {% elif form.password2.errors %}
+                        {% if form.password1.value != form.password2.value %}
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    Senhas não correspondentes.
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    Sua senha não deve ser muito comum e conter, ao menos, 8 caracters, dentre eles letras e números.
+                            </div>
+                        {% endif %}
+                {% endif %}
+            </div>
+
+        </form>
+    </div>
+    <p><a href = "{% url 'login' %}"> Já tem uma Conta? Faça login. </a> </p>
+</body>
+
+{% endblock %}

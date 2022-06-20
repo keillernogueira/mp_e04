@@ -26,7 +26,7 @@
             <tbody>
                 {% for result in results_list %}
                 <tr>
-                    <td class="ftd"> <a href="">Resultado_{{ result.id }}</a>  </td>
+                    <td class="ftd"> <a href="{{request.path}}{{ result.id }}">Resultado_{{ result.id }}</a>  </td>
                     <td> 
                         {%if result.type == 'TR' %}
                             Treino
