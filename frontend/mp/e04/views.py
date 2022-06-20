@@ -7,7 +7,8 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
-from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking
+from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking, FullProcessed
+from .filters import OperationFilter
 
 import os
 import sys
@@ -144,9 +145,9 @@ def saveDetectionResults(operation, data):
         # print(img)
         for obj_id in range(1, img['objects'] + 1):
             obj = img[f'object_{obj_id}']
-            out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']))
-            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']))
-            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']))
+            out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']), obj=obj_id-1)
+            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']), obj=obj_id-1)
+            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']), obj=obj_id-1)
             out_data.append(out_bb)
             out_data.append(out_score)
             out_data.append(out_label)
@@ -421,6 +422,60 @@ def results(request):
     results_list = myFilter.qs
     context = {'results_list':results_list, 'myFilter':myFilter }
     return render(request, 'e04/results.html', context)
+
+def detailed_result(request, operation_id):
+    config_data = GeneralConfig.objects.all()
+    config_data = config_data[0] if len(config_data) else GeneralConfig()
+    
+    processeds_list = Processed.objects.filter(operation__id=operation_id)
+    unique = set([prc.path for prc in processeds_list])
+
+    formated_processed_list = {}
+
+    for img in unique:
+        formated_processed_list[img] = FullProcessed(img,
+                                                     operation_id,
+                                                     detection_result_path=os.path.join(config_data.save_path,
+                                                                                        str(operation_id),
+                                                                                        'results', img))
+
+    
+
+    for processed in processeds_list:
+        fprc = formated_processed_list[processed.path]
+
+        outputs = Output.objects.filter(processed=processed)
+
+        # If detection
+        if len(outputs) % 3 == 0: 
+            bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
+            bbs.sort(key=lambda x: x.obj)
+            scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
+            scs.sort(key=lambda x: x.obj)
+            lbl = [out for out in outputs if out.parameter == Output.ParameterOpt.LABEL]
+            lbl.sort(key=lambda x: x.obj)
+
+            for lb, sc, bb in zip(lbl, scs, bbs):
+                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""), eval(sc.value), eval(bb.value)))
+
+        # If face retrieval
+        elif len(outputs) == 1:
+            bbx = eval(outputs[0].value)
+            face_id = len(fprc.faces)
+            fprc.faces.append(FullProcessed.Faces(face_id, bbx))
+            face = fprc.faces[-1]
+
+            ranking = Ranking.objects.filter(processed=processed)
+            for r in ranking:
+                # imagedb = ImageDB.objects.filter(id=r.imagedb)[0]
+                face.rankings.append(FullProcessed.Faces.Ranking(r.position, r.value, r.imagedb))
+            
+            face.rankings.sort(key=lambda x: x.position)
+            print(fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
+
+    # print(unique)
+    context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list}
+    return render(request,'e04/detailed_result.html',context)
 
 @login_required
 def config(request):

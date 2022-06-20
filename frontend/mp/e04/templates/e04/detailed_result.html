@@ -1,0 +1,66 @@
+{% extends 'e04/base_v2.html' %}
+
+{% block content %}
+{% load tags %}
+
+<div class="container">
+<div class="row flex-row d-flex" style="padding-bottom: 1em;">
+    <div class="col-12"> <h2><b>Resultado {{op}}</b></h2>
+        Total de imagens analisados: {{formated_processed_list|length}}
+    </div>
+    
+</div>
+<div class="row flex-row d-flex">
+    <div class="col12">
+        
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr class="table-info">
+                    <th>Lista de Imagens</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for img_path, processed in formated_processed_list.items %}
+                
+                    <tr>
+                        <td>{{img_path}}</td>
+                        <td>
+                            {% for face in processed.faces %}
+                            <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|floatformat:2 }} %</span>
+                            {% endfor %}
+                            {% for obj in processed.detections %}
+                            <span class="badge rounded-pill  
+                            {% if obj.label == 'Arma de Fogo' %}
+                             badge-danger" style="color:#790619"
+                            {% elif obj.label == 'Arma Branca' %}
+                             badge-warning" style="color:#453008"
+                            {% else %}
+                             badge-success" style="color:#0b4121"
+                            {% endif %}
+                            >
+                             {{ obj.label|dash2space }}: {{ obj.score|floatformat:2 }} %</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+                
+        </table>
+    </div>
+    
+</div>
+</div>
+<!-- TODO:  Criar os modais para cada imagem-->
+
+
+<!-- {{formated_processed_list}}
+
+{% for img_path, processed in formated_processed_list.items %}
+{% for face in processed.faces %}
+{{face.rankings.0.imgdb.label}}
+{% endfor %}
+{{processed}}
+{% endfor %} -->
+
+{% endblock %}
