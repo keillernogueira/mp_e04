@@ -421,7 +421,7 @@ def results(request):
     results_list = myFilter.qs
     context = {'results_list':results_list, 'myFilter':myFilter }
     return render(request, 'e04/results.html', context)
-
+#teste
 @login_required
 def processed_list(request,operation_id):
     processeds_list = Processed.objects.filter(operation__id=operation_id)
