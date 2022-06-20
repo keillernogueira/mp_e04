@@ -8,11 +8,11 @@ class Operation(models.Model):
 
     # https://stackoverflow.com/questions/54802616/how-to-use-enums-as-a-choice-field-in-django-model
     class OpType(models.TextChoices):
-        TRAIN = 'TR', _('Train')
-        RETRIEVAL = 'RE', _('Retrieval')
-        DETECTION = 'DE', _('Detection')
+        TRAIN = 'TR', _('Treino')
+        RETRIEVAL = 'RE', _('Recuperação')
+        DETECTION = 'DE', _('Detecção')
         UPDATE = 'UD', _('Update DB')
-        RET_AND_DET = 'RD', _('Retrieval and Detection')
+        RET_AND_DET = 'RD', _('Recuperação e Detecção')
     type = models.CharField(max_length=2, choices=OpType.choices)
 
     class OpStatus(models.TextChoices):
