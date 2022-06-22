@@ -7,7 +7,6 @@ from django_filters import DateFromToRangeFilter
 from django_filters import CharFilter
 from django import forms
 
-
 class OperationFilter (django_filters.FilterSet):
     type_choices = (
         ('TR','Treino'),
