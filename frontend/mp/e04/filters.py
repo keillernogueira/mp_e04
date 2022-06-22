@@ -8,8 +8,6 @@ from django_filters import CharFilter
 from django import forms
 
 class OperationFilter (django_filters.FilterSet):
-    start_date = DateFilter (field_name='date', lookup_expr='gte')
-    end_date = DateFilter (field_name='date', lookup_expr='lte')
     type_choices = (
         ('TR','Treino'),
         ('RE','Recuperação'),
