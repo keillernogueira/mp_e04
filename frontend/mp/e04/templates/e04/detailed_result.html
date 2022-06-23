@@ -13,7 +13,7 @@
 <div class="row flex-row d-flex">
     <div class="col12">
         
-        <table class="table table-striped table-hover">
+        <table class="table table-hover">
             <thead>
                 <tr class="table-info">
                     <th>Lista de Imagens</th>
@@ -23,8 +23,8 @@
             <tbody class="table-group-divider">
                 {% for img_path, processed in formated_processed_list.items %}
                 
-                    <tr>
-                        <td>{{img_path}}</td>
+                    <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}">
+                        <td><p class="p-button">{{img_path}}</p></td>
                         <td>
                             {% for face in processed.faces %}
                             <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|floatformat:2 }} %</span>
@@ -62,5 +62,158 @@
 {% endfor %}
 {{processed}}
 {% endfor %} -->
+
+{% for img_path, processed in formated_processed_list.items %}
+
+<!-- Button trigger modal -->  
+  <!-- Modal -->
+  <div class="modal fade" id="modal_{{processed.id}}" tabindex="-1" aria-labelledby="modal_{{processed.id}}_Label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal_{{processed.id}}_Label">{{processed.path}}</h5>
+          <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            
+        <!-- Tabs navs -->
+        <ul class="nav nav-tabs mb-3" id="modal_{{processed.id}}_results" role="tablist">
+            {% if "ret" in operations %}
+            <li class="nav-item" role="presentation">
+            <a
+                class="nav-link active"
+                id="modal_{{processed.id}}_results-tab-1"
+                data-mdb-toggle="tab"
+                href="#modal_{{processed.id}}_results-tabs-1"
+                role="tab"
+                aria-controls="modal_{{processed.id}}_results-tabs-1"
+                
+                ><i class="fa-solid fa-users-viewfinder"></i>Reconhecimento de Faces</a
+            >
+            </li>
+            {%endif%}
+            {% if "det" in operations %}
+            <li class="nav-item" role="presentation">
+            <a
+                class="nav-link"
+                id="modal_{{processed.id}}_results-tab-2"
+                data-mdb-toggle="tab"
+                href="#modal_{{processed.id}}_results-tabs-2"
+                role="tab"
+                aria-controls="modal_{{processed.id}}_results-tabs-2"
+                aria-selected="false"
+                ><i class="fa-regular fa-file-magnifying-glass"></i>Detecção de Objetos</a
+            >
+            </li>
+            {%endif%}
+        </ul>
+        <!-- Tabs navs -->
+        
+        <!-- Tabs content -->
+        <div class="tab-content" id="modal_{{processed.id}}_results-content">
+            <div
+            class="tab-pane fade show active"
+            id="modal_{{processed.id}}_results-tabs-1"
+            role="tabpanel"
+            aria-labelledby="modal_{{processed.id}}_results-tab-1"
+            >
+            Tab 1 content
+            {% if processed.test|length == 0%} test0 {%endif%}
+            {% if processed.faces|length >= 0%} 0 {%endif%}
+            {% if processed.faces|length >= 1%} 1 {%endif%}
+            {% if processed.faces|length >= 2%} 2 {%endif%}
+            {% if processed.faces|length >= 3%} 3 {%endif%}
+            {% if processed.faces|length >= 4%} 4 {%endif%}
+            
+
+  
+            <!-- Pills content -->
+            <div class="tab-content" id="modal_{{processed.id}}_results_face-content">
+                <div class="tab-pane fade show active"
+                    id="modal_{{processed.id}}_results_face-pills-1"
+                    role="tabpanel"
+                    aria-labelledby="modal_{{processed.id}}_results_face-tab-1">
+                
+                    <img src="{{tmp}}/{{processed.filename}}"/>
+                    {{processed.path}}
+
+                </div>
+                <div class="tab-pane fade" id="modal_{{processed.id}}_results_face-pills-2" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results_face-tab-2">
+                Tab 2 content
+                </div>
+                <div class="tab-pane fade" id="modal_{{processed.id}}_results_face-pills-3" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results_face-tab-3">
+                Tab 3 content
+                </div>
+            </div>
+            <!-- Pills content -->
+
+            <!-- Pills navs -->
+            <ul class="nav nav-pills mb-3" id="modal_{{processed.id}}_results_face" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <a
+                    class="nav-link active"
+                    id="modal_{{processed.id}}_results_face-tab-1"
+                    data-mdb-toggle="pill"
+                    href="#modal_{{processed.id}}_results_face-pills-1"
+                    role="tab"
+                    aria-controls="modal_{{processed.id}}_results_face-pills-1"
+                    aria-selected="true"
+                    >Tab 1</a
+                  >
+                </li>
+                <li class="nav-item" role="presentation">
+                  <a
+                    class="nav-link"
+                    id="modal_{{processed.id}}_results_face-tab-2"
+                    data-mdb-toggle="pill"
+                    href="#modal_{{processed.id}}_results_face-pills-2"
+                    role="tab"
+                    aria-controls="modal_{{processed.id}}_results_face-pills-2"
+                    aria-selected="false"
+                    >Tab 2</a
+                  >
+                </li>
+                <li class="nav-item" role="presentation">
+                  <a
+                    class="nav-link"
+                    id="modal_{{processed.id}}_results_face-tab-3"
+                    data-mdb-toggle="pill"
+                    href="#modal_{{processed.id}}_results_face-pills-3"
+                    role="tab"
+                    aria-controls="modal_{{processed.id}}_results_face-pills-3"
+                    aria-selected="false"
+                    >Tab 3</a
+                  >
+                </li>
+              </ul>
+              <!-- Pills navs -->
+
+
+            </div>
+
+            <div class="tab-pane fade" id="modal_{{processed.id}}_results-tabs-2" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results-tab-2">
+            Tab 2 content
+            </div>
+        </div>
+        <!-- Tabs content -->
+        
+        </div>
+        <!-- <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Save changes</button>
+        </div> -->
+      </div>
+    </div>
+  </div>
+
+    <!-- {% for face in processed.faces %}
+    {{face.rankings.0.imgdb.label}}
+    {% endfor %}
+    {{processed}} -->
+
+{% endfor %}
+
+
+
 
 {% endblock %}

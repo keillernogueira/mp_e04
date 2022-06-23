@@ -6,15 +6,19 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 
+from django.templatetags.static import static
+
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
 from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking, FullProcessed
 from .filters import OperationFilter
 
 import os
+import shutil
 import sys
 import traceback
 import inspect
 import numpy as np
+import cv2 as cv
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -28,6 +32,7 @@ sys.path.insert(0, parentdir)
 from django.contrib.auth.decorators import login_required
 from pessoas.manipulate_dataset import manipulate_dataset
 from pessoas.retrieval import retrieval as face_retrieval
+from pessoas.plots import plot_top15_person_retrieval
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
 from objetos.yolov5.detect_obj import retrieval as detect_object 
@@ -424,21 +429,41 @@ def results(request):
     return render(request, 'e04/results.html', context)
 
 def detailed_result(request, operation_id):
-    config_data = GeneralConfig.objects.all()
+    config_data = GeneralConfig.objects.filter(id=1)
     config_data = config_data[0] if len(config_data) else GeneralConfig()
+
+    # Getting tmp folder to copy results to
+    root = os.path.split(os.path.abspath(__file__))[0]
+    tmp = Path(os.path.join(root, static('')[1:], 'tmp', str(operation_id), 'results'))
+    tmp.mkdir(parents=True, exist_ok=True)
+
+    print(tmp)
+    
+
+    op = Operation.objects.filter(id=operation_id)[0]
+    
+    operations = {Operation.OpType.RET_AND_DET:["ret", "det"],
+                  Operation.OpType.RETRIEVAL:["ret"],
+                  Operation.OpType.DETECTION:["det"],}
     
     processeds_list = Processed.objects.filter(operation__id=operation_id)
     unique = set([prc.path for prc in processeds_list])
 
     formated_processed_list = {}
 
-    for img in unique:
-        formated_processed_list[img] = FullProcessed(img,
+    for i, img in enumerate(unique):
+        print(tmp / os.path.basename(img))
+        formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", 
+                                                     img,
                                                      operation_id,
                                                      detection_result_path=os.path.join(config_data.save_path,
                                                                                         str(operation_id),
-                                                                                        'results', img))
-
+                                                                                        'results', img),)
+                                                    #  retrieval_result_path=os.path.join(config_data.save_path,
+                                                    #                                     str(operation_id),
+                                                    #                                     'results',
+                                                    #                                     f'{filename}_found_faces.png'))
+        shutil.copy(img, tmp/os.path.basename(img))
     
 
     for processed in processeds_list:
@@ -471,10 +496,38 @@ def detailed_result(request, operation_id):
                 face.rankings.append(FullProcessed.Faces.Ranking(r.position, r.value, r.imagedb))
             
             face.rankings.sort(key=lambda x: x.position)
+
+            ranking_img_info = [(r.value, r.imgdb.label, r.imgdb.path) for r in face.rankings]
+
+            # Create ranking image for face
+            # face.result_path = plot_top15_person_retrieval(fprc.path, "", 
+            #                                                ranking_img_info, 
+            #                                                face_id, fprc.name,
+            #                                                bb=bbx,
+            #                                                save_dir=tmp
+            #                                               )
+            # shutil.copy(face.result_path, tmp/os.path.basename(face.result_path))
+
+            # # Create boundbox to visualization
+            # img = cv.imread(fprc.retrieval_result_path)
+            # # print(bbx)
+            # p1, p2 = (int(bbx[0]), int(bbx[1])), (int(bbx[2]), int(bbx[3]))
+            # p0 = (p1[0] - 2, p1[1] - 2)
+            # clr = np.random.randint(0, 256, (3), dtype=np.uint8)
+            # # print(p1, p2, color, type(color))
+            # cv.rectangle(img, p1, p2, (240,202,13), 3)
+            # cv.putText(img, f"Face {face_id}", p0, 0, 0.5,(255,255,255), thickness=1, lineType=cv.LINE_AA)
+            # cv.imwrite(fprc.retrieval_result_path, img)
+
             print(fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
 
     # print(unique)
-    context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list}
+    view_path = os.path.abspath(__file__)
+    back = "../"*(len(view_path.split(os.path.sep))-2) 
+    back = back[:-1]
+    print(view_path.split(os.path.sep), os.listdir(back + '/home'))
+    context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list, 'operations': operations[op.type],
+              'tmp': static(os.path.join('tmp', str(operation_id), 'results')),}
     return render(request,'e04/detailed_result.html',context)
 
 @login_required
