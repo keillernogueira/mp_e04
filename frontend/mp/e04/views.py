@@ -420,16 +420,13 @@ def results(request):
     current_user= request.user
     if current_user.is_staff or current_user.is_superuser:
         results_list = Operation.objects.all()
-        myFilter = OperationFilter(request.GET, queryset=results_list)
-        results_list = myFilter.qs
-        context = {'results_list':results_list, 'myFilter':myFilter }
-        return render(request, 'e04/results.html', context)
     else:
         results_list = Operation.objects.filter(user_id=current_user.id)
-        myFilter = OperationFilter(request.GET, queryset=results_list)
-        results_list = myFilter.qs
-        context = {'results_list':results_list, 'myFilter':myFilter }
-        return render(request, 'e04/results.html', context)
+    
+    myFilter = OperationFilter(request.GET, queryset=results_list)
+    results_list = myFilter.qs
+    context = {'results_list':results_list, 'myFilter':myFilter }
+    return render(request, 'e04/results.html', context)
             
 #teste
 
