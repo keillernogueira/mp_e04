@@ -454,16 +454,24 @@ def detailed_result(request, operation_id):
     for i, img in enumerate(unique):
         print(tmp / os.path.basename(img))
         formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", 
-                                                     img,
-                                                     operation_id,
+                                                     path=img,
+                                                     operation=operation_id,
                                                      detection_result_path=os.path.join(config_data.save_path,
                                                                                         str(operation_id),
-                                                                                        'results', img),)
+                                                                                        'results', os.path.basename(img)),)
                                                     #  retrieval_result_path=os.path.join(config_data.save_path,
                                                     #                                     str(operation_id),
                                                     #                                     'results',
                                                     #                                     f'{filename}_found_faces.png'))
-        shutil.copy(img, tmp/os.path.basename(img))
+        print("-->", config_data.save_path, os.path.join(config_data.save_path, str(operation_id)), 
+              os.path.join(config_data.save_path, str(operation_id), 'results'),
+              os.path.join(config_data.save_path, str(operation_id), 'results', os.path.basename(img)))
+        print("->", formated_processed_list[img].detection_result_path, os.path.join(config_data.save_path,
+                                                                                        str(operation_id),
+                                                                                        'results', os.path.basename(img)))
+        if not os.path.exists(tmp/os.path.basename(img)):
+            shutil.copy(formated_processed_list[img].detection_result_path, tmp/os.path.basename(img))
+        # shutil.copy(img, tmp/os.path.basename(img))
     
 
     for processed in processeds_list:
@@ -500,12 +508,17 @@ def detailed_result(request, operation_id):
             ranking_img_info = [(r.value, r.imgdb.label, r.imgdb.path) for r in face.rankings]
 
             # Create ranking image for face
-            # face.result_path = plot_top15_person_retrieval(fprc.path, "", 
-            #                                                ranking_img_info, 
-            #                                                face_id, fprc.name,
-            #                                                bb=bbx,
-            #                                                save_dir=tmp
-            #                                               )
+            face.result_path = os.path.join(tmp, fprc.name + "_" + str(face_id) + "_person_retrieval.jpg")
+
+            if not os.path.exists(tmp/os.path.basename(face.result_path)):
+                face.result_path = plot_top15_person_retrieval(fprc.path, "", 
+                                                            ranking_img_info, 
+                                                            face_id, fprc.name,
+                                                            bb=bbx,
+                                                            save_dir=tmp
+                                                            )
+
+            face.result_path = os.path.basename(face.result_path)
             # shutil.copy(face.result_path, tmp/os.path.basename(face.result_path))
 
             # # Create boundbox to visualization

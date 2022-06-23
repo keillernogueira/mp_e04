@@ -75,133 +75,109 @@
           <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            
-        <!-- Tabs navs -->
-        <ul class="nav nav-tabs mb-3" id="modal_{{processed.id}}_results" role="tablist">
-            {% if "ret" in operations %}
-            <li class="nav-item" role="presentation">
-            <a
-                class="nav-link active"
-                id="modal_{{processed.id}}_results-tab-1"
-                data-mdb-toggle="tab"
-                href="#modal_{{processed.id}}_results-tabs-1"
-                role="tab"
-                aria-controls="modal_{{processed.id}}_results-tabs-1"
-                
-                ><i class="fa-solid fa-users-viewfinder"></i>Reconhecimento de Faces</a
-            >
-            </li>
-            {%endif%}
-            {% if "det" in operations %}
-            <li class="nav-item" role="presentation">
-            <a
-                class="nav-link"
-                id="modal_{{processed.id}}_results-tab-2"
-                data-mdb-toggle="tab"
-                href="#modal_{{processed.id}}_results-tabs-2"
-                role="tab"
-                aria-controls="modal_{{processed.id}}_results-tabs-2"
-                aria-selected="false"
-                ><i class="fa-regular fa-file-magnifying-glass"></i>Detecção de Objetos</a
-            >
-            </li>
-            {%endif%}
-        </ul>
-        <!-- Tabs navs -->
+         <!-- Tabs navs -->
+         <ul class="nav nav-tabs mb-3" id="modal_{{processed.id}}_results" role="tablist">
+          {% if "ret" in operations %}
+          <li class="nav-item" role="presentation">
+          <a
+              class="nav-link active"
+              id="modal_{{processed.id}}_results-tab-ret"
+              data-mdb-toggle="tab"
+              href="#modal_{{processed.id}}_results-tabs-ret"
+              role="tab"
+              aria-controls="modal_{{processed.id}}_results-tabs-ret"
+              
+              ><i class="fa-solid fa-users-viewfinder"></i>Reconhecimento de Faces</a
+          >
+          </li>
+          {%endif%}
+          {% if "det" in operations %}
+          <li class="nav-item" role="presentation">
+          <a
+              class="nav-link"
+              id="modal_{{processed.id}}_results-tab-det"
+              data-mdb-toggle="tab"
+              href="#modal_{{processed.id}}_results-tabs-det"
+              role="tab"
+              aria-controls="modal_{{processed.id}}_results-tabs-det"
+              aria-selected="false"
+              ><i class="fa-regular fa-file-magnifying-glass"></i>Detecção de Objetos</a
+          >
+          </li>
+          {%endif%}
+      </ul>
+      <!-- Tabs navs -->   
+
         
         <!-- Tabs content -->
         <div class="tab-content" id="modal_{{processed.id}}_results-content">
             <div
             class="tab-pane fade show active"
-            id="modal_{{processed.id}}_results-tabs-1"
+            id="modal_{{processed.id}}_results-tabs-ret"
             role="tabpanel"
-            aria-labelledby="modal_{{processed.id}}_results-tab-1"
+            aria-labelledby="modal_{{processed.id}}_results-tab-ret"
             >
-            Tab 1 content
-            {% if processed.test|length == 0%} test0 {%endif%}
-            {% if processed.faces|length >= 0%} 0 {%endif%}
-            {% if processed.faces|length >= 1%} 1 {%endif%}
-            {% if processed.faces|length >= 2%} 2 {%endif%}
-            {% if processed.faces|length >= 3%} 3 {%endif%}
-            {% if processed.faces|length >= 4%} 4 {%endif%}
+            
+            {% if processed.faces|length == 0%} 
+              <img src="{{tmp}}/{{processed.filename}}"/> 
+              <h5>Nenhuma face foi detectada pelo modelo.</h5>
+            {%endif%}
+            {% if processed.faces|length >= 1%}
+              <!-- Pills content -->
+              <div class="tab-content" id="modal_{{processed.id}}_face-content">
+                {% for face in processed.faces %}
+                    <div 
+                      class="tab-pane fade {%if forloop.first %} show active {% endif %}"
+                      id="modal_{{processed.id}}_face-pills-{{face.id}}"
+                      role="tabpanel"
+                      aria-labelledby="modal_{{processed.id}}_face-pills-tab-{{face.id}}"
+                    >
+                      <div class="row justify-content-center">
+                        <div class="col-8">
+                          <img src="{{tmp}}/{{face.result_path}}" style="width: 100%;"/>
+                        </div>
+                      </div>
+                    </div>
+                {%endfor%}
+              </div>
+            {%endif%}
+            
             
 
-  
-            <!-- Pills content -->
-            <div class="tab-content" id="modal_{{processed.id}}_results_face-content">
-                <div class="tab-pane fade show active"
-                    id="modal_{{processed.id}}_results_face-pills-1"
-                    role="tabpanel"
-                    aria-labelledby="modal_{{processed.id}}_results_face-tab-1">
-                
-                    <img src="{{tmp}}/{{processed.filename}}"/>
-                    {{processed.path}}
-
-                </div>
-                <div class="tab-pane fade" id="modal_{{processed.id}}_results_face-pills-2" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results_face-tab-2">
-                Tab 2 content
-                </div>
-                <div class="tab-pane fade" id="modal_{{processed.id}}_results_face-pills-3" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results_face-tab-3">
-                Tab 3 content
-                </div>
-            </div>
-            <!-- Pills content -->
-
-            <!-- Pills navs -->
-            <ul class="nav nav-pills mb-3" id="modal_{{processed.id}}_results_face" role="tablist">
-                <li class="nav-item" role="presentation">
-                  <a
-                    class="nav-link active"
-                    id="modal_{{processed.id}}_results_face-tab-1"
-                    data-mdb-toggle="pill"
-                    href="#modal_{{processed.id}}_results_face-pills-1"
-                    role="tab"
-                    aria-controls="modal_{{processed.id}}_results_face-pills-1"
-                    aria-selected="true"
-                    >Tab 1</a
-                  >
-                </li>
-                <li class="nav-item" role="presentation">
-                  <a
-                    class="nav-link"
-                    id="modal_{{processed.id}}_results_face-tab-2"
-                    data-mdb-toggle="pill"
-                    href="#modal_{{processed.id}}_results_face-pills-2"
-                    role="tab"
-                    aria-controls="modal_{{processed.id}}_results_face-pills-2"
-                    aria-selected="false"
-                    >Tab 2</a
-                  >
-                </li>
-                <li class="nav-item" role="presentation">
-                  <a
-                    class="nav-link"
-                    id="modal_{{processed.id}}_results_face-tab-3"
-                    data-mdb-toggle="pill"
-                    href="#modal_{{processed.id}}_results_face-pills-3"
-                    role="tab"
-                    aria-controls="modal_{{processed.id}}_results_face-pills-3"
-                    aria-selected="false"
-                    >Tab 3</a
-                  >
-                </li>
-              </ul>
-              <!-- Pills navs -->
-
 
             </div>
 
-            <div class="tab-pane fade" id="modal_{{processed.id}}_results-tabs-2" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results-tab-2">
-            Tab 2 content
+            <div class="tab-pane fade" id="modal_{{processed.id}}_results-tabs-det" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results-tab-det">
+              <div class="row justify-content-center">
+                <img src="{{tmp}}/{{processed.filename}}" style="width: 80%;"/>
+              </div>
+              
             </div>
         </div>
         <!-- Tabs content -->
         
         </div>
-        <!-- <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary">Save changes</button>
-        </div> -->
+        <div class="modal-footer">
+          {% if processed.faces|length >= 1%}
+              <!-- Pills navs -->
+              <ul class="nav nav-pills mb-3 justify-content-center col" id="modal_{{processed.id}}_face" role="tablist">
+              {% for face in processed.faces %}
+                <li class="nav-item" role="presentation">
+                <a
+                  class="nav-link {%if forloop.first %} active {% endif %}"
+                  id="modal_{{processed.id}}_face-pills-tab-{{face.id}}"
+                  data-mdb-toggle="pill"
+                  href="#modal_{{processed.id}}_face-pills-{{face.id}}"
+                  role="tab"
+                  aria-controls="modal_{{processed.id}}_face-pills-{{face.id}}"
+                  aria-selected="{%if forloop.first %} true {% else %} false {% endif %}"
+                  >Face {{face.id}}
+                </a>
+                </li>
+              {%endfor%}
+              </ul>
+            {%endif%}
+        </div>
       </div>
     </div>
   </div>
