@@ -17,4 +17,6 @@ urlpatterns = [
 
     path('config/', views.config, name='config'),
     path('train/', views.train, name='train'),
+    path('train/face/', views.train_face, name='train_face'),
+    path('train/object/', views.train_object, name='train_object'),
 ]

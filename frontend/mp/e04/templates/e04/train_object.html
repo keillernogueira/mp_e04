@@ -1,0 +1,26 @@
+{% extends 'e04/base_v2.html' %}
+
+{% load static %}
+
+{% block content %}
+
+    <body>
+
+        <link rel="stylesheet" href="{% static 'e04/css/config.css' %}">
+
+        <div style = "margin-left: 1rem;width:40rem">
+
+            <h3>
+                Treinamento de Modelos
+            </h3>
+            <hr>
+
+            <div>
+               <button class = 'btn btn-primary' onclick="location.href='/e04/train/face'" style="width:18rem;margin-right:1rem;margin-left:1rem;">Reconhecimento de Pessoas</button> 
+               <button disabled class = 'btn btn-primary' style="width:18rem;margin-left:1rem;">Detecção de Objetos</button> 
+            </div>
+        </div>
+
+    </body>
+
+{% endblock %}

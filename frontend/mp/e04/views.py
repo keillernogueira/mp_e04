@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 
-from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
+from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm, FaceTrainForm
 from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking, FullProcessed
 from .filters import OperationFilter
 
@@ -542,8 +542,8 @@ def detailed_result(request, operation_id):
 
 @login_required
 def config(request):
-    '''if not request.user.is_superuser:
-        return render(request, 'e04/permissiondenied.html')'''
+    if not request.user.is_superuser:
+        return render(request, 'e04/permissiondenied.html')
 
     
     data = GeneralConfig.objects.all()[0]
@@ -578,7 +578,47 @@ def config(request):
 
 @login_required
 def train(request):
-    return render(request, 'e04/train.html')
+    if not request.user.is_superuser:
+        return render(request, 'e04/permissiondenied.html')
+    return HttpResponseRedirect('/e04/train/face')
+
+@login_required
+def train_face(request):
+    if not request.user.is_superuser:
+        return render(request, 'e04/permissiondenied.html')
+    form = FaceTrainForm()
+    data = Model.objects.all().filter(type='FA')
+
+    if request.method == 'POST':
+        form = FaceTrainForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            print(data)
+            messages.success(request, 'Treino Iniciado com Sucesso')
+            return HttpResponseRedirect("/e04/train/face")
+        else:
+            print('invalid')
+            print(form.errors.as_data())
+            err_msg = ''
+            for key in form.errors.as_data():
+                for msg in form.errors.as_data()[key]:
+                    err_msg += msg.message + ' | '
+            messages.error(request, err_msg)
+
+    form.fields['model_sel'].choices = [(x.name, x.name) for x in data]
+    form.fields['model_sel'].choices.insert(0, ('', 'Selecione um Modelo'))
+
+
+    context = {'form': form }
+    return render(request, 'e04/train_face.html', context)
+
+@login_required
+def train_object(request):
+    if not request.user.is_superuser:
+        return render(request, 'e04/permissiondenied.html')
+    return render(request, 'e04/train_object.html')
+
+
 @login_required
 def login(request):
     return render(request, 'e04/login.html')

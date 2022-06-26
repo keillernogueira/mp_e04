@@ -6,6 +6,8 @@
     flex-direction: 'column';
     display: flex;
     border: 1px solid gray;
+    background-color: rgb(200,200,200);
+    overflow: hidden;
     
 
 
@@ -19,11 +21,19 @@
     width:28rem;
     height: auto;
     margin:2rem;
+    background-color: rgb(240,240,240);
 }
 
 .login_box{
     width:22rem;
     border-right: 2px solid black;
+    background-color: rgb(240,240,240);
+    -moz-border-radius: 10px 10px 0 0;
+}
+
+.logo_box{
+    background-color: rgb(200,200,200);
+    align-items: center;
 }
 
 .fg_box{

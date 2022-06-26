@@ -21,14 +21,14 @@
 
                 {% csrf_token %}
                 {{ form.non_field_errors }}
-                <h6>
+                <h6 title = "Pastas onde os resultados serão salvos">
                     Pasta dos Resultados:
                 </h6>
                 <div>
                     {{form.save_path}}
                 </div>
                 <hr>
-                <h4>
+                <h4 title = "Modelos a serem utilizados no reconhecimento de pessoas.">
                     Reconhecimento de Pessoas:
                 </h4>
 
@@ -62,7 +62,7 @@
                     </div>
                 </div>
                 <hr>
-                <h4>
+                <h4 title = "Modelo a ser usado na detecção de objetos">
                     Detecção de Objetos:
                 </h4>
                 <div class = 'parent'>
