@@ -1,0 +1,356 @@
+{% extends 'e04/base_v2.html' %}
+
+{% block content %}
+{% load tags %}
+{% load static %}
+{% load mathfilters %}
+
+<div class="container">
+<div class="row flex-row d-flex" style="padding-bottom: 1em;">
+    <div class="col-12"> <h2><b>Resultado {{op}}</b></h2>
+        Total de imagens analisados: {{formated_processed_list|length}}
+    </div>
+    
+</div>
+<div class="row flex-row d-flex">
+    <div class="col12">
+        
+        <table class="table table-hover">
+            <thead>
+                <tr class="table-info">
+                    <th>Lista de Imagens</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for img_path, processed in formated_processed_list.items %}
+                
+                    <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}">
+                        <td><p class="p-button">{{img_path}}</p></td>
+                        <td>
+                            {% for face in processed.faces %}
+                            <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|stringformat:".2f" }} %</span>
+                            {% endfor %}
+                            {% for obj in processed.detections %}
+                            <span class="badge rounded-pill  
+                            {% if obj.label == 'Arma de Fogo' %}
+                             badge-danger" style="color:#790619"
+                            {% elif obj.label == 'Arma Branca' %}
+                             badge-warning" style="color:#453008"
+                            {% else %}
+                             badge-success" style="color:#0b4121"
+                            {% endif %}
+                            >
+                             {{ obj.label|dash2space }}: {{ obj.score|stringformat:".2f" }} %</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+                
+        </table>
+    </div>
+    
+</div>
+</div>
+<!-- <style>
+  rect.gun:hover{
+    stroke: #ff3f3f !important;
+  }
+  rect.blade:hover{
+    stroke: #db8f00 !important;
+  }
+  rect.vehicle:hover{
+    stroke: #06cd57 !important;
+  }
+</style> -->
+{% for img_path, processed in formated_processed_list.items %}
+
+<!-- Button trigger modal -->  
+  <!-- Modal -->
+  <div class="modal fade" id="modal_{{processed.id}}" tabindex="-1" aria-labelledby="modal_{{processed.id}}_Label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal_{{processed.id}}_Label">{{processed.path}}</h5>
+          <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+         <!-- Tabs navs -->
+         <ul class="nav nav-tabs mb-3" id="modal_{{processed.id}}_results" role="tablist">
+          {% if "ret" in operations %}
+          <li class="nav-item" role="presentation">
+          <a
+              class="nav-link active"
+              id="modal_{{processed.id}}_results-tab-ret"
+              data-mdb-toggle="tab"
+              href="#modal_{{processed.id}}_results-tabs-ret"
+              role="tab"
+              aria-controls="modal_{{processed.id}}_results-tabs-ret"
+              
+              ><i class="fa-solid fa-users-viewfinder"></i>Reconhecimento de Faces</a
+          >
+          </li>
+          {%endif%}
+          {% if "det" in operations %}
+          <li class="nav-item" role="presentation">
+          <a
+              class="nav-link"
+              id="modal_{{processed.id}}_results-tab-det"
+              data-mdb-toggle="tab"
+              href="#modal_{{processed.id}}_results-tabs-det"
+              role="tab"
+              aria-controls="modal_{{processed.id}}_results-tabs-det"
+              
+              ><i class="fa-regular fa-file-magnifying-glass"></i>Detecção de Objetos</a
+          >
+          </li>
+          {%endif%}
+         </ul>
+         <!-- Tabs navs -->   
+
+        
+        <!-- Tabs content -->
+        <div class="tab-content" id="modal_{{processed.id}}_results-content">
+            {% if "ret" in operations %}
+            <div
+            class="tab-pane fade show active"
+            id="modal_{{processed.id}}_results-tabs-ret"
+            role="tabpanel"
+            aria-labelledby="modal_{{processed.id}}_results-tab-ret"
+            >
+            
+            {% if processed.faces|length == 0%} 
+              <h5>Nenhuma face foi detectada pelo modelo.</h5>
+              <div class="row justify-content-center">
+              <svg id="modal_{{processed.id}}_det_view" width="{{w}}" height="{{h}}" style="width:min-content">
+                <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
+              </svg>
+              </div>
+              <br/>
+              <div class="col-10" id="">
+                <h5 style="text-align: center;">Nenhuma face foi detectada pelo modelo.</h5>
+              </div>
+            {%endif%}
+            {% if processed.faces|length >= 1%}
+              <!-- Pills content -->
+              <div class="row justify-content-center">
+              <svg id="modal_{{processed.id}}_ret_view" width="{{w}}" height="{{h}}" style="width:min-content">
+                <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
+                {% for face in processed.faces %}
+                  <rect x="{{face.bbx.0|mul:w|stringformat:"f"}}" y="{{face.bbx.1|mul:h|stringformat:"f"}}" width="{{face.bbx.2|sub:face.bbx.0|mul:w|stringformat:"f"}}" height="{{face.bbx.3|sub:face.bbx.1|mul:h|stringformat:"f"}}"
+                  style="stroke:#004bc5;
+                        stroke-width:5;fill-opacity:0;" 
+                  class="face"
+                  id="facebbx_{{processed.id}}_{{forloop.counter}}_stroke" onmouseover="highlight(this)" onmouseout="reset(this)" onclick="showRanking(this)"
+                  data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
+                  data-face-id="{{forloop.counter}}"/>
+                  <rect x="{{face.bbx.0|mul:w|sub:2.5|stringformat:"f"}}" y="{{face.bbx.1|mul:h|sub:19|stringformat:"f"}}" width="{{face.bbx.2|sub:face.bbx.0|mul:w|addition:5.0|stringformat:"f"}}" height="21.5"
+                    style="fill:#004bc5"
+                    class="face"
+                    id="facebbx_{{processed.id}}_{{forloop.counter}}_fill" onmouseover="highlight(this)" onmouseout="reset(this)" onclick="showRanking(this)"
+                    data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
+                    data-face-id="{{forloop.counter}}"/>
+                  <text id="text_{{processed.id}}_{{forloop.counter}}" 
+                        x="{{face.bbx.0|mul:w|stringformat:"f"}}"
+                        y="{{face.bbx.1|mul:h|sub:5|stringformat:"f"}}"
+                        fill="#fff"
+                        style="text-anchor:start;font-size:16px;font-weight:bold;font-family: sans-serif;" 
+                        onclick="showRanking(this)"
+                        data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
+                        data-face-id="{{forloop.counter}}">Face {{forloop.counter}}</text>
+                {%endfor%}
+              </svg>
+              </div>
+              <br/>
+              <div class="row justify-content-center">
+                <div class="col-10" id="">
+                  <h5 style="text-align: center;">Pessoas mais prováveis para Face <span id="face_id_text">1</span></h5>
+                  <br/>
+                  {% for face in processed.faces %}
+                  <div class="accordion" id="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
+                  {% if not forloop.first %} style="display:none;" {%endif%}>
+                    {% for r in face.rankings %}
+                    <div class="accordion-item">
+                      <h3 class="accordion-header" id="modal_{{processed.id}}_face_{{forloop.parentloop.counter}}_ranking_{{forloop.counter}}_btn">
+                        <button
+                          class="accordion-button collapsed"
+                          type="button"
+                          data-mdb-toggle="collapse"
+                          data-mdb-target="#modal_{{processed.id}}_face_{{forloop.parentloop.counter}}_ranking_{{forloop.counter}}"
+                          aria-expanded="false"
+                          aria-controls="modal_{{processed.id}}_face_{{forloop.parentloop.counter}}_ranking_{{forloop.counter}}"
+                          data-imgdb-id="{{ r.imgdb.id }}"
+                          onclick="requestImg(this)"
+                        >
+                        {{forloop.counter}}. {{ r.imgdb.label|dash2space }}: {{ r.value|stringformat:".2f" }}
+                        </button>
+                      </h3>
+                      <div id="modal_{{processed.id}}_face_{{forloop.parentloop.counter}}_ranking_{{forloop.counter}}" class="accordion-collapse collapse"
+                           aria-labelledby="modal_{{processed.id}}_face_{{forloop.parentloop.counter}}_ranking_{{forloop.counter}}_btn"
+                           data-mdb-parent="#modal_{{processed.id}}_face_{{forloop.counter}}_ranking">
+                        <div class="row accordion-body justify-content-center">
+                          <img src="{% static 'images/not-found.jpg' %}" 
+                               id="img_modal_{{processed.id}}_face_{{forloop.parentloop.counter}}_ranking_{{forloop.counter}}"
+                               style="width: 30%;"/>
+                        </div>
+                      </div>
+                    </div>
+                    {%endfor%}
+                  </div>
+                  {%endfor%}
+                </div>
+              </div>
+            {%endif%}
+            </div>
+            {%endif%}
+
+            {% if "det" in operations %}
+            <div class="tab-pane fade {% if 'det' not in operations %} show active {%endif%}" 
+                id="modal_{{processed.id}}_results-tabs-det" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results-tab-det">
+              <div class="row justify-content-center">
+                <svg id="modal_{{processed.id}}_det_view" width="{{w}}" height="{{h}}" style="width:min-content">
+                  <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
+                  {% for obj in processed.detections %}
+                  <rect x="{{obj.bbx.0|mul:w|stringformat:"f"}}" y="{{obj.bbx.1|mul:h|stringformat:"f"}}" width="{{obj.bbx.2|sub:obj.bbx.0|mul:w|stringformat:"f"}}" height="{{obj.bbx.3|sub:obj.bbx.1|mul:h|stringformat:"f"}}"
+                    style="stroke:{% if obj.label == 'Arma de Fogo' %}#ff002a
+                                  {% elif obj.label == 'Arma Branca' %}#ffa700
+                                  {% else %}#00e95f
+                                  {% endif %};
+                          stroke-width:5;fill-opacity:0;" 
+                    class="{% if obj.label == 'Arma de Fogo' %}gun
+                          {% elif obj.label == 'Arma Branca' %}blade
+                          {% else %}vehicle
+                          {% endif %}"
+                    id="bbx_{{processed.id}}_{{forloop.counter}}_stroke" onmouseover="highlight(this)" onmouseout="reset(this)"/>
+                  <rect x="{{obj.bbx.0|mul:w|sub:2.5|stringformat:"f"}}" y="{{obj.bbx.1|mul:h|sub:19|stringformat:"f"}}" width="{{obj.bbx.2|sub:obj.bbx.0|mul:w|addition:5.0|stringformat:"f"}}" height="21.5"
+                    style="fill:{% if obj.label == 'Arma de Fogo' %}#ff002a
+                                  {% elif obj.label == 'Arma Branca' %}#ffa700
+                                  {% else %}#00e95f
+                                  {% endif %};"
+                    class="{% if obj.label == 'Arma de Fogo' %}gun
+                          {% elif obj.label == 'Arma Branca' %}blade
+                          {% else %}vehicle
+                          {% endif %}"
+                    id="bbx_{{processed.id}}_{{forloop.counter}}_fill" onmouseover="highlight(this)" onmouseout="reset(this)"/>
+                  <text id="text_{{processed.id}}_{{forloop.counter}}" 
+                        x="{{obj.bbx.0|mul:w|stringformat:"f"}}"
+                        y="{{obj.bbx.1|mul:h|sub:5|stringformat:"f"}}"
+                        fill="#fff"
+                        style="text-anchor:start;font-size:16px;font-weight:bold;font-family: sans-serif;">{{obj.label}}: {{obj.score|stringformat:".2f"}}</text>
+                  {%endfor%}
+                </svg>
+                <!-- <img src="{{tmp}}/{{processed.filename}}" style="width: 80%;"/> -->
+              </div>
+            </div>
+            {%endif%}
+        </div>
+        <!-- Tabs content -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endfor %}
+
+<script>
+  function highlight(box){
+    color = "";
+    switch(box.className.baseVal.trim()){
+      case 'gun':
+        color = "#ff3f3f";
+        break;
+      case 'blade':
+        color = "#db8f00";
+        break;
+      case 'vehicle':
+        color = "#06cd57";
+        break;
+      case 'face':
+        color = "#2268db";
+        break;
+    }
+    if (box.id.includes("fill")){
+      box.style.fill = color;
+      other = box.id.replace("fill", "stroke");
+      document.getElementById(other).style.stroke = color;
+    }
+    else if (box.id.includes("stroke")){
+      box.style.stroke = color;
+      other = box.id.replace("stroke", "fill");
+      document.getElementById(other).style.fill = color;
+    }
+  }
+
+  function reset(box){
+    color = "";
+    switch(box.className.baseVal.trim()){
+      case 'gun':
+        color = "#ff002a";
+        break;
+      case 'blade':
+        color = "#ffa700";
+        break;
+      case 'vehicle':
+        color = "#00e95f";
+        break;
+      case 'face':
+        color = "#004bc5";
+        break;
+    }
+    if (box.id.includes("fill")){
+      box.style.fill = color;
+      other = box.id.replace("fill", "stroke");
+      document.getElementById(other).style.stroke = color;
+    }
+    else if (box.id.includes("stroke")){
+      box.style.stroke = color;
+      other = box.id.replace("stroke", "fill");
+      document.getElementById(other).style.fill = color;
+    }
+  }
+
+  function showRanking(obj){
+    vis = $("div.accordion:visible");
+    toshow = $("#".concat(obj.getAttribute('data-face-ranking')));
+    vis.hide();
+    toshow.show();
+    document.getElementById("face_id_text").innerText = obj.getAttribute('data-face-id');
+  }
+
+  function requestImg(btn){
+    img = btn.parentElement.id.replace("_btn", "")
+    img = "img_".concat(img);
+    img = document.getElementById(img)
+    if (img.getAttribute('src') == '/static/images/not-found.jpg'){
+      $.ajax({
+          type: 'POST',
+          url: "{% url 'detailed_result_imgdb' %}",
+          data: {'img_id': btn.getAttribute('data-imgdb-id'),
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                'is_ajax': true},
+                
+          success: function (response) {
+              // on successfull 
+              var instance = response["instance"];
+
+              img.src = instance['tmp'].concat('/').concat(instance['path'])
+
+          },
+          error: function (response) {
+              // alert the error if any error occured
+              // alert(response["responseJSON"]["error"]);
+          }
+      })
+    }
+  }
+
+</script>
+
+<style>
+  rect.face:hover{
+    cursor: pointer; !important;
+  }
+</style>
+
+{% endblock %}

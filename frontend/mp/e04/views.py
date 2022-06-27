@@ -6,6 +6,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 
+from django.http import JsonResponse
+from django.core import serializers
+
 from django.templatetags.static import static
 
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm
@@ -429,6 +432,7 @@ def results(request):
     return render(request, 'e04/results.html', context)
 
 def detailed_result(request, operation_id):
+    img_sz = 70
     config_data = GeneralConfig.objects.filter(id=1)
     config_data = config_data[0] if len(config_data) else GeneralConfig()
 
@@ -453,8 +457,9 @@ def detailed_result(request, operation_id):
 
     for i, img in enumerate(unique):
         print(tmp / os.path.basename(img))
+        opimg = cv.imread(img)
         formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", 
-                                                     path=img,
+                                                     path=img, w=opimg.shape[1], h=opimg.shape[0],
                                                      operation=operation_id,
                                                      detection_result_path=os.path.join(config_data.save_path,
                                                                                         str(operation_id),
@@ -470,7 +475,7 @@ def detailed_result(request, operation_id):
                                                                                         str(operation_id),
                                                                                         'results', os.path.basename(img)))
         if not os.path.exists(tmp/os.path.basename(img)):
-            shutil.copy(formated_processed_list[img].detection_result_path, tmp/os.path.basename(img))
+            shutil.copy(img, tmp/os.path.basename(img))
         # shutil.copy(img, tmp/os.path.basename(img))
     
 
@@ -489,13 +494,16 @@ def detailed_result(request, operation_id):
             lbl.sort(key=lambda x: x.obj)
 
             for lb, sc, bb in zip(lbl, scs, bbs):
-                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""), eval(sc.value), eval(bb.value)))
+                rel_bb = eval(bb.value)
+                rel_bb = [rel_bb[0]/fprc.w, rel_bb[1]/fprc.h, rel_bb[2]/fprc.w, rel_bb[3]/fprc.h]
+                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""), eval(sc.value), rel_bb))
 
         # If face retrieval
         elif len(outputs) == 1:
             bbx = eval(outputs[0].value)
+            rel_bbx = [bbx[0]/fprc.w, bbx[1]/fprc.h, bbx[2]/fprc.w, bbx[3]/fprc.h]
             face_id = len(fprc.faces)
-            fprc.faces.append(FullProcessed.Faces(face_id, bbx))
+            fprc.faces.append(FullProcessed.Faces(face_id, rel_bbx))
             face = fprc.faces[-1]
 
             ranking = Ranking.objects.filter(processed=processed)
@@ -508,17 +516,17 @@ def detailed_result(request, operation_id):
             ranking_img_info = [(r.value, r.imgdb.label, r.imgdb.path) for r in face.rankings]
 
             # Create ranking image for face
-            face.result_path = os.path.join(tmp, fprc.name + "_" + str(face_id) + "_person_retrieval.jpg")
+            # face.result_path = os.path.join(tmp, fprc.name + "_" + str(face_id) + "_person_retrieval.jpg")
 
-            if not os.path.exists(tmp/os.path.basename(face.result_path)):
-                face.result_path = plot_top15_person_retrieval(fprc.path, "", 
-                                                            ranking_img_info, 
-                                                            face_id, fprc.name,
-                                                            bb=bbx,
-                                                            save_dir=tmp
-                                                            )
+            # if not os.path.exists(tmp/os.path.basename(face.result_path)):
+            #     face.result_path = plot_top15_person_retrieval(fprc.path, "", 
+            #                                                 ranking_img_info, 
+            #                                                 face_id, fprc.name,
+            #                                                 bb=bbx,
+            #                                                 save_dir=tmp
+            #                                                 )
 
-            face.result_path = os.path.basename(face.result_path)
+            # face.result_path = os.path.basename(face.result_path)
             # shutil.copy(face.result_path, tmp/os.path.basename(face.result_path))
 
             # # Create boundbox to visualization
@@ -540,8 +548,38 @@ def detailed_result(request, operation_id):
     back = back[:-1]
     print(view_path.split(os.path.sep), os.listdir(back + '/home'))
     context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list, 'operations': operations[op.type],
-              'tmp': static(os.path.join('tmp', str(operation_id), 'results')),}
-    return render(request,'e04/detailed_result.html',context)
+              'tmp': static(os.path.join('tmp', str(operation_id), 'results')),
+              'w': img_sz*16,'h':img_sz*9}
+    return render(request,'e04/detailed_result_v2.html',context)
+
+def requestImageDB(request):
+    # request should be ajax and method should be POST.
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if is_ajax and request.method == "POST":
+        img_id = request.POST.get('img_id', '')
+
+        if img_id == '': return JsonResponse({"error": ""}, status=400)
+
+        imagedb = ImageDB.objects.filter(id = img_id)[0]
+
+        root = os.path.split(os.path.abspath(__file__))[0]
+        tmp = Path(os.path.join(root, static('')[1:], 'tmp', 'images'))
+        tmp.mkdir(parents=True, exist_ok=True)
+
+        if not os.path.exists(tmp/os.path.basename(imagedb.path)):
+            shutil.copy(imagedb.path, tmp/os.path.basename(imagedb.path))
+
+        instance = {'tmp' : static(os.path.join('tmp', 'images')),
+                    'path': os.path.basename(imagedb.path)}
+
+        # send to client side.
+        return JsonResponse({"instance": instance}, status=200)
+        
+
+    # some error occured
+    return JsonResponse({"error": ""}, status=400)
+
 
 @login_required
 def config(request):

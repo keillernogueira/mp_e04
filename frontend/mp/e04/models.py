@@ -103,9 +103,11 @@ class Processed(models.Model):
 
 
 class FullProcessed():  
-    def __init__(self, id, path="", operation=0, detection_result_path = "", retrieval_result_path=""):
+    def __init__(self, id, path="", w=0, h=0, operation=0, detection_result_path = "", retrieval_result_path=""):
         self.operation = operation
         self.path = path
+        self.w = w
+        self.h = h
         self.filename = os.path.basename(path)
         self.name = self.filename.split('.')[0]
         self.detection_result_path = detection_result_path

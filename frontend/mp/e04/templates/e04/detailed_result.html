@@ -110,49 +110,48 @@
 
         
         <!-- Tabs content -->
+        
         <div class="tab-content" id="modal_{{processed.id}}_results-content">
+            {% if "ret" in operations %}
             <div
             class="tab-pane fade show active"
             id="modal_{{processed.id}}_results-tabs-ret"
             role="tabpanel"
             aria-labelledby="modal_{{processed.id}}_results-tab-ret"
             >
-            
-            {% if processed.faces|length == 0%} 
-              <img src="{{tmp}}/{{processed.filename}}"/> 
-              <h5>Nenhuma face foi detectada pelo modelo.</h5>
-            {%endif%}
-            {% if processed.faces|length >= 1%}
-              <!-- Pills content -->
-              <div class="tab-content" id="modal_{{processed.id}}_face-content">
-                {% for face in processed.faces %}
-                    <div 
-                      class="tab-pane fade {%if forloop.first %} show active {% endif %}"
-                      id="modal_{{processed.id}}_face-pills-{{face.id}}"
-                      role="tabpanel"
-                      aria-labelledby="modal_{{processed.id}}_face-pills-tab-{{face.id}}"
-                    >
-                      <div class="row justify-content-center">
-                        <div class="col-8">
-                          <img src="{{tmp}}/{{face.result_path}}" style="width: 100%;"/>
+              {% if processed.faces|length == 0%} 
+                <img src="{{tmp}}/{{processed.filename}}"/> 
+                <h5>Nenhuma face foi detectada pelo modelo.</h5>
+              {%endif%}
+              {% if processed.faces|length >= 1%}
+                <!-- Pills content -->
+                <div class="tab-content" id="modal_{{processed.id}}_face-content">
+                  {% for face in processed.faces %}
+                      <div 
+                        class="tab-pane fade {%if forloop.first %} show active {% endif %}"
+                        id="modal_{{processed.id}}_face-pills-{{face.id}}"
+                        role="tabpanel"
+                        aria-labelledby="modal_{{processed.id}}_face-pills-tab-{{face.id}}"
+                      >
+                        <div class="row justify-content-center">
+                          <div class="col-8">
+                            <img src="{{tmp}}/{{face.result_path}}" style="width: 100%;"/>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                {%endfor%}
-              </div>
-            {%endif%}
-            
-            
-
-
+                  {%endfor%}
+                </div>
+              {%endif%}
             </div>
-
+            {%endif%}
+            {% if "det" in operations %}
             <div class="tab-pane fade" id="modal_{{processed.id}}_results-tabs-det" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results-tab-det">
               <div class="row justify-content-center">
                 <img src="{{tmp}}/{{processed.filename}}" style="width: 80%;"/>
               </div>
               
             </div>
+            {%endif%}
         </div>
         <!-- Tabs content -->
         
