@@ -6,6 +6,7 @@ from ..preprocessing.preprocessing_general import PreProcess
 from ..dataloaders.conversor import read_image
 
 from ..utils import plot_bbs
+from .conversor import generate_sha256
 
 
 class ImageDataLoader(object):
@@ -29,6 +30,7 @@ class ImageDataLoader(object):
     def __getitem__(self, index):
         print(self.image)
         imgl = read_image(self.image)
+        img_hash = generate_sha256(self.image)
 
         # if image is grayscale, transform into rgb by repeating the image 3 times
         if len(imgl.shape) == 2:
@@ -39,7 +41,7 @@ class ImageDataLoader(object):
             assert imgl.size != 0 and bb.size != 0
         except AssertionError:
             # no face detected
-            return [], [], [], []
+            return [], [], [], [], []
 
         # plot_bbs(self.image, '/home/kno/recfaces/', bb)
 
@@ -52,7 +54,7 @@ class ImageDataLoader(object):
             imglist[i] = imglist[i].transpose(0, 3, 1, 2)
         imgs = [torch.from_numpy(i).float() for i in imglist]
 
-        return imgs, self.image, imgl, bb
+        return imgs, self.image, imgl, bb, img_hash
 
     def __len__(self):
         return 1

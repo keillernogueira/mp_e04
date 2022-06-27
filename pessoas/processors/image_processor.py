@@ -31,9 +31,10 @@ def extract_features_from_image(model, dataloader, query_label, gpu):
     img_name = None
     cropped = None
     bbs = None
+    hashes = None
 
     # forward
-    for imgs, img_nm, imgl, bb in dataloader:
+    for imgs, img_nm, imgl, bb, img_hash in dataloader:
         if not imgs:
             # no face detected
             return None
@@ -46,11 +47,12 @@ def extract_features_from_image(model, dataloader, query_label, gpu):
         img_name = img_nm
         cropped = imgl
         bbs = bb
+        hashes = img_hash[0]
 
     # plot_bbs(bbs[0].cpu().numpy())
 
     result = {'feature': feature, 'name': [query_label], 'image': img_name,
-              'bbs': bbs[0].cpu().numpy(), 'cropped_image': cropped[0].cpu().numpy()}
+              'bbs': bbs[0].cpu().numpy(), 'cropped_image': cropped[0].cpu().numpy(), 'hash': hashes}
 
     return result
 
@@ -129,7 +131,6 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
 
     if K_images:
         top_k = pyretri.main(query_features, database_features, config, K_images, gpu)
-        print(top_k[0], type(top_k[0]), top_k[0].dtype)
         # scores_q = pyretri.main(query_features, database_features, config, 100)[0]
         # print(scores_q.shape)
         persons_scores = []
@@ -150,7 +151,8 @@ def generate_ranking_for_image(database_data, query_data, K_images=1000, k_rank=
                 scores_q = q @ np.transpose(sf)
 
             # associate confidence score with the label of the dataset and sort based on the confidence
-            scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]], database_data['id'][top_k[i]]))
+            scores_q = list(zip(scores_q, database_data['name'][top_k[i]], database_data['image'][top_k[i]],
+                                database_data['id'][top_k[i]]))
             scores_q = sorted(scores_q, key=lambda x: x[0], reverse=True)
 
             persons_scores.append((query_bbs[i], generate_rank(scores_q, k_rank)))

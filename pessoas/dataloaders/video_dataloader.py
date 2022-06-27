@@ -1,6 +1,8 @@
 import os
 import tempfile
 import numpy as np
+import time
+
 import cv2
 import pafy
 
@@ -10,7 +12,7 @@ from pathlib import Path
 from PIL import Image
 
 from ..preprocessing.preprocessing_general import PreProcess
-import time
+from .conversor import generate_sha256
 
 
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
@@ -43,7 +45,6 @@ class VideoDataLoader:
         self.return_only_one_face = return_only_one_face
         self.detector = PreProcess(self.preprocessing_method, crop_size=self.crop_size,
                                    return_only_one_face=self.return_only_one_face)
-    
 
     def __call__(self, filename):
         if 'youtube.com/' in filename.lower() or 'youtu.be/' in filename.lower():  # if is YouTube video
@@ -56,6 +57,7 @@ class VideoDataLoader:
 
         # Create video reader and find length
         v_cap = cv2.VideoCapture(filename)
+        v_hash = generate_sha256(filename)
         v_len = int(v_cap.get(cv2.CAP_PROP_FRAME_COUNT))
         assert v_len > 0, "Could not identify or load video"
         print("Video length:", v_len, "frames")
@@ -65,7 +67,7 @@ class VideoDataLoader:
         if self.n_frames is None:
             sample = np.arange(0, v_len)
         else:
-            if self.n_frames>v_len:
+            if self.n_frames > v_len:
                 print("########## Number of skipped frames greater than video length ##########")
                 sample = np.arange(0, v_len)
             else:
@@ -118,8 +120,8 @@ class VideoDataLoader:
                 else:
                     frame = np.repeat(np.expand_dims(np.array(frame), axis=0), imgl.shape[0], axis=0)
                     frames = np.concatenate((frames, frame))
-                    faces[0] = torch.cat((faces[0],imgs[0]),0)
-                    faces[1] = torch.cat((faces[1],imgs[1]),0)
+                    faces[0] = torch.cat((faces[0], imgs[0]), 0)
+                    faces[1] = torch.cat((faces[1], imgs[1]), 0)
                     crops = np.concatenate((crops, imgl))
                     bbs = np.concatenate((bbs, bb))
                 
@@ -139,7 +141,7 @@ class VideoDataLoader:
 
         # print(np.asarray(frames_batches).shape, np.asarray(img_batches).shape, img_batches[0][0].shape,
         #       img_batches[0][1].shape,  np.asarray(crop_batches).shape, np.asarray(bb_batches).shape)
-        if(len(faces) != 0):
+        if len(faces) != 0:
             frames_batches.append(frames)
             frames = []
             img_batches.append(faces)
@@ -149,4 +151,4 @@ class VideoDataLoader:
             bb_batches.append(bbs)
             bbs = []
 
-        return frames_batches, img_batches, crop_batches, bb_batches, v_len
+        return frames_batches, img_batches, crop_batches, bb_batches, v_len, v_hash, sample

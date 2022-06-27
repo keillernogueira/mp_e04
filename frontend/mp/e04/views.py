@@ -37,7 +37,7 @@ from objetos.yolov5.detect_obj import retrieval as detect_object
 debug = False
 
 
-def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
+def extract_files_from_zip(zip_file, extract_path=Path('/tmp')):
     with ZipFile(zip_file, 'r') as zipObj:
         file_objects = [item for item in zipObj.namelist()
                         if os.path.splitext(item)[1].replace('.', '') in img_formats + vid_formats]
@@ -46,14 +46,12 @@ def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
             zipObj.extract(item, path=extract_path)
 
 
-def getImageFolder(request, form_data, operation, config):
-    img_folder = Path('.')
-        
+def get_image_folder(request, form_data, operation, config):
     zip_file = request.FILES.get('zipFile', '')
     if zip_file != '':
         extractPath = Path(os.path.join(config.save_path, str(operation.id), 'input_files'))
         extractPath.mkdir(parents=True, exist_ok=True)
-        extractFilesFromZip(zip_file, extractPath)
+        extract_files_from_zip(zip_file, extractPath)
         img_folder = extractPath
     else:
         img_folder = Path(form_data['folderInput'])
@@ -61,7 +59,7 @@ def getImageFolder(request, form_data, operation, config):
     return str(img_folder)
 
 
-def newOperation(request, form_data, optype="det"):
+def new_operation(request, form_data, optype="det"):
     op = {'det': Operation.OpType.DETECTION, 'ret': Operation.OpType.RETRIEVAL}
     fkey = {'det': 'doFaceRetrieval', 'ret': 'doObjectDetection'}
 
@@ -74,7 +72,7 @@ def newOperation(request, form_data, optype="det"):
     return operation
 
 
-def loadDatabaseFeatures(databases):
+def load_database_features(databases):
     db_features = {'feature_mean': np.array([[0.0]]),
                    'len': 0,
                    'feature': [],
@@ -115,7 +113,7 @@ def loadDatabaseFeatures(databases):
     return db_features
 
 
-def saveRetrievalResults(operation, data, confidence):
+def save_retrieval_results(operation, data, confidence):
     out_data = []
     rkg_data = []
     
@@ -126,7 +124,9 @@ def saveRetrievalResults(operation, data, confidence):
                 continue
             if face['confidence most similar'] < confidence:
                 continue
-            prc = Processed(operation=operation, path=img['path'], frame=0)
+
+            prc = Processed(operation=operation, path=img['path'], hash=img['hash'],
+                            frame=face['frame_num'] if 'frame_num' in face else 0)
             prc.save()
             # prc_data.append(prc)
             
@@ -147,11 +147,11 @@ def saveRetrievalResults(operation, data, confidence):
     Output.objects.bulk_create(out_data)
 
 
-def saveDetectionResults(operation, data):
+def save_detection_results(operation, data):
     out_data = []
     prc_data = []
     for i, img in enumerate(data):
-        prc = Processed(operation=operation, path=img['path'], frame=img['frame'])
+        prc = Processed(operation=operation, path=img['path'], hash=img['hash'], frame=img['frame'])
         # prc_data.append(prc)
         prc.save()
         # print(img)
@@ -170,6 +170,75 @@ def saveDetectionResults(operation, data):
     Output.objects.bulk_create(out_data)
 
 
+def retrival_process(operation, config_data, img_folder, database, confid_threshold):
+    ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
+    preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
+    conf_thres = float(confid_threshold) / 100.0
+    if ret_model.model_path == "":
+        ret_model.model_path = None
+
+    # Operation Configs
+    operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB, value=repr(database))
+    operation_config_db.save()
+
+    operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
+    operation_config_rt.save()
+
+    # Retrieval
+    try:
+        operation.status = Operation.OpStatus.PROCESSING
+        operation.save()
+
+        db_features = load_database_features(database)
+
+        try:
+            # run face retrieval
+            data = face_retrieval(img_folder,
+                                  db_features,
+                                  os.path.join(config_data.save_path, str(operation.id), 'results'),
+                                  input_data='image', output_method='json',
+                                  model_name=ret_model.name, model_path=ret_model.model_path,
+                                  preprocessing_method=preprocessing)
+            # Saving in sql
+            save_retrieval_results(operation, data, conf_thres)
+
+        except Exception:
+            operation.status = Operation.OpStatus.ERROR
+            traceback.print_exc()
+    except:
+        operation.status = Operation.OpStatus.ERROR
+        traceback.print_exc()
+
+
+def detection_process(operation, config_data, img_folder, confid_threshold):
+    det_model = Model.objects.filter(id=config_data.det_model_id)[0]
+    det_options = defaultOpt()
+    det_options.conf_thres = float(confid_threshold) / 100.0
+
+    # Operation Configs
+    operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF,
+                                   value=det_options.conf_thres)
+    operation_config_dt.save()
+
+    # TODO Class Filters
+    # det_options.classes = [1, 2, ...]
+
+    # Detection
+    try:
+        operation.status = Operation.OpStatus.PROCESSING
+        operation.save()
+        # run obejct detection
+        data = detect_object(img_folder, det_model.model_path,
+                             os.path.join(config_data.save_path, str(operation.id), 'results'),
+                             'both', opt=det_options)
+
+        # Saving in sql
+        save_detection_results(operation, data)
+    except Exception:
+        operation.status = Operation.OpStatus.ERROR
+        traceback.print_exc()
+
+
 @login_required
 def index(request):
     ch = GeneralConfig.PreProcess.choices
@@ -181,7 +250,6 @@ def index(request):
 def id_person(request):
     if request.method == 'POST':
         form = IdPersonForm(request.POST, request.FILES, auto_id='%s')
-        print(form.data)
         if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
             form.add_error(None, "Either a zip file or a local folder should be informed.")
             form.add_error('folderInput', "*")
@@ -189,79 +257,20 @@ def id_person(request):
 
         if form.is_valid():
             form_data = form.cleaned_data
-            print(form_data)
 
-            operation = newOperation(request, form_data, optype='ret')
+            operation = new_operation(request, form_data, optype='ret')
 
             config_data = GeneralConfig.objects.all()
             config_data = config_data[0] if len(config_data) else GeneralConfig()
 
-            img_folder = getImageFolder(request, form_data, operation, config_data)
-            
-            ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
-            preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
-            conf_thres = float(form_data['retrievalThreshold'])/100.0
-            print(ret_model.model_path, ret_model.name)
+            img_folder = get_image_folder(request, form_data, operation, config_data)
 
-            # Operation Configs
-            operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB, value=repr(form_data['databases']))
-            operation_config_db.save()
+            retrival_process(operation, config_data, img_folder,
+                             form_data['databases'], form_data['retrievalThreshold'])
 
-            operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
-            operation_config_rt.save()
-
-            # Retrieval
-            try:
-                operation.status = Operation.OpStatus.PROCESSING
-                operation.save()
-                
-                db_features = loadDatabaseFeatures(form_data['databases'])
-
-                if not debug:
-                    try:
-                        # run face retrieval
-                        data = face_retrieval(img_folder,
-                                              db_features,
-                                              os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                              input_data='image', output_method='json',
-                                              model_name=ret_model.name, model_path=ret_model.model_path,
-                                              preprocessing_method=preprocessing)
-                        # Saving in sql
-                        saveRetrievalResults(operation, data, conf_thres)
-
-                    except Exception:
-                        operation.status = Operation.OpStatus.ERROR
-                        traceback.print_exc()
-                
-            except:
-                operation.status = Operation.OpStatus.ERROR
-            
             # Detection
             if form_data['doObjectDetection']:
-                det_model = Model.objects.filter(id=config_data.det_model_id)[0]
-                det_options = defaultOpt()
-                det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
-                print(det_model.model_path)
-
-                operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF,
-                                               value=det_options.conf_thres)
-                operation_config_dt.save()
-
-                if not debug:
-                    try:
-                        operation.status = Operation.OpStatus.PROCESSING
-                        operation.save()
-                        
-                        # run obejct detection
-                        data = detect_object(img_folder,
-                                             det_model.model_path,
-                                             os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                             'both', opt=det_options)
-                        # Saving in sql
-                        saveDetectionResults(operation, data)
-                    except Exception:
-                        operation.status = Operation.OpStatus.ERROR
-                        traceback.print_exc()
+                detection_process(operation, config_data, img_folder, form_data['detectionThreshold'])
 
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:
@@ -305,7 +314,7 @@ def update_db(request):
             for i in range(len(feats['name'])):
                 data.append(ImageDB(operation=op, database=db,
                                     path=feats['image'][i], hash=feats['hashes'][i], bb=repr(feats['bbs'][i].tolist()),
-                                    features=repr(feats['feature'][i].tolist()), label=feats['name'][i]))
+                                    features=repr(feats['normalized_feature'][i].tolist()), label=feats['name'][i]))
             ImageDB.objects.bulk_create(data)
 
             op.status = Operation.OpStatus.FINISHED
@@ -329,7 +338,6 @@ def update_db(request):
 @login_required
 def detect_obj(request):
     # if this is a POST request we need to process the form data
-    print(request.user, request.user.id)
     if request.method == 'POST':
         form = DetectionForm(request.POST, request.FILES, auto_id='%s')
         form.fields['databases'].required = 'doFaceRetrieval' in form.data.keys()
@@ -341,79 +349,20 @@ def detect_obj(request):
  
         if form.is_valid():
             form_data = form.cleaned_data
-            print(form_data)
 
-            operation = newOperation(request, form_data, optype='det')
+            operation = new_operation(request, form_data, optype='det')
 
             config_data = GeneralConfig.objects.all()
             config_data = config_data[0] if len(config_data) else GeneralConfig()
 
-            img_folder = getImageFolder(request, form_data, operation, config_data)
-            print(img_folder)
+            img_folder = get_image_folder(request, form_data, operation, config_data)
 
-            det_model = Model.objects.filter(id=config_data.det_model_id)[0]
-            det_options = defaultOpt()
-            det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
-            print(det_model.model_path, det_options.conf_thres)
-
-            # Operation Configs
-            operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF,
-                                           value=det_options.conf_thres)
-            operation_config_dt.save()
-
-            # TODO Class Filters
-            # det_options.classes = [1, 2, ...]
-
-            # Detection
-            try:
-                operation.status = Operation.OpStatus.PROCESSING
-                operation.save()
-                # run obejct detection 
-                if not debug:
-                    data = detect_object(img_folder, det_model.model_path,
-                                         os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                         'both', opt=det_options)
-                    # Saving in sql
-                    saveDetectionResults(operation, data)
-            except Exception:
-                operation.status = Operation.OpStatus.ERROR
-                traceback.print_exc()
+            detection_process(operation, config_data, img_folder, form_data['detectionThreshold'])
             
             # Retrieval
             if form_data['doFaceRetrieval']:
-                ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
-                preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
-                conf_thres = float(form_data['retrievalThreshold'])/100.0
-                print(ret_model.model_path, ret_model.name, preprocessing)
-
-                operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB,
-                                               value=repr(form_data['databases']))
-                operation_config_db.save()
-
-                operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
-                operation_config_rt.save()
-
-                # Features in DB? Load features here
-                db_features = loadDatabaseFeatures(form_data['databases'])
-                
-                # for k, v in db_features.items():
-                #     print(k, len(v) if type(v) is list else v)
-
-                if not debug:
-                    try:
-                        # run face retrieval
-                        data = face_retrieval(img_folder,
-                                              db_features,
-                                              os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                              input_data='image', output_method='json',
-                                              model_name=ret_model.name, model_path=ret_model.model_path,
-                                              preprocessing_method=preprocessing)
-                        # Saving in sql
-                        saveRetrievalResults(operation, data, conf_thres)
-
-                    except Exception:
-                        operation.status = Operation.OpStatus.ERROR
-                        traceback.print_exc()
+                retrival_process(operation, config_data, img_folder,
+                                 form_data['databases'], form_data['retrievalThreshold'])
 
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:

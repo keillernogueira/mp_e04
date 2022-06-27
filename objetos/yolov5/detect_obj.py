@@ -69,7 +69,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
         model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
 
     t0 = time.time()
-    for path, img, im0s, vid_cap in dataset:
+    for path, img, im0s, vid_cap, hash_data in dataset:
         # Image to tensor
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -100,6 +100,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
             data_dict = {}
             data_dict['name'] = p.name # Name of the file
             data_dict['path'] = str(p.resolve()) # Absolute path of the file
+            data_dict['hash'] = hash_data  # hash of the file
             data_dict['frame'] = str(frame)
 
             object_id = 1
@@ -112,8 +113,7 @@ def retrieval(img_path, model_path, output_path, save_as, opt=defaultOpt(), outp
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
                 # Write results
-                
-                
+
                 for *xyxy, conf, cls in reversed(det):
                     if 'json' in save_as:  # Write to file                        
                         object_dict = {}

@@ -31,7 +31,7 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
         # for i, filename in enumerate(video_file):  # loop over the videos
         #     print(i, filename)
         # Load frames and find faces
-        batches_frames, batches_imgs, batches_crops, batches_bbs, v_len = detection_pipeline(video_file)
+        batches_frames, batches_imgs, batches_crops, batches_bbs, v_len, v_hash, sample = detection_pipeline(video_file)
 
         # this method can be used to create a video with the detected bbs
         # generate_video(batches_frames, batches_bbs, 'video.avi')
@@ -98,7 +98,7 @@ def extract_features_from_video(video_file, detection_pipeline, model, n_best_fr
     print("Selected", all_frames.shape[0], "Frames of the", v_len, "on the video")
     print("Frames per second: " + str(v_len / (time.time() - start)))
     return {'feature': all_features, 'name': [None]*len(all_features), 'image': all_frames,
-            'bbs': all_bbs, 'cropped_image': all_crops}
+            'bbs': all_bbs, 'cropped_image': all_crops, 'hash': v_hash, 'frame_num': sample}
 
 
 def process_video(video_query, feature_file, save_dir, model, pre_process="sphereface", batch_size=60):

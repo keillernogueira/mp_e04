@@ -6,6 +6,7 @@ from sklearn import preprocessing
 import torch
 
 from ..preprocessing.preprocessing_general import PreProcess
+from .conversor import generate_sha256
 
 
 class GenericDataLoader(object):
@@ -52,6 +53,7 @@ class GenericDataLoader(object):
     def __getitem__(self, index):
         img = imageio.imread(self.img_list[index])
         cl = self.labels[index]
+        hash = generate_sha256(self.img_list[index])
 
         # if image is grayscale, transform into rgb by repeating the image 3 times
         if len(img.shape) == 2:
@@ -88,7 +90,7 @@ class GenericDataLoader(object):
                 imglist[i] = imglist[i].transpose(2, 0, 1)
             imgs = [torch.from_numpy(i).float() for i in imglist]
 
-            return imgs, cl, img, bb, self.img_list[index], self.labels_string[index]
+            return imgs, cl, img, bb, self.img_list[index], self.labels_string[index], hash
 
     def __len__(self):
         return len(self.img_list)

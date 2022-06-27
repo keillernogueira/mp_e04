@@ -1,9 +1,11 @@
 import os
 import io
 import base64
+import hashlib
+import numpy as np
+
 from imageio import imread, imwrite
 import validators
-import numpy as np
 
 
 def process_base64(base64_img):
@@ -45,6 +47,14 @@ def read_image(image):
         return img
     except:
         raise NotImplementedError("Could not identify and read image")
+
+
+def generate_sha256(file_path):
+    hash_sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
 
 
 if __name__ == '__main__':

@@ -26,7 +26,7 @@ vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']
 
 
 def retrieval(data_to_load, db_features, save_dir, config="pessoas/PyRetri/configs/base.yaml", input_data='image',
-              output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
+              output_method="image", model_name="curricularface", model_path=None, skipped_frames=16,
               preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
@@ -91,7 +91,7 @@ def retrieval(data_to_load, db_features, save_dir, config="pessoas/PyRetri/confi
 
 
 def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri/configs/base.yaml", input_data='image',
-                         output_method="image", model_name="curricularface", model_path=None, skipped_frames=4,
+                         output_method="image", model_name="curricularface", model_path=None, skipped_frames=16,
                          preprocessing_method="sphereface", K_images=5000, crop_size=(112, 112), gpu=True):
     """
     Retrieving results from an specific input data.
@@ -159,8 +159,9 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri
         top_k_ranking, all_ranking = generate_ranking_for_image(db_features, feature, bib='pytorch',
                                                                 K_images=K_images, config=config, gpu=gpu)
         print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
+        print('check 1', feature['frame_num'])
 
-    print('check', feature['feature'].shape, feature['bbs'].shape)
+    print('check 2', feature['feature'].shape, feature['bbs'].shape, feature['hash'], len(top_k_ranking))
 
     # exporting results
     # if the method chosen was json
@@ -172,14 +173,16 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri
             name = os.path.basename(data_to_load)
             output.append({'name': name})
             output[i]['path'] = data_to_load
+            output[i]['hash'] = feature['hash']
             
             face_id = 1
-            for rank in top_k_ranking:
-                print('chuck', len(top_k_ranking), rank[0].shape)
-                names = {i['Name']: [np.float64(i['Confidence']), np.int(i['Id'])] for i in rank[1]}
+            for k, rank in enumerate(top_k_ranking):
+                names = {j['Name']: [np.float64(j['Confidence']), np.int(j['Id'])] for j in rank[1]}
                 face_dict = {'id': face_id, 'top options': names, 'most similar': rank[1][0]['Name'],
                              'confidence most similar': np.float64(rank[1][0]['Confidence']),
                              'box': rank[0].tolist()}
+                if 'frame_num' in feature:
+                    face_dict['frame_num'] = int(feature['frame_num'][k])
                 output[0][f'face_{face_id}'] = face_dict
                 # save_retrieved_ranking(output, rank[1], rank[0],
                 # os.path.join(save_dir, 'faces-'+datetime.now().strftime("%d%m%Y-%H%M%S%f") + '.json'))

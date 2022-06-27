@@ -12,7 +12,6 @@ from .models import GeneralConfig, Database
 
 
 def validateFolder(value):
-    print('chamando')
     if not os.path.exists(value):
         raise ValidationError(message=f'{value} folder is invalid or it doesn\'t have permission to access.')
 

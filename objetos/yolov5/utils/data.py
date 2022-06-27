@@ -1,4 +1,3 @@
-
 import requests # to get image from the web
 import shutil # to save it locally
 import tempfile
@@ -29,6 +28,15 @@ from .datasets import letterbox
 
 img_formats = ['bmp', 'jpg', 'jpeg', 'png', 'tif', 'tiff', 'dng', 'webp', 'mpo']  # acceptable image suffixes
 vid_formats = ['mov', 'avi', 'mp4', 'mpg', 'mpeg', 'm4v', 'wmv', 'mkv']  # acceptable video suffixes
+
+
+def generate_sha256(file_path):
+    hash_sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_sha256.update(chunk)
+    return hash_sha256.hexdigest()
+
 
 def read_json(input_file):
     files = []
@@ -194,7 +202,10 @@ class DetectLoadImages:  # for inference
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
 
-        return path, img, img0, self.cap
+        # hash
+        hash_data = generate_sha256(path)
+
+        return path, img, img0, self.cap, hash_data
 
     def new_video(self, path):
         self.frame = 0

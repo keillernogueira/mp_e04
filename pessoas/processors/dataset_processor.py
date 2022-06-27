@@ -37,12 +37,13 @@ def extract_features(dataloader, model, save_img_results=False, gpu=True):
     classes = None
     images = None
     names = None
+    hashes = None
     cropped_images = []
     bbs = []
     count = 0
 
     # forward
-    for imgs, cls, crop_img, bb, imgl_list, people in dataloader:
+    for imgs, cls, crop_img, bb, imgl_list, people, hash_img in dataloader:
         if gpu:
             for i in range(len(imgs)):
                 imgs[i] = imgs[i].cuda()
@@ -59,6 +60,7 @@ def extract_features(dataloader, model, save_img_results=False, gpu=True):
             images = imgl_list
             names = people
             bbs = bb
+            hashes = hash_img
             if save_img_results is True:
                 classes = cls
                 cropped_images = crop_img
@@ -67,20 +69,22 @@ def extract_features(dataloader, model, save_img_results=False, gpu=True):
             features = np.concatenate((features, feature), 0)
             images = np.concatenate((images, imgl_list), 0)
             bbs = np.concatenate((bbs, bb), 0)
+            hashes = np.concatenate((hashes, hash_img), 0)
             if save_img_results is True:
                 classes = np.concatenate((classes, cls), 0)
                 cropped_images = np.concatenate((cropped_images, crop_img), 0)
 
-    print(np.asarray(features).shape, np.asarray(bbs).shape, np.asarray(names).shape, np.asarray(images).shape)
+    print(np.asarray(features).shape, np.asarray(bbs).shape, np.asarray(names).shape,
+          np.asarray(images).shape, np.asarray(hashes).shape)
     if save_img_results is True:
         print(cropped_images.shape)
         print(classes.shape)
 
     if save_img_results is True:
         result = {'name': names, 'feature': features, 'class': classes, 'image': images,
-                  'cropped_image': cropped_images, 'bbs': bbs}
+                  'cropped_image': cropped_images, 'bbs': bbs, 'hashes': hashes}
     else:
-        result = {'name': names, 'feature': features, 'image': images, 'bbs': bbs}
+        result = {'name': names, 'feature': features, 'image': images, 'bbs': bbs, 'hashes': hashes}
 
     return result
 
