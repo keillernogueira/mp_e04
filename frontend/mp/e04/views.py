@@ -30,15 +30,21 @@ from pessoas.manipulate_dataset import manipulate_dataset
 from pessoas.retrieval import retrieval as face_retrieval
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
-from objetos.yolov5.detect_obj import retrieval as detect_object 
+from objetos.yolov5.detect_obj import retrieval as detect_object
+
+
+# TODO tem uma flag debug do proprio django no seetings.py
+debug = False
 
 
 def extractFilesFromZip(zip_file, extract_path=Path('/tmp')):
     with ZipFile(zip_file, 'r') as zipObj:
-        file_objects = [item for item in zipObj.namelist() if os.path.splitext(item)[1].replace('.', '') in img_formats + vid_formats]
+        file_objects = [item for item in zipObj.namelist()
+                        if os.path.splitext(item)[1].replace('.', '') in img_formats + vid_formats]
 
         for item in file_objects:
             zipObj.extract(item, path=extract_path)
+
 
 def getImageFolder(request, form_data, operation, config):
     img_folder = Path('.')
@@ -54,6 +60,7 @@ def getImageFolder(request, form_data, operation, config):
 
     return str(img_folder)
 
+
 def newOperation(request, form_data, optype="det"):
     op = {'det': Operation.OpType.DETECTION, 'ret': Operation.OpType.RETRIEVAL}
     fkey = {'det': 'doFaceRetrieval', 'ret': 'doObjectDetection'}
@@ -65,27 +72,27 @@ def newOperation(request, form_data, optype="det"):
     operation.save()
 
     return operation
-    
+
+
 def loadDatabaseFeatures(databases):
-    db_features = {}
-    db_features['feature_mean'] = np.array([[0.0]])
-    db_features['len'] = 0
-    db_features['feature'] = []
-    db_features['normalized_feature'] = []
-    db_features['name'] = []
-    db_features['image'] = []
-    db_features['id'] = []
+    db_features = {'feature_mean': np.array([[0.0]]),
+                   'len': 0,
+                   'feature': [],
+                   'normalized_feature': [],
+                   'name': [],
+                   'image': [],
+                   'id': []}
+
     for db in databases:
-        
         features = ImageDB.objects.filter(database=db)
         database = Database.objects.filter(id=db)[0]
-        # print(db, database.quantity, len(features))
 
         new_len = db_features['len'] + database.quantity
         # db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + database.feature_mean * database.quantity) / new_len
         
         db_ft_mean = np.array(eval(database.feature_mean))        
-        db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] + db_ft_mean * database.quantity) / new_len
+        db_features['feature_mean'] = (db_features['feature_mean'] * db_features['len'] +
+                                       db_ft_mean * database.quantity) / new_len
         db_features['len'] = new_len
 
         img_features = [np.array(eval(feat.features)) for feat in features]
@@ -103,9 +110,10 @@ def loadDatabaseFeatures(databases):
     db_features['name'] = np.array(db_features['name'])
     db_features['id'] = np.array(db_features['id'])
     db_features['normalized_feature'] = db_features['feature'] - (db_features['feature_mean'] - 1e-18)
-    #[feat - db_features['feature_mean'] for feat in db_features['feature']]
+    # [feat - db_features['feature_mean'] for feat in db_features['feature']]
 
     return db_features
+
 
 def saveRetrievalResults(operation, data, confidence):
     out_data = []
@@ -114,8 +122,10 @@ def saveRetrievalResults(operation, data, confidence):
     for i, img in enumerate(data):
         prc_data = []
         for key, face in img.items():
-            if 'face' not in key: continue
-            if face['confidence most similar'] < confidence: continue
+            if 'face' not in key:
+                continue
+            if face['confidence most similar'] < confidence:
+                continue
             prc = Processed(operation=operation, path=img['path'], frame=0)
             prc.save()
             # prc_data.append(prc)
@@ -126,14 +136,16 @@ def saveRetrievalResults(operation, data, confidence):
             # r ranking, k name, person [score, imgdb_id]
             for r, (k, person) in enumerate(sorted(face['top options'].items(), key=lambda x: x[1][0], reverse=True)):
                 # save only rankings higher than threshold
-                if person[0] < confidence: break
+                if person[0] < confidence:
+                    break
                 imgdb = ImageDB.objects.filter(id=person[1])[0]
                 ranking = Ranking(processed=prc, imagedb=imgdb, position=r+1, value=person[0])
                 rkg_data.append(ranking)
 
-        # Processed.objects.bulk_create(prc_data)
+    # Processed.objects.bulk_create(prc_data)
     Ranking.objects.bulk_create(rkg_data)
     Output.objects.bulk_create(out_data)
+
 
 def saveDetectionResults(operation, data):
     out_data = []
@@ -146,8 +158,10 @@ def saveDetectionResults(operation, data):
         for obj_id in range(1, img['objects'] + 1):
             obj = img[f'object_{obj_id}']
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']), obj=obj_id-1)
-            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']), obj=obj_id-1)
-            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']), obj=obj_id-1)
+            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE,
+                               value=repr(obj['confidence']), obj=obj_id-1)
+            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL,
+                               value=repr(obj['class']), obj=obj_id-1)
             out_data.append(out_bb)
             out_data.append(out_score)
             out_data.append(out_label)
@@ -156,15 +170,12 @@ def saveDetectionResults(operation, data):
     Output.objects.bulk_create(out_data)
 
 
-
-
 @login_required
 def index(request):
     ch = GeneralConfig.PreProcess.choices
     print(ch, dict(ch), dict(ch)['MT'].lower())
     return render(request, 'e04/index.html')
 
-debug = False
 
 @login_required
 def id_person(request):
@@ -212,7 +223,7 @@ def id_person(request):
                         data = face_retrieval(img_folder,
                                               db_features,
                                               os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                              input_data='image', output_method='json', 
+                                              input_data='image', output_method='json',
                                               model_name=ret_model.name, model_path=ret_model.model_path,
                                               preprocessing_method=preprocessing)
                         # Saving in sql
@@ -232,7 +243,8 @@ def id_person(request):
                 det_options.conf_thres = float(form_data['detectionThreshold'])/100.0
                 print(det_model.model_path)
 
-                operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF, value=det_options.conf_thres)
+                operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF,
+                                               value=det_options.conf_thres)
                 operation_config_dt.save()
 
                 if not debug:
@@ -240,11 +252,11 @@ def id_person(request):
                         operation.status = Operation.OpStatus.PROCESSING
                         operation.save()
                         
-                        # run obejct detection 
+                        # run obejct detection
                         data = detect_object(img_folder,
-                                                    det_model.model_path,
-                                                    os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                                    'both', opt=det_options)
+                                             det_model.model_path,
+                                             os.path.join(config_data.save_path, str(operation.id), 'results'),
+                                             'both', opt=det_options)
                         # Saving in sql
                         saveDetectionResults(operation, data)
                     except Exception:
@@ -263,6 +275,7 @@ def id_person(request):
         form = IdPersonForm(auto_id='%s')
         return render(request, 'e04/id_person.html', {'form': form})
 
+
 @login_required
 def update_db(request):
     if request.method == 'POST':
@@ -273,8 +286,7 @@ def update_db(request):
         form.fields['dbName'].required = required
 
         if form.is_valid():
-            # mudar isso para usar usuario que fez a requisicao
-            op = Operation(user=request.user, #User.objects.get(id=1)
+            op = Operation(user=request.user,
                            type=Operation.OpType.UPDATE,
                            status=Operation.OpStatus.PROCESSING)
             op.save()
@@ -292,7 +304,7 @@ def update_db(request):
             data = []
             for i in range(len(feats['name'])):
                 data.append(ImageDB(operation=op, database=db,
-                                    path=feats['image'][i], bb=repr(feats['bbs'][i].tolist()),
+                                    path=feats['image'][i], hash=feats['hashes'][i], bb=repr(feats['bbs'][i].tolist()),
                                     features=repr(feats['feature'][i].tolist()), label=feats['name'][i]))
             ImageDB.objects.bulk_create(data)
 
@@ -312,6 +324,7 @@ def update_db(request):
     else:
         form = UpdateDBForm()
         return render(request, 'e04/update_db.html', {'form': form})
+
 
 @login_required
 def detect_obj(request):
@@ -344,7 +357,8 @@ def detect_obj(request):
             print(det_model.model_path, det_options.conf_thres)
 
             # Operation Configs
-            operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF, value=det_options.conf_thres)
+            operation_config_dt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DET_CONF,
+                                           value=det_options.conf_thres)
             operation_config_dt.save()
 
             # TODO Class Filters
@@ -356,10 +370,9 @@ def detect_obj(request):
                 operation.save()
                 # run obejct detection 
                 if not debug:
-                    data = detect_object(img_folder,
-                                                det_model.model_path,
-                                                os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                                'both', opt=det_options)
+                    data = detect_object(img_folder, det_model.model_path,
+                                         os.path.join(config_data.save_path, str(operation.id), 'results'),
+                                         'both', opt=det_options)
                     # Saving in sql
                     saveDetectionResults(operation, data)
             except Exception:
@@ -373,7 +386,8 @@ def detect_obj(request):
                 conf_thres = float(form_data['retrievalThreshold'])/100.0
                 print(ret_model.model_path, ret_model.name, preprocessing)
 
-                operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB, value=repr(form_data['databases']))
+                operation_config_db = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.DB,
+                                               value=repr(form_data['databases']))
                 operation_config_db.save()
 
                 operation_config_rt = OpConfig(op=operation, parameter=OpConfig.ParameterOpt.RET_CONF, value=conf_thres)
@@ -391,7 +405,7 @@ def detect_obj(request):
                         data = face_retrieval(img_folder,
                                               db_features,
                                               os.path.join(config_data.save_path, str(operation.id), 'results'),
-                                              input_data='image', output_method='json', 
+                                              input_data='image', output_method='json',
                                               model_name=ret_model.name, model_path=ret_model.model_path,
                                               preprocessing_method=preprocessing)
                         # Saving in sql
@@ -415,9 +429,10 @@ def detect_obj(request):
         form = DetectionForm(auto_id='%s')
         return render(request, 'e04/detect_obj.html', {'form': form})
 
+
 @login_required
 def results(request):
-    current_user= request.user
+    current_user = request.user
     if current_user.is_staff or current_user.is_superuser:
         results_list = Operation.objects.all()
     else:
@@ -425,10 +440,9 @@ def results(request):
     
     myFilter = OperationFilter(request.GET, queryset=results_list)
     results_list = myFilter.qs
-    context = {'results_list':results_list, 'myFilter':myFilter }
+    context = {'results_list': results_list, 'myFilter': myFilter}
     return render(request, 'e04/results.html', context)
-            
-#teste
+
 
 def detailed_result(request, operation_id):
     config_data = GeneralConfig.objects.all()
@@ -446,8 +460,6 @@ def detailed_result(request, operation_id):
                                                                                         str(operation_id),
                                                                                         'results', img))
 
-
-
     for processed in processeds_list:
         fprc = formated_processed_list[processed.path]
 
@@ -463,7 +475,8 @@ def detailed_result(request, operation_id):
             lbl.sort(key=lambda x: x.obj)
 
             for lb, sc, bb in zip(lbl, scs, bbs):
-                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""), eval(sc.value), eval(bb.value)))
+                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""),
+                                                               eval(sc.value), eval(bb.value)))
 
         # If face retrieval
         elif len(outputs) == 1:
@@ -481,10 +494,10 @@ def detailed_result(request, operation_id):
             print(fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
 
     # print(unique)
-    context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list}
-    return render(request,'e04/detailed_result.html',context)
+    context = {'op': operation_id, 'processeds_list': processeds_list,
+               'formated_processed_list': formated_processed_list}
+    return render(request, 'e04/detailed_result.html', context)
 
- 
 
 def detailed_result(request, operation_id):
     config_data = GeneralConfig.objects.all()
@@ -502,8 +515,6 @@ def detailed_result(request, operation_id):
                                                                                         str(operation_id),
                                                                                         'results', img))
 
-    
-
     for processed in processeds_list:
         fprc = formated_processed_list[processed.path]
 
@@ -519,7 +530,8 @@ def detailed_result(request, operation_id):
             lbl.sort(key=lambda x: x.obj)
 
             for lb, sc, bb in zip(lbl, scs, bbs):
-                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""), eval(sc.value), eval(bb.value)))
+                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""),
+                                                               eval(sc.value), eval(bb.value)))
 
         # If face retrieval
         elif len(outputs) == 1:
@@ -536,16 +548,16 @@ def detailed_result(request, operation_id):
             face.rankings.sort(key=lambda x: x.position)
             print(fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
 
-    # print(unique)
-    context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list}
-    return render(request,'e04/detailed_result.html',context)
+    context = {'op': operation_id, 'processeds_list': processeds_list,
+               'formated_processed_list': formated_processed_list}
+    return render(request, 'e04/detailed_result.html', context)
+
 
 @login_required
 def config(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
 
-    
     data = GeneralConfig.objects.all()[0]
     # Get Values from database and load as initial form value
     form = ConfigForm(initial={'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model,
@@ -571,16 +583,18 @@ def config(request):
             print(form.errors)
             messages.error(request, 'Falha ao salvar as configurações.')
             form = ConfigForm(initial={'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model,
-                               'det_model': data.det_model, 'save_path': data.save_path})
+                                       'det_model': data.det_model, 'save_path': data.save_path})
     
     context = {'form': form}
     return render(request, 'e04/config.html', context)
+
 
 @login_required
 def train(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
     return HttpResponseRedirect('/e04/train/face')
+
 
 @login_required
 def train_face(request):
@@ -608,9 +622,9 @@ def train_face(request):
     form.fields['model_sel'].choices = [(x.name, x.name) for x in data]
     form.fields['model_sel'].choices.insert(0, ('', 'Selecione um Modelo'))
 
-
-    context = {'form': form }
+    context = {'form': form}
     return render(request, 'e04/train_face.html', context)
+
 
 @login_required
 def train_object(request):

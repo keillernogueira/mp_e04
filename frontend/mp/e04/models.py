@@ -88,6 +88,7 @@ class ImageDB(models.Model):
     database = models.ForeignKey(Database, on_delete=models.PROTECT)
 
     path = models.CharField(max_length=200)
+    hash = models.CharField(max_length=1000)  # hash sha
     bb = models.CharField(max_length=100)
     features = models.CharField(max_length=12000)
     label = models.CharField(max_length=100)
@@ -97,9 +98,11 @@ class Processed(models.Model):
     operation = models.ForeignKey(Operation, on_delete=models.CASCADE)
 
     path = models.CharField(max_length=200)
+    hash = models.CharField(max_length=1000)  # hash sha
     frame = models.IntegerField()
 
-class FullProcessed():  
+
+class FullProcessed:
     def __init__(self, path="", operation=0, detection_result_path = ""):
         self.operation = operation
         self.path = path
@@ -107,7 +110,7 @@ class FullProcessed():
         self.detections = []
         self.faces = []
 
-    class Detection():
+    class Detection:
         label_to_superlabel = {'pistol': 'Arma de Fogo',
                                'knife': 'Arma Branca',
                                'bicycle': 'Veículo',
@@ -129,9 +132,8 @@ class FullProcessed():
             self.score = score * 100.0
             self.bbx = bbx
 
-
-    class Faces():
-        class Ranking():
+    class Faces:
+        class Ranking:
             def __init__(self, position, value, imgdb):
                 self.position = position
                 self.value = value
@@ -142,7 +144,8 @@ class FullProcessed():
             self.bbx = bbx
             self.rankings = []
 
-class FullProcessed():  
+
+class FullProcessed:
     def __init__(self, path="", operation=0, detection_result_path = ""):
         self.operation = operation
         self.path = path
@@ -150,7 +153,7 @@ class FullProcessed():
         self.detections = []
         self.faces = []
 
-    class Detection():
+    class Detection:
         label_to_superlabel = {'pistol': 'Arma de Fogo',
                                'knife': 'Arma Branca',
                                'bicycle': 'Veículo',
@@ -171,10 +174,9 @@ class FullProcessed():
             self.label = self.label_to_superlabel[label]
             self.score = score * 100.0
             self.bbx = bbx
-            
 
-    class Faces():
-        class Ranking():
+    class Faces:
+        class Ranking:
             def __init__(self, position, value, imgdb):
                 self.position = position
                 self.value = value
@@ -185,17 +187,17 @@ class FullProcessed():
             self.bbx = bbx
             self.rankings = []
 
-    
 
 class Output(models.Model):
     processed = models.ForeignKey(Processed, on_delete=models.CASCADE)
     obj = models.IntegerField(default=0)
+
     class ParameterOpt(models.TextChoices):
         BB = 'BB', _('Bounding Box')
         SCORE = 'SC', _('Score')
         LABEL = 'LB', _('Label')
-    parameter = models.CharField(max_length=2, choices=ParameterOpt.choices)
 
+    parameter = models.CharField(max_length=2, choices=ParameterOpt.choices)
     value = models.CharField(max_length=100)
 
 
