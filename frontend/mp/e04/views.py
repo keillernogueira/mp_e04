@@ -404,9 +404,7 @@ def detailed_result(request, operation_id):
         for processed in processeds_list:
             outputs = Output.objects.filter(processed=processed)
             ranking = Ranking.objects.filter(processed=processed).order_by('position')
-            print('1', processed, outputs, ranking)
             if ranking:  # there is a raking to process
-                print("entrei ranking")
                 export_face_dict['File'].append(processed.path)
                 export_face_dict['Hash'].append(processed.hash)
                 export_face_dict['Frame'].append(processed.frame)
@@ -416,7 +414,6 @@ def detailed_result(request, operation_id):
                     export_face_dict['Rank' + str(i+1) + '_label'].append(ranking[i].imagedb.label)
                     export_face_dict['Rank' + str(i+1) + '_score'].append(ranking[i].value)
             if outputs:
-                print("entrei output")
                 bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
                 bbs.sort(key=lambda x: x.obj)
                 scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
@@ -432,11 +429,6 @@ def detailed_result(request, operation_id):
                     export_detec_dict['BoundBox'].append(eval(bb.value))
                     export_detec_dict['Score'].append(eval(sc.value))
                     export_detec_dict['Label'].append(lb.value.replace("'", ""))
-
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-        print(export_face_dict)
-        print('**************************************************************')
-        print(export_detec_dict)
 
         df1 = pd.DataFrame(export_face_dict)
         df2 = pd.DataFrame(export_detec_dict)
