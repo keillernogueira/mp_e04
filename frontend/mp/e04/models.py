@@ -168,7 +168,7 @@ class FullProcessed:
                                'shotgun': 'Arma de Fogo',
                                'machine gun': 'Arma de Fogo',
                                'submachine gun': 'Arma de Fogo',
-                              }
+                               }
 
         def __init__(self, label, score, bbx):
             self.label = self.label_to_superlabel[label]

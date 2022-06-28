@@ -15,6 +15,7 @@ import sys
 import traceback
 import inspect
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -118,7 +119,6 @@ def save_retrieval_results(operation, data, confidence):
     rkg_data = []
     
     for i, img in enumerate(data):
-        prc_data = []
         for key, face in img.items():
             if 'face' not in key:
                 continue
@@ -129,7 +129,7 @@ def save_retrieval_results(operation, data, confidence):
                             frame=face['frame_num'] if 'frame_num' in face else 0)
             prc.save()
             # prc_data.append(prc)
-            
+
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(face['box']))
             out_data.append(out_bb)
 
@@ -394,112 +394,116 @@ def results(request):
 
 
 def detailed_result(request, operation_id):
-    config_data = GeneralConfig.objects.all()
-    config_data = config_data[0] if len(config_data) else GeneralConfig()
+    if request.method == 'POST':
+        num_ranks_saved = 3
+        export_face_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Rank1_label': [], 'Rank1_score': [],
+                            'Rank2_label': [], 'Rank2_score': [], 'Rank3_label': [], 'Rank3_score': []}
+        export_detec_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Score': [], 'Label': []}
 
-    processeds_list = Processed.objects.filter(operation__id=operation_id)
-    unique = set([prc.path for prc in processeds_list])
+        processeds_list = Processed.objects.filter(operation__id=operation_id)
+        for processed in processeds_list:
+            outputs = Output.objects.filter(processed=processed)
+            ranking = Ranking.objects.filter(processed=processed).order_by('position')
+            print('1', processed, outputs, ranking)
+            if ranking:  # there is a raking to process
+                print("entrei ranking")
+                export_face_dict['File'].append(processed.path)
+                export_face_dict['Hash'].append(processed.hash)
+                export_face_dict['Frame'].append(processed.frame)
+                if outputs:  # there is an output to process
+                    export_face_dict['BoundBox'].append(outputs.first().value)
+                for i in range(num_ranks_saved):
+                    export_face_dict['Rank' + str(i+1) + '_label'].append(ranking[i].imagedb.label)
+                    export_face_dict['Rank' + str(i+1) + '_score'].append(ranking[i].value)
+            if outputs:
+                print("entrei output")
+                bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
+                bbs.sort(key=lambda x: x.obj)
+                scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
+                scs.sort(key=lambda x: x.obj)
+                lbl = [out for out in outputs if out.parameter == Output.ParameterOpt.LABEL]
+                lbl.sort(key=lambda x: x.obj)
 
-    formated_processed_list = {}
+                for lb, sc, bb in zip(lbl, scs, bbs):
+                    export_detec_dict['File'].append(processed.path)
+                    export_detec_dict['Hash'].append(processed.hash)
+                    export_detec_dict['Frame'].append(processed.frame)
 
-    for img in unique:
-        formated_processed_list[img] = FullProcessed(img,
-                                                     operation_id,
-                                                     detection_result_path=os.path.join(config_data.save_path,
-                                                                                        str(operation_id),
-                                                                                        'results', img))
+                    export_detec_dict['BoundBox'].append(eval(bb.value))
+                    export_detec_dict['Score'].append(eval(sc.value))
+                    export_detec_dict['Label'].append(lb.value.replace("'", ""))
 
-    for processed in processeds_list:
-        fprc = formated_processed_list[processed.path]
+        print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+        print(export_face_dict)
+        print('**************************************************************')
+        print(export_detec_dict)
 
-        outputs = Output.objects.filter(processed=processed)
+        df1 = pd.DataFrame(export_face_dict)
+        df2 = pd.DataFrame(export_detec_dict)
 
-        # If detection
-        if len(outputs) % 3 == 0: 
-            bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
-            bbs.sort(key=lambda x: x.obj)
-            scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
-            scs.sort(key=lambda x: x.obj)
-            lbl = [out for out in outputs if out.parameter == Output.ParameterOpt.LABEL]
-            lbl.sort(key=lambda x: x.obj)
+        config_data = GeneralConfig.objects.all()
+        config_data = config_data[0] if len(config_data) else GeneralConfig()
+        with pd.ExcelWriter(os.path.join(config_data.save_path, 'exported.xlsx')) as writer:
+            df1.to_excel(writer, sheet_name='person_id')
+            df2.to_excel(writer, sheet_name='obj_detect')
 
-            for lb, sc, bb in zip(lbl, scs, bbs):
-                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""),
-                                                               eval(sc.value), eval(bb.value)))
+        with open(os.path.join(config_data.save_path, 'exported.xlsx'), 'rb') as fh:
+            response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
+            response['Content-Disposition'] = 'inline; filename=' + \
+                                              os.path.basename(os.path.join(config_data.save_path, 'exported.xlsx'))
+            return response
+    else:
+        config_data = GeneralConfig.objects.all()
+        config_data = config_data[0] if len(config_data) else GeneralConfig()
 
-        # If face retrieval
-        elif len(outputs) == 1:
-            bbx = eval(outputs[0].value)
-            face_id = len(fprc.faces)
-            fprc.faces.append(FullProcessed.Faces(face_id, bbx))
-            face = fprc.faces[-1]
+        processeds_list = Processed.objects.filter(operation__id=operation_id)
+        unique = set([prc.path for prc in processeds_list])
 
-            ranking = Ranking.objects.filter(processed=processed)
-            for r in ranking:
-                # imagedb = ImageDB.objects.filter(id=r.imagedb)[0]
-                face.rankings.append(FullProcessed.Faces.Ranking(r.position, r.value, r.imagedb))
+        formated_processed_list = {}
 
-            face.rankings.sort(key=lambda x: x.position)
-            print(fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
+        for img in unique:
+            formated_processed_list[img] = FullProcessed(img, operation_id,
+                                                         detection_result_path=os.path.join(config_data.save_path,
+                                                                                            str(operation_id),
+                                                                                            'results', img))
 
-    # print(unique)
-    context = {'op': operation_id, 'processeds_list': processeds_list,
-               'formated_processed_list': formated_processed_list}
-    return render(request, 'e04/detailed_result.html', context)
+        for processed in processeds_list:
+            fprc = formated_processed_list[processed.path]
 
+            outputs = Output.objects.filter(processed=processed)
 
-def detailed_result(request, operation_id):
-    config_data = GeneralConfig.objects.all()
-    config_data = config_data[0] if len(config_data) else GeneralConfig()
-    
-    processeds_list = Processed.objects.filter(operation__id=operation_id)
-    unique = set([prc.path for prc in processeds_list])
+            # If detection
+            if len(outputs) % 3 == 0:
+                bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
+                bbs.sort(key=lambda x: x.obj)
+                scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
+                scs.sort(key=lambda x: x.obj)
+                lbl = [out for out in outputs if out.parameter == Output.ParameterOpt.LABEL]
+                lbl.sort(key=lambda x: x.obj)
 
-    formated_processed_list = {}
+                for lb, sc, bb in zip(lbl, scs, bbs):
+                    fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""),
+                                                                   eval(sc.value), eval(bb.value)))
 
-    for img in unique:
-        formated_processed_list[img] = FullProcessed(img,
-                                                     operation_id,
-                                                     detection_result_path=os.path.join(config_data.save_path,
-                                                                                        str(operation_id),
-                                                                                        'results', img))
+            # If face retrieval
+            elif len(outputs) == 1:
+                bbx = eval(outputs[0].value)
+                face_id = len(fprc.faces)
+                fprc.faces.append(FullProcessed.Faces(face_id, bbx))
+                face = fprc.faces[-1]
 
-    for processed in processeds_list:
-        fprc = formated_processed_list[processed.path]
+                ranking = Ranking.objects.filter(processed=processed)
+                for r in ranking:
+                    # imagedb = ImageDB.objects.filter(id=r.imagedb)[0]
+                    face.rankings.append(FullProcessed.Faces.Ranking(r.position, r.value, r.imagedb))
 
-        outputs = Output.objects.filter(processed=processed)
+                face.rankings.sort(key=lambda x: x.position)
+                print('1', fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
 
-        # If detection
-        if len(outputs) % 3 == 0: 
-            bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
-            bbs.sort(key=lambda x: x.obj)
-            scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
-            scs.sort(key=lambda x: x.obj)
-            lbl = [out for out in outputs if out.parameter == Output.ParameterOpt.LABEL]
-            lbl.sort(key=lambda x: x.obj)
-
-            for lb, sc, bb in zip(lbl, scs, bbs):
-                fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""),
-                                                               eval(sc.value), eval(bb.value)))
-
-        # If face retrieval
-        elif len(outputs) == 1:
-            bbx = eval(outputs[0].value)
-            face_id = len(fprc.faces)
-            fprc.faces.append(FullProcessed.Faces(face_id, bbx))
-            face = fprc.faces[-1]
-
-            ranking = Ranking.objects.filter(processed=processed)
-            for r in ranking:
-                # imagedb = ImageDB.objects.filter(id=r.imagedb)[0]
-                face.rankings.append(FullProcessed.Faces.Ranking(r.position, r.value, r.imagedb))
-            
-            face.rankings.sort(key=lambda x: x.position)
-            print(fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
-
-    context = {'op': operation_id, 'processeds_list': processeds_list,
-               'formated_processed_list': formated_processed_list}
-    return render(request, 'e04/detailed_result.html', context)
+        print('2', formated_processed_list)
+        context = {'op': operation_id, 'processeds_list': processeds_list,
+                   'formated_processed_list': formated_processed_list}
+        return render(request, 'e04/detailed_result.html', context)
 
 
 @login_required

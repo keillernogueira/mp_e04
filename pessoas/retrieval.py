@@ -15,6 +15,7 @@ from .processors.video_processor import extract_features_from_video
 from .plots import plot_top15_person_retrieval
 from .networks.load_network import load_net
 from .manipulate_json import save_retrieved_ranking, read_json
+from .dataloaders.conversor import generate_sha256
 
 import pickle
 import time
@@ -82,7 +83,7 @@ def retrieval(data_to_load, db_features, save_dir, config="pessoas/PyRetri/confi
             elif any(img_format in path.lower() for img_format in img_formats):
                 input_data = 'image'
             data = individual_retrieval(path, db_features, save_dir, config, input_data, output_method, model_name,
-                                 model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
+                                        model_path, skipped_frames, preprocessing_method, K_images, crop_size, gpu)
             out_data.append(data)
         return out_data
     else:
@@ -132,6 +133,8 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri
             model_name + " incompatible with loaded features"
     
     feature = None
+    top_k_ranking = []
+    all_ranking = []
     if input_data == 'image':
         # setting dataset and dataloader
         dataset = ImageDataLoader(data_to_load, preprocessing_method, crop_size)
@@ -140,12 +143,14 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri
         # extract features for the query image
         feature = extract_features_from_image(load_net(model_name, model_path, gpu), dataloader, None, gpu=gpu)
         
-        assert feature is not None, "No face detected - image " + data_to_load
-
-        st = time.time()
-        top_k_ranking, all_ranking = generate_ranking_for_image(db_features, feature, bib='pytorch',
-                                                                K_images=K_images, config=config, gpu=gpu)
-        print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
+        if feature is None:
+            print("No face detected - image " + data_to_load)
+        else:
+            st = time.time()
+            top_k_ranking, all_ranking = generate_ranking_for_image(db_features, feature, bib='pytorch',
+                                                                    K_images=K_images, config=config, gpu=gpu)
+            print('check image', feature['feature'].shape, feature['bbs'].shape, feature['hash'], len(top_k_ranking))
+            print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
 
     elif input_data == 'video':
         detection_pipeline = VideoDataLoader(batch_size=60, resize=0.5, preprocessing_method=preprocessing_method,
@@ -158,10 +163,9 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri
         st = time.time()
         top_k_ranking, all_ranking = generate_ranking_for_image(db_features, feature, bib='pytorch',
                                                                 K_images=K_images, config=config, gpu=gpu)
+        print('check video', feature['feature'].shape, feature['bbs'].shape, feature['hash'], len(top_k_ranking),
+              feature['frame_num'])
         print(f"Retrieval process finished in: {time.time() - st :.3f} seconds")
-        print('check 1', feature['frame_num'])
-
-    print('check 2', feature['feature'].shape, feature['bbs'].shape, feature['hash'], len(top_k_ranking))
 
     # exporting results
     # if the method chosen was json
@@ -173,8 +177,11 @@ def individual_retrieval(data_to_load, db_features, save_dir, config="../PyRetri
             name = os.path.basename(data_to_load)
             output.append({'name': name})
             output[i]['path'] = data_to_load
-            output[i]['hash'] = feature['hash']
-            
+            try:
+                output[i]['hash'] = feature['hash']
+            except TypeError:
+                output[i]['hash'] = generate_sha256(data_to_load)
+
             face_id = 1
             for k, rank in enumerate(top_k_ranking):
                 names = {j['Name']: [np.float64(j['Confidence']), np.int(j['Id'])] for j in rank[1]}
