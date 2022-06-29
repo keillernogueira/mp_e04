@@ -72,3 +72,25 @@ body {
 .form-check-input:checked[type=checkbox] {
     background-image: none;
 }
+
+tr.row-button:hover{
+    cursor: pointer;
+    /* font-weight: 600; */
+    
+}
+
+.table-hover>tbody>tr.row-button>td {
+    color: #5a5a5a;
+}
+
+.table-hover>tbody>tr.row-button>td:hover {
+    color: #0f0f0f;
+}
+
+.p-button{
+    font-weight:450;
+}
+
+/* .p-button:hover{
+    color:#b9b9b9;
+} */

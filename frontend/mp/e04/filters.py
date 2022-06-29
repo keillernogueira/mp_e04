@@ -6,6 +6,7 @@ from django_filters import DateFromToRangeFilter
 
 
 
+
 class OperationFilter (django_filters.FilterSet):
     type_choices = (
         ('TR','Treino'),

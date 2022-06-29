@@ -197,6 +197,9 @@ def plot_top15_person_retrieval(query_image, query_person, scores, query_num, im
 
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    fig.savefig(os.path.join(save_dir, image_name +
-                             "_" + str(query_num) + "_person_retrieval.jpg"))
+    
+    result_img_path = os.path.join(save_dir, image_name + "_" + str(query_num) + "_person_retrieval.jpg")
+    fig.savefig(result_img_path)
     plt.close(fig)
+
+    return result_img_path

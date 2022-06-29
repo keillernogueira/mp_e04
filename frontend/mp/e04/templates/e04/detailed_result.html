@@ -14,7 +14,7 @@
     <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()">
         {% csrf_token %}
         <div class="col12">
-            <table class="table table-striped table-hover">
+            <table class="table table-hover">
                 <thead>
                     <tr class="table-info">
                         <th>Lista de Imagens</th>
@@ -24,8 +24,8 @@
                 <tbody class="table-group-divider">
                     {% for img_path, processed in formated_processed_list.items %}
 
-                        <tr>
-                            <td>{{img_path}}</td>
+                          <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}">
+                            <td><p class="p-button">{{img_path}}</p></td>
                             <td>
                                 {% for face in processed.faces %}
                                 <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|floatformat:2 }} %</span>
@@ -57,15 +57,133 @@
     
 </div>
 </div>
-<!-- TODO:  Criar os modais para cada imagem-->
 
-
-<!-- {{formated_processed_list}}
 {% for img_path, processed in formated_processed_list.items %}
-{% for face in processed.faces %}
-{{face.rankings.0.imgdb.label}}
+
+<!-- Button trigger modal -->  
+  <!-- Modal -->
+  <div class="modal fade" id="modal_{{processed.id}}" tabindex="-1" aria-labelledby="modal_{{processed.id}}_Label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modal_{{processed.id}}_Label">{{processed.path}}</h5>
+          <button type="button" class="btn-close" data-mdb-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+         <!-- Tabs navs -->
+         <ul class="nav nav-tabs mb-3" id="modal_{{processed.id}}_results" role="tablist">
+          {% if "ret" in operations %}
+          <li class="nav-item" role="presentation">
+          <a
+              class="nav-link active"
+              id="modal_{{processed.id}}_results-tab-ret"
+              data-mdb-toggle="tab"
+              href="#modal_{{processed.id}}_results-tabs-ret"
+              role="tab"
+              aria-controls="modal_{{processed.id}}_results-tabs-ret"
+              
+              ><i class="fa-solid fa-users-viewfinder"></i>Reconhecimento de Faces</a
+          >
+          </li>
+          {%endif%}
+          {% if "det" in operations %}
+          <li class="nav-item" role="presentation">
+          <a
+              class="nav-link"
+              id="modal_{{processed.id}}_results-tab-det"
+              data-mdb-toggle="tab"
+              href="#modal_{{processed.id}}_results-tabs-det"
+              role="tab"
+              aria-controls="modal_{{processed.id}}_results-tabs-det"
+              aria-selected="false"
+              ><i class="fa-regular fa-file-magnifying-glass"></i>Detecção de Objetos</a
+          >
+          </li>
+          {%endif%}
+      </ul>
+      <!-- Tabs navs -->   
+
+        
+        <!-- Tabs content -->
+        
+        <div class="tab-content" id="modal_{{processed.id}}_results-content">
+            {% if "ret" in operations %}
+            <div
+            class="tab-pane fade show active"
+            id="modal_{{processed.id}}_results-tabs-ret"
+            role="tabpanel"
+            aria-labelledby="modal_{{processed.id}}_results-tab-ret"
+            >
+              {% if processed.faces|length == 0%} 
+                <img src="{{tmp}}/{{processed.filename}}"/> 
+                <h5>Nenhuma face foi detectada pelo modelo.</h5>
+              {%endif%}
+              {% if processed.faces|length >= 1%}
+                <!-- Pills content -->
+                <div class="tab-content" id="modal_{{processed.id}}_face-content">
+                  {% for face in processed.faces %}
+                      <div 
+                        class="tab-pane fade {%if forloop.first %} show active {% endif %}"
+                        id="modal_{{processed.id}}_face-pills-{{face.id}}"
+                        role="tabpanel"
+                        aria-labelledby="modal_{{processed.id}}_face-pills-tab-{{face.id}}"
+                      >
+                        <div class="row justify-content-center">
+                          <div class="col-8">
+                            <img src="{{tmp}}/{{face.result_path}}" style="width: 100%;"/>
+                          </div>
+                        </div>
+                      </div>
+                  {%endfor%}
+                </div>
+              {%endif%}
+            </div>
+            {%endif%}
+            {% if "det" in operations %}
+            <div class="tab-pane fade" id="modal_{{processed.id}}_results-tabs-det" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results-tab-det">
+              <div class="row justify-content-center">
+                <img src="{{tmp}}/{{processed.filename}}" style="width: 80%;"/>
+              </div>
+              
+            </div>
+            {%endif%}
+        </div>
+        <!-- Tabs content -->
+        
+        </div>
+        <div class="modal-footer">
+          {% if processed.faces|length >= 1%}
+              <!-- Pills navs -->
+              <ul class="nav nav-pills mb-3 justify-content-center col" id="modal_{{processed.id}}_face" role="tablist">
+              {% for face in processed.faces %}
+                <li class="nav-item" role="presentation">
+                <a
+                  class="nav-link {%if forloop.first %} active {% endif %}"
+                  id="modal_{{processed.id}}_face-pills-tab-{{face.id}}"
+                  data-mdb-toggle="pill"
+                  href="#modal_{{processed.id}}_face-pills-{{face.id}}"
+                  role="tab"
+                  aria-controls="modal_{{processed.id}}_face-pills-{{face.id}}"
+                  aria-selected="{%if forloop.first %} true {% else %} false {% endif %}"
+                  >Face {{face.id}}
+                </a>
+                </li>
+              {%endfor%}
+              </ul>
+            {%endif%}
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- {% for face in processed.faces %}
+    {{face.rankings.0.imgdb.label}}
+    {% endfor %}
+    {{processed}} -->
+
 {% endfor %}
-{{processed}}
-{% endfor %} -->
+
+
+
 
 {% endblock %}

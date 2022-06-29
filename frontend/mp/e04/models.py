@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 
+import os
+
 
 class Operation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -102,15 +104,21 @@ class Processed(models.Model):
     frame = models.IntegerField()
 
 
-class FullProcessed:
-    def __init__(self, path="", operation=0, detection_result_path = ""):
+class FullProcessed():  
+    def __init__(self, id, path="", w=0, h=0, operation=0, detection_result_path = "", retrieval_result_path=""):
         self.operation = operation
         self.path = path
+        self.w = w
+        self.h = h
+        self.filename = os.path.basename(path)
+        self.name = self.filename.split('.')[0]
         self.detection_result_path = detection_result_path
+        self.retrieval_result_path = retrieval_result_path
         self.detections = []
         self.faces = []
+        self.id = id
 
-    class Detection:
+    class Detection():
         label_to_superlabel = {'pistol': 'Arma de Fogo',
                                'knife': 'Arma Branca',
                                'bicycle': 'Veículo',
@@ -131,52 +139,10 @@ class FullProcessed:
             self.label = self.label_to_superlabel[label]
             self.score = score * 100.0
             self.bbx = bbx
+            
 
-    class Faces:
-        class Ranking:
-            def __init__(self, position, value, imgdb):
-                self.position = position
-                self.value = value
-                self.imgdb = imgdb
-
-        def __init__(self, id, bbx):
-            self.id = id
-            self.bbx = bbx
-            self.rankings = []
-
-
-class FullProcessed:
-    def __init__(self, path="", operation=0, detection_result_path = ""):
-        self.operation = operation
-        self.path = path
-        self.detection_result_path = detection_result_path
-        self.detections = []
-        self.faces = []
-
-    class Detection:
-        label_to_superlabel = {'pistol': 'Arma de Fogo',
-                               'knife': 'Arma Branca',
-                               'bicycle': 'Veículo',
-                               'car': 'Veículo',
-                               'bus': 'Veículo',
-                               'motorbike': 'Veículo',
-                               'truck': 'Veículo',
-                               'machete': 'Arma Branca',
-                               'pocket/stiletto knife': 'Arma Branca',
-                               'axe': 'Arma Branca',
-                               'rifle/sniper': 'Arma de Fogo',
-                               'shotgun': 'Arma de Fogo',
-                               'machine gun': 'Arma de Fogo',
-                               'submachine gun': 'Arma de Fogo',
-                               }
-
-        def __init__(self, label, score, bbx):
-            self.label = self.label_to_superlabel[label]
-            self.score = score * 100.0
-            self.bbx = bbx
-
-    class Faces:
-        class Ranking:
+    class Faces():
+        class Ranking():
             def __init__(self, position, value, imgdb):
                 self.position = position
                 self.value = value

@@ -48,10 +48,9 @@ class DetectionForm(ProcessingForm):
 
     # Retrieval configs
     databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
-                                          # choices=dbs_as_choices(insert_new=False),
-                                          widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select',
-                                                                             'style': 'display: none;'}))
-    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+                                 choices=dbs_as_choices(insert_new=False),
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
     def __init__(self, *args, **kwargs):
@@ -62,10 +61,9 @@ class DetectionForm(ProcessingForm):
 
 class IdPersonForm(ProcessingForm):
     databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
-                                          # choices=dbs_as_choices(insert_new=False),
-                                          widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select',
-                                                                             'style': 'display: none;'}))
-    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=50,
+                                 choices=dbs_as_choices(insert_new=False),
+                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+    retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
     doObjectDetection = forms.BooleanField(label=u'Realizar detecção de objetos?', required=False,

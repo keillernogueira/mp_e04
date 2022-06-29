@@ -6,16 +6,24 @@ from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.contrib import messages
 
+from django.http import JsonResponse
+from django.core import serializers
+
+from django.templatetags.static import static
+
 from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm, FaceTrainForm
 from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking, FullProcessed
 from .filters import OperationFilter
 
 import os
+import shutil
 import sys
 import traceback
 import inspect
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import normalize
+import cv2 as cv
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -29,6 +37,7 @@ sys.path.insert(0, parentdir)
 from django.contrib.auth.decorators import login_required
 from pessoas.manipulate_dataset import manipulate_dataset
 from pessoas.retrieval import retrieval as face_retrieval
+from pessoas.plots import plot_top15_person_retrieval
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
 from objetos.yolov5.detect_obj import retrieval as detect_object
@@ -109,7 +118,8 @@ def load_database_features(databases):
     db_features['name'] = np.array(db_features['name'])
     db_features['id'] = np.array(db_features['id'])
     db_features['normalized_feature'] = db_features['feature'] - (db_features['feature_mean'] - 1e-18)
-    # [feat - db_features['feature_mean'] for feat in db_features['feature']]
+    db_features['normalized_feature'] = normalize(db_features['normalized_feature'], norm='l2', axis=1)
+    #[feat - db_features['feature_mean'] for feat in db_features['feature']]
 
     return db_features
 
@@ -120,18 +130,14 @@ def save_retrieval_results(operation, data, confidence):
     
     for i, img in enumerate(data):
         for key, face in img.items():
-            if 'face' not in key:
-                continue
-            if face['confidence most similar'] < confidence:
-                continue
-
-            prc = Processed(operation=operation, path=img['path'], hash=img['hash'],
-                            frame=face['frame_num'] if 'frame_num' in face else 0)
+            if 'face' not in key: continue
+            prc = Processed(operation=operation, path=img['path'], frame=0)
             prc.save()
-            # prc_data.append(prc)
-
+    
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(face['box']))
             out_data.append(out_bb)
+
+            if face['confidence most similar'] < confidence: continue
 
             # r ranking, k name, person [score, imgdb_id]
             for r, (k, person) in enumerate(sorted(face['top options'].items(), key=lambda x: x[1][0], reverse=True)):
@@ -158,10 +164,8 @@ def save_detection_results(operation, data):
         for obj_id in range(1, img['objects'] + 1):
             obj = img[f'object_{obj_id}']
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']), obj=obj_id-1)
-            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE,
-                               value=repr(obj['confidence']), obj=obj_id-1)
-            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL,
-                               value=repr(obj['class']), obj=obj_id-1)
+            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']), obj=obj_id-1)
+            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']), obj=obj_id-1)
             out_data.append(out_bb)
             out_data.append(out_score)
             out_data.append(out_label)
@@ -248,7 +252,9 @@ def index(request):
 
 @login_required
 def id_person(request):
-    if request.method == 'POST':
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if is_ajax and request.method == 'POST':
         form = IdPersonForm(request.POST, request.FILES, auto_id='%s')
         if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
             form.add_error(None, "Either a zip file or a local folder should be informed.")
@@ -277,9 +283,11 @@ def id_person(request):
                 operation.status = Operation.OpStatus.FINISHED
 
             # redirect to a new URL:
-            return HttpResponseRedirect(reverse_lazy('results'))
+            # return HttpResponseRedirect(reverse_lazy('results'))
+            return JsonResponse({'result_id': operation.id}, status=200)
         else:
-            return render(request, 'e04/id_person.html', {'form': form})
+            # return render(request, 'e04/id_person.html', {'form': form})
+            return JsonResponse({"error": form.errors}, status=400)
     else:
         form = IdPersonForm(auto_id='%s')
         return render(request, 'e04/id_person.html', {'form': form})
@@ -287,7 +295,9 @@ def id_person(request):
 
 @login_required
 def update_db(request):
-    if request.method == 'POST':
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if is_ajax and request.method == 'POST':
         form = UpdateDBForm(request.POST)
 
         # if new database, then the name field is required
@@ -327,9 +337,11 @@ def update_db(request):
             db.feature_mean = repr(db_ft_mean_to_save.tolist())
             db.save()
 
-            return HttpResponseRedirect(reverse_lazy('results'))
+            # return HttpResponseRedirect(reverse_lazy('results'))
+            return JsonResponse({'result_id': operation.id}, status=200)
         else:
-            return render(request, 'e04/update_db.html', {'form': form})
+            # return render(request, 'e04/update_db.html', {'form': form})
+            return JsonResponse({"error": form.errors}, status=400)
     else:
         form = UpdateDBForm()
         return render(request, 'e04/update_db.html', {'form': form})
@@ -338,7 +350,11 @@ def update_db(request):
 @login_required
 def detect_obj(request):
     # if this is a POST request we need to process the form data
-    if request.method == 'POST':
+    print(request.user, request.user.id)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    print(request.POST, request.method, request.FILES)
+
+    if is_ajax and request.method == "POST":
         form = DetectionForm(request.POST, request.FILES, auto_id='%s')
         form.fields['databases'].required = 'doFaceRetrieval' in form.data.keys()
         
@@ -367,11 +383,14 @@ def detect_obj(request):
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:
                 operation.status = Operation.OpStatus.FINISHED
+            # TODO: If op ERROR do something
 
             # redirect to a new URL:
-            return HttpResponseRedirect(reverse_lazy('results'))
+            # return HttpResponseRedirect(reverse_lazy('results'))
+            return JsonResponse({'result_id': operation.id}, status=200)
         else:
-            return render(request, 'e04/detect_obj.html', {'form': form})
+            # return render(request, 'e04/detect_obj.html', {'form': form})
+            return JsonResponse({"error": form.errors}, status=400)
 
     # if a GET (or any other method) we'll create a blank form
     else:
@@ -445,19 +464,37 @@ def detailed_result(request, operation_id):
                                               os.path.basename(os.path.join(config_data.save_path, 'exported.xlsx'))
             return response
     else:
-        config_data = GeneralConfig.objects.all()
+        img_sz = 70
+        config_data = GeneralConfig.objects.filter(id=1)
         config_data = config_data[0] if len(config_data) else GeneralConfig()
 
+        # Getting tmp folder to copy results to
+        root = os.path.split(os.path.abspath(__file__))[0]
+        tmp = Path(os.path.join(root, static('')[1:], 'tmp', str(operation_id), 'results'))
+        tmp.mkdir(parents=True, exist_ok=True)
+
+        print(tmp)
+        
+
+        op = Operation.objects.filter(id=operation_id)[0]
+        
+        operations = {Operation.OpType.RET_AND_DET:["ret", "det"],
+                    Operation.OpType.RETRIEVAL:["ret"],
+                    Operation.OpType.DETECTION:["det"],}
+        
         processeds_list = Processed.objects.filter(operation__id=operation_id)
         unique = set([prc.path for prc in processeds_list])
 
         formated_processed_list = {}
 
-        for img in unique:
-            formated_processed_list[img] = FullProcessed(img, operation_id,
-                                                         detection_result_path=os.path.join(config_data.save_path,
+        for i, img in enumerate(unique):
+            opimg = cv.imread(img)
+            formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", 
+                                                        path=img, w=opimg.shape[1], h=opimg.shape[0],
+                                                        operation=operation_id,
+                                                        detection_result_path=os.path.join(config_data.save_path,
                                                                                             str(operation_id),
-                                                                                            'results', img))
+                                                                                            'results', os.path.basename(img)),)
 
         for processed in processeds_list:
             fprc = formated_processed_list[processed.path]
@@ -465,7 +502,7 @@ def detailed_result(request, operation_id):
             outputs = Output.objects.filter(processed=processed)
 
             # If detection
-            if len(outputs) % 3 == 0:
+            if len(outputs) % 3 == 0: 
                 bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
                 bbs.sort(key=lambda x: x.obj)
                 scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
@@ -474,28 +511,87 @@ def detailed_result(request, operation_id):
                 lbl.sort(key=lambda x: x.obj)
 
                 for lb, sc, bb in zip(lbl, scs, bbs):
-                    fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""),
-                                                                   eval(sc.value), eval(bb.value)))
+                    rel_bb = eval(bb.value)
+                    rel_bb = [rel_bb[0]/fprc.w, rel_bb[1]/fprc.h, rel_bb[2]/fprc.w, rel_bb[3]/fprc.h]
+                    fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""), eval(sc.value), rel_bb))
 
             # If face retrieval
             elif len(outputs) == 1:
                 bbx = eval(outputs[0].value)
+                rel_bbx = [bbx[0]/fprc.w, bbx[1]/fprc.h, bbx[2]/fprc.w, bbx[3]/fprc.h]
                 face_id = len(fprc.faces)
-                fprc.faces.append(FullProcessed.Faces(face_id, bbx))
+                fprc.faces.append(FullProcessed.Faces(face_id, rel_bbx))
                 face = fprc.faces[-1]
 
                 ranking = Ranking.objects.filter(processed=processed)
                 for r in ranking:
-                    # imagedb = ImageDB.objects.filter(id=r.imagedb)[0]
                     face.rankings.append(FullProcessed.Faces.Ranking(r.position, r.value, r.imagedb))
-
+                
                 face.rankings.sort(key=lambda x: x.position)
-                print('1', fprc.path, fprc.faces, fprc.faces[0].rankings[0].imgdb)
 
-        print('2', formated_processed_list)
-        context = {'op': operation_id, 'processeds_list': processeds_list,
-                   'formated_processed_list': formated_processed_list}
-        return render(request, 'e04/detailed_result.html', context)
+                ranking_img_info = [(r.value, r.imgdb.label, r.imgdb.path) for r in face.rankings]
+
+        context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list, 'operations': operations[op.type],
+                'tmp': static(os.path.join('tmp', str(operation_id), 'results')),
+                'w': img_sz*16,'h':img_sz*9}
+
+        return render(request,'e04/detailed_result_v2.html',context)
+
+def requestImageDB(request):
+    # request should be ajax and method should be POST.
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if is_ajax and request.method == "POST":
+        img_id = request.POST.get('img_id', '')
+
+        if img_id == '': return JsonResponse({"error": ""}, status=400)
+
+        imagedb = ImageDB.objects.filter(id = img_id)[0]
+
+        root = os.path.split(os.path.abspath(__file__))[0]
+        tmp = Path(os.path.join(root, static('')[1:], 'tmp', 'images'))
+        tmp.mkdir(parents=True, exist_ok=True)
+
+        if not os.path.exists(tmp/os.path.basename(imagedb.path)):
+            shutil.copy(imagedb.path, tmp/os.path.basename(imagedb.path))
+
+        instance = {'tmp' : static(os.path.join('tmp', 'images')),
+                    'path': os.path.basename(imagedb.path)}
+
+        # send to client side.
+        return JsonResponse({"instance": instance}, status=200)
+        
+
+    # some error occured
+    return JsonResponse({"error": ""}, status=400)
+
+def requestImagePath(request):
+    # request should be ajax and method should be POST.
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    if is_ajax and request.method == "POST":
+        img_path = request.POST.get('path', '')
+
+        if img_path == '': return JsonResponse({"error": ""}, status=400)
+
+        if not os.path.exists(img_path): return JsonResponse({"error": ""}, status=400)
+
+        root = os.path.split(os.path.abspath(__file__))[0]
+        tmp = Path(os.path.join(root, static('')[1:], 'tmp', 'images'))
+        tmp.mkdir(parents=True, exist_ok=True)
+
+        if not os.path.exists(tmp/os.path.basename(img_path)):
+            shutil.copy(img_path, tmp/os.path.basename(img_path))
+
+        instance = {'tmp' : static(os.path.join('tmp', 'images')),
+                    'path': os.path.basename(img_path)}
+
+        # send to client side.
+        return JsonResponse({"instance": instance}, status=200)
+        
+
+    # some error occured
+    return JsonResponse({"error": ""}, status=400)
 
 
 @login_required
