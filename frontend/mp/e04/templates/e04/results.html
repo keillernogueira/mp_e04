@@ -19,6 +19,7 @@
                     <th>Resultados</th>
                     <th>Tipo</th>
                     <th class="lth">Data da operação</th>
+                    <th class="lth">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -40,8 +41,19 @@
                     </td>
                        <!--{{ result.type }} --> 
                     <td class="ltd"> {{ result.date }} </td>
+                    <td class="ltd">
+                        {% if result.status == 'PR'%}
+                            Processando
+                        {%elif result.status == 'FI' %}
+                            Concluído
+                        {%elif result.status == 'PD' %}
+                            Pendente
+                        {%elif result.status == 'ER' %}
+                            Erro
+                        {%endif%}                
+                    </td>
                 </tr>                 
-            {% endfor %}
+                {% endfor %}
             </tbody>
         </table>
     </div>
