@@ -7,20 +7,20 @@
         <div class="col-12"> <h2><b>Detecção de Objetos</b></h2></div>
     </div>
     <div class="row flex-row d-flex justify-content-left">
-        <div class="col-8">
+        <div class="col-8" id="form-container">
             {% if form.non_field_errors %}
                         {% for error in form.non_field_errors %}
                             <div class="d-block text-danger"><small>{{ error }}</small></div>
                         {% endfor %}
             {% endif %}
-            <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()">
+            <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()" id="form">
                 {% csrf_token %}
                 <h4>Detecção em Batch (Upload)</h4>
                 <div id="text-file-helper" class="form-text" style="margin-bottom: 0.5rem;">
                     Faça o upload de um conjunto de imagens em um arquivo .zip, para realizar a detecção.
                 </div>
                 <!-- File Input    -->
-                <div class="input-group">
+                <div class="input-group" id="zipfile-input-container">
                     <!-- <input class="form-control" name="zipFile" id="zipFile" type="file" accept=".zip, .arj, .rar, .tar.gz, .tgz" onchange="toggleFolder(this)" required/> -->
                     {{ form.zipFile }}
                     <button class="btn btn-sm btn-outline-dark" type="button" id="removeBtn" data-mdb-ripple-color="dark" 
@@ -42,7 +42,7 @@
                 <div id="text-folder-helper" class="form-text" style="margin-bottom: 0.5rem;">
                     Informe uma pasta local do sistema para realizar a detecção em imagens e vídeos nessa pasta.
                 </div>
-                <div class="form-outline">
+                <div class="form-outline" id="folder-input-container">
                     <!-- <input type="text" name="folderInput" id="folderInput" class="form-control input-lg " placeholder="/home" onchange="toggleZip(this)" required/> -->
                     {{ form.folderInput }}
                     <label class="form-label" for="folderInput">{{ form.folderInput.label }}</label>
@@ -57,7 +57,7 @@
                 <label><h4>Configurações</h4></label>
                 <br/>
                 <!-- Detection Threshold Input -->
-                <div class="form-group" id="detThContainer">
+                <div class="form-group" id="detection-th-input-container">
                     <label class="control-label" for="detectionThreshold">{{ form.detectionThreshold.label }}</label>
                     <div class="col-md-2">
                         {{ form.detectionThreshold }}
@@ -81,7 +81,7 @@
                 <div id="retContainer" style="display: none;">
                     <label><h5><i>Configurações para Identificação de Faces</i></h5></label>
                     <div id="databaseSelectContainer">
-                    <div class="form-group">
+                    <div class="form-group" id="database-input-container">
                         <label for="databases">{{ form.databases.label }}</label>
                         {{ form.databases }}
                     </div>
@@ -93,7 +93,7 @@
                     </div>
                     <!-- Retrieval Threshold Input -->
                     <div>
-                    <div class="form-group">
+                    <div class="form-group" id="retrieval-th-input-container">
                         <label class="control-label" for="retrievalThreshold">{{ form.retrievalThreshold.label }}</label>
                         <div class="col-md-2">
                             {{ form.retrievalThreshold }}
@@ -118,6 +118,27 @@
         
     </div>
     </div>
+
+  
+  <!-- Modal -->
+  <div class="modal fade" id="loading-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        
+        <div class="modal-body">
+            <div class="d-flex justify-content-center flex-column align-items-center mb-3 mt-3" id="loading">
+                <div class="spinner-border text-secondary" role="status">
+                  <span class="visually-hidden">Processando Requisição...</span>
+                </div>
+                <br/>
+                <h5 class="text-secondary text-center">Processando Requisição.<br>Pode demorar alguns instantes...</h5>
+            </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+  
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.0/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@dashboardcode/bsmultiselect@1.1.18/dist/js/BsMultiSelect.min.js"></script>
     <script>
@@ -174,8 +195,116 @@
             checkDisplay();
             
             function toggleRet(){
-                $('#retContainer').toggle();
+                $('#retContainer').slideToggle("fast");
             }
+
+            $("#form").submit(function (e) {
+                // preventing from page reload and default actions
+                e.preventDefault();
+                // serialize the data for sending the form data.
+                var serializedData = new FormData(this);
+                // make POST ajax call
+                
+                var myModalEl = document.querySelector('#loading-modal')
+                var myModal = bootstrap.Modal.getOrCreateInstance(myModalEl)
+                // var myModal = new bootstrap.Modal(document.getElementById('loading-modal'), {
+                //     keyboard: false
+                // })
+                
+                console.log(myModal);
+                myModal.show();
+                console.log('show');
+
+                $.ajax({
+                    type: 'POST',
+                    url: "{% url 'detect_obj' %}",
+                    data: serializedData,
+                    cache: false,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        // on successfull creating object
+                        // console.log(response)
+                        window.location.href = "{% url 'results' %}".concat(response['result_id']);
+                    },
+                    error: function (response) {
+                        // alert the error if any error occured
+                        setTimeout(function() {myModal.hide()}, 500);
+
+                        errors = response["responseJSON"]["error"]
+                        // alert(errors);
+                        $("#form-container .d-block.text-danger").remove()
+                        if('__all__' in errors){
+                            for (const err in errors['__all__']){
+                                $("#form-container").prepend(
+                                    `<div class="d-block text-danger"><small>${errors['__all__']}</small></div>`
+                                );
+                            }
+                        }
+                        if('zipFile' in errors){
+                            for (const err in errors['zipFile']){
+                                $("#zipfile-input-container").after(
+                                    `<div class="d-block text-danger"><small>${errors['zipFile']}</small></div>`
+                                );
+                            }
+                        }
+                        if('folderInput' in errors){
+                            for (const err in errors['folderInput']){
+                                $("#folder-input-container").after(
+                                    `<div class="d-block text-danger"><small>${errors['folderInput']}</small></div>`
+                                );
+                            }
+                        }
+                        if('detectionThreshold' in errors){
+                            for (const err in errors['detectionThreshold']){
+                                $("#detection-th-input-container").after(
+                                    `<div class="d-block text-danger"><small>${errors['detectionThreshold']}</small></div>`
+                                );
+                            }
+                        }
+                        if('databases' in errors){
+                            for (const err in errors['databases']){
+                                $("#database-input-container").after(
+                                    `<div class="d-block text-danger"><small>${errors['databases']}</small></div>`
+                                );
+                            }
+                        }
+                        if('retrievalThreshold' in errors){
+                            for (const err in errors['retrievalThreshold']){
+                                $("#retrieval-th-input-container").after(
+                                    `<div class="d-block text-danger"><small>${errors['retrievalThreshold']}</small></div>`
+                                );
+                            }
+                        }
+
+                        // var myModal = new bootstrap.Modal(document.getElementById('loading-modal'), {
+                        //     keyboard: false
+                        // })
+                        // myModalEl = document.querySelector('#loading-modal');
+                        // myModal = bootstrap.Modal.getInstance(myModalEl);
+
+                        // // setTimeout(myModal.hide, 1000);
+                        // console.log(myModal);
+                        // console.log('error');
+                        // setTimeout(function() {myModal.hide()}, 500);
+                        // myModal.hide();
+                        // $('#loading-modal').modal('hide');
+                        // $('#loading-modal').trigger('hide.bs.modal');
+                    },
+                    complete : function(response) {
+                        // myModalEl = document.querySelector('#loading-modal');
+                        // myModal = bootstrap.Modal.getInstance(myModalEl);
+                        // // // console.log(myModal)
+                        // console.log(myModal);
+                        // console.log('complete');
+                        // myModal.hide();
+                        // setTimeout(myModal.hide, 1000);
+                        // $('#loading-modal').modal('hide');
+                        setTimeout(function() {myModal.hide()}, 500);
+                    },
+                })
+            })
+
 
     </script>
 {% endblock %}

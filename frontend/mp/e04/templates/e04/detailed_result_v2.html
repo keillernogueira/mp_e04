@@ -25,11 +25,15 @@
             <tbody class="table-group-divider">
                 {% for img_path, processed in formated_processed_list.items %}
                 
-                    <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}">
+                    <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" data-img-path="{{img_path}}" onclick="requestModalImg(this)">
                         <td><p class="p-button">{{img_path}}</p></td>
                         <td>
                             {% for face in processed.faces %}
-                            <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|stringformat:".2f" }} %</span>
+                            {% if face.rankings|length >= 1 %}
+                            <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|mul:100|stringformat:".2f" }} %</span>
+                            {% else %}
+                            <span class="badge rounded-pill badge-light" style="color:rgb(94, 94, 94)">Unmatched Face {{forloop.counter}}</span>
+                            {% endif %}
                             {% endfor %}
                             {% for obj in processed.detections %}
                             <span class="badge rounded-pill  
@@ -95,7 +99,7 @@
           {% if "det" in operations %}
           <li class="nav-item" role="presentation">
           <a
-              class="nav-link"
+              class="nav-link {% if 'ret' not in operations %} active {%endif%}"
               id="modal_{{processed.id}}_results-tab-det"
               data-mdb-toggle="tab"
               href="#modal_{{processed.id}}_results-tabs-det"
@@ -119,57 +123,68 @@
             role="tabpanel"
             aria-labelledby="modal_{{processed.id}}_results-tab-ret"
             >
-            
-            {% if processed.faces|length == 0%} 
-              <h5>Nenhuma face foi detectada pelo modelo.</h5>
-              <div class="row justify-content-center">
-              <svg id="modal_{{processed.id}}_det_view" width="{{w}}" height="{{h}}" style="width:min-content">
-                <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
-              </svg>
+              <div class="d-flex justify-content-center flex-column align-items-center mb-3 mt-3" id="modal_{{processed.id}}_load_ret">
+                <div class="spinner-border text-secondary" role="status">
+                  <span class="visually-hidden">Carregando Imagem...</span>
+                </div>
+                <h5 class="text-secondary">Carregando Imagem...</h5>
               </div>
-              <br/>
-              <div class="col-10" id="">
-                <h5 style="text-align: center;">Nenhuma face foi detectada pelo modelo.</h5>
+            {% if processed.faces|length == 0%}
+              <div id="modal_{{processed.id}}_content_ret">
+                <div class="row justify-content-center">
+                <svg id="modal_{{processed.id}}_ret_view" width="{{w}}" height="{{h}}" style="width:min-content" style="display:none;">
+                  <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
+                </svg>
+                </div>
+                <br/>
+                <div class="row justify-content-center">
+                  <div class="col-10" id="">
+                    <h5 style="text-align: center;">Nenhuma face foi detectada pelo modelo.</h5>
+                  </div>
+                </div>
               </div>
-            {%endif%}
+              {%endif%}
             {% if processed.faces|length >= 1%}
               <!-- Pills content -->
-              <div class="row justify-content-center">
-              <svg id="modal_{{processed.id}}_ret_view" width="{{w}}" height="{{h}}" style="width:min-content">
-                <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
-                {% for face in processed.faces %}
-                  <rect x="{{face.bbx.0|mul:w|stringformat:"f"}}" y="{{face.bbx.1|mul:h|stringformat:"f"}}" width="{{face.bbx.2|sub:face.bbx.0|mul:w|stringformat:"f"}}" height="{{face.bbx.3|sub:face.bbx.1|mul:h|stringformat:"f"}}"
-                  style="stroke:#004bc5;
-                        stroke-width:5;fill-opacity:0;" 
-                  class="face"
-                  id="facebbx_{{processed.id}}_{{forloop.counter}}_stroke" onmouseover="highlight(this)" onmouseout="reset(this)" onclick="showRanking(this)"
-                  data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
-                  data-face-id="{{forloop.counter}}"/>
-                  <rect x="{{face.bbx.0|mul:w|sub:2.5|stringformat:"f"}}" y="{{face.bbx.1|mul:h|sub:19|stringformat:"f"}}" width="{{face.bbx.2|sub:face.bbx.0|mul:w|addition:5.0|stringformat:"f"}}" height="21.5"
-                    style="fill:#004bc5"
+              <div class="row justify-content-center" id="modal_{{processed.id}}_content_ret" style="display:none;">
+                <svg id="modal_{{processed.id}}_ret_view" width="{{w}}" height="{{h}}" style="width:min-content;">
+                  <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
+                  {% for face in processed.faces %}
+                    <rect x="{{face.bbx.0|mul:w|stringformat:"f"}}" y="{{face.bbx.1|mul:h|stringformat:"f"}}" width="{{face.bbx.2|sub:face.bbx.0|mul:w|stringformat:"f"}}" height="{{face.bbx.3|sub:face.bbx.1|mul:h|stringformat:"f"}}"
+                    style="stroke:#004bc5;
+                          stroke-width:5;fill-opacity:0;fill:#fff;" 
                     class="face"
-                    id="facebbx_{{processed.id}}_{{forloop.counter}}_fill" onmouseover="highlight(this)" onmouseout="reset(this)" onclick="showRanking(this)"
+                    id="facebbx_{{processed.id}}_face_{{forloop.counter}}_stroke" onmouseover="highlight(this)" onmouseout="reset(this)" onclick="showRanking(this)"
                     data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
-                    data-face-id="{{forloop.counter}}"/>
-                  <text id="text_{{processed.id}}_{{forloop.counter}}" 
-                        x="{{face.bbx.0|mul:w|stringformat:"f"}}"
-                        y="{{face.bbx.1|mul:h|sub:5|stringformat:"f"}}"
-                        fill="#fff"
-                        style="text-anchor:start;font-size:16px;font-weight:bold;font-family: sans-serif;" 
-                        onclick="showRanking(this)"
-                        data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
-                        data-face-id="{{forloop.counter}}">Face {{forloop.counter}}</text>
-                {%endfor%}
-              </svg>
-              </div>
-              <br/>
-              <div class="row justify-content-center">
+                    data-face-id="{{forloop.counter}}"
+                    {%if forloop.first%} selected {%endif%}/>
+                    <rect x="{{face.bbx.0|mul:w|sub:2.5|stringformat:"f"}}" y="{{face.bbx.1|mul:h|sub:19|stringformat:"f"}}" width="{{face.bbx.2|sub:face.bbx.0|mul:w|addition:5.0|stringformat:"f"}}" height="21.5"
+                      style="fill:#004bc5"
+                      class="face"
+                      id="facebbx_{{processed.id}}_face_{{forloop.counter}}_fill" onmouseover="highlight(this)" onmouseout="reset(this)" onclick="showRanking(this)"
+                      data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
+                      data-face-id="{{forloop.counter}}"
+                      {%if forloop.first%} selected {%endif%}/>
+                    <text id="text_{{processed.id}}_{{forloop.counter}}" 
+                          x="{{face.bbx.0|mul:w|stringformat:"f"}}"
+                          y="{{face.bbx.1|mul:h|sub:5|stringformat:"f"}}"
+                          fill="#fff"
+                          style="text-anchor:start;font-size:16px;font-weight:bold;font-family: sans-serif;" 
+                          onclick="showRanking(this)"
+                          data-face-ranking="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
+                          data-face-id="{{forloop.counter}}">Face {{forloop.counter}}</text>
+                  {%endfor%}
+                </svg>
+                <br/>
                 <div class="col-10" id="">
-                  <h5 style="text-align: center;">Pessoas mais prováveis para Face <span id="face_id_text">1</span></h5>
+                  <h5 style="text-align: center;">Pessoas mais prováveis para Face <span id="face_id_text_modal_{{processed.id}}">1</span></h5>
                   <br/>
                   {% for face in processed.faces %}
                   <div class="accordion" id="modal_{{processed.id}}_face_{{forloop.counter}}_ranking"
                   {% if not forloop.first %} style="display:none;" {%endif%}>
+                    {% if face.rankings|length == 0%}
+                    <h5 style="text-align: center;">Nenhum rosto com compatibilidade mínima foi encontrado no banco.</h5>
+                    {%else%}
                     {% for r in face.rankings %}
                     <div class="accordion-item">
                       <h3 class="accordion-header" id="modal_{{processed.id}}_face_{{forloop.parentloop.counter}}_ranking_{{forloop.counter}}_btn">
@@ -197,19 +212,31 @@
                       </div>
                     </div>
                     {%endfor%}
+                    {%endif%}
                   </div>
                   {%endfor%}
                 </div>
               </div>
+              
+              <!-- <div class="row justify-content-center">
+                
+              </div> -->
             {%endif%}
             </div>
             {%endif%}
 
             {% if "det" in operations %}
-            <div class="tab-pane fade {% if 'det' not in operations %} show active {%endif%}" 
+            <div class="tab-pane fade {% if 'ret' not in operations %} show active {%endif%}" 
                 id="modal_{{processed.id}}_results-tabs-det" role="tabpanel" aria-labelledby="modal_{{processed.id}}_results-tab-det">
-              <div class="row justify-content-center">
-                <svg id="modal_{{processed.id}}_det_view" width="{{w}}" height="{{h}}" style="width:min-content">
+
+              <div class="d-flex justify-content-center mb-3 mt-3" id="modal_{{processed.id}}_load_det">
+                <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+              </div>
+
+              <div class="row justify-content-center" id="modal_{{processed.id}}_content_det" style="display:none;">
+                <svg id="modal_{{processed.id}}_det_view" width="{{w}}" height="{{h}}" style="width:min-content;">
                   <image x=0 y=0 width="{{w}}" height="{{h}}" href="{{tmp}}/{{processed.filename}}" preserveAspectRatio="none"/>
                   {% for obj in processed.detections %}
                   <rect x="{{obj.bbx.0|mul:w|stringformat:"f"}}" y="{{obj.bbx.1|mul:h|stringformat:"f"}}" width="{{obj.bbx.2|sub:obj.bbx.0|mul:w|stringformat:"f"}}" height="{{obj.bbx.3|sub:obj.bbx.1|mul:h|stringformat:"f"}}"
@@ -217,7 +244,7 @@
                                   {% elif obj.label == 'Arma Branca' %}#ffa700
                                   {% else %}#00e95f
                                   {% endif %};
-                          stroke-width:5;fill-opacity:0;" 
+                          stroke-width:5;fill-opacity:0;fill:#fff;" 
                     class="{% if obj.label == 'Arma de Fogo' %}gun
                           {% elif obj.label == 'Arma Branca' %}blade
                           {% else %}vehicle
@@ -277,6 +304,7 @@
     }
     else if (box.id.includes("stroke")){
       box.style.stroke = color;
+      box.style.fillOpacity = 0.1;
       other = box.id.replace("stroke", "fill");
       document.getElementById(other).style.fill = color;
     }
@@ -305,6 +333,7 @@
     }
     else if (box.id.includes("stroke")){
       box.style.stroke = color;
+      box.style.fillOpacity = 0;
       other = box.id.replace("stroke", "fill");
       document.getElementById(other).style.fill = color;
     }
@@ -315,7 +344,30 @@
     toshow = $("#".concat(obj.getAttribute('data-face-ranking')));
     vis.hide();
     toshow.show();
-    document.getElementById("face_id_text").innerText = obj.getAttribute('data-face-id');
+    mod = obj.getAttribute('data-face-ranking').split('_face_')[0]
+    document.getElementById("face_id_text_".concat(mod)).innerText = obj.getAttribute('data-face-id');
+
+    if (obj.id.includes('_fill')){
+      other = document.getElementById(obj.id.replace('_fill', '_stroke'));
+    }
+    else if (obj.id.includes('_stroke')){
+      other = document.getElementById(obj.id.replace('_stroke', '_fill'));
+    }
+    obj.setAttribute("selected", ""); 
+    other.setAttribute("selected", "");
+
+    visid = vis.prop("id");
+    visfaceid = visid.split('_');
+    visfaceid = visfaceid[visfaceid.length - 2];
+
+    if(visfaceid != obj.getAttribute('data-face-id')){
+
+      visobjid = obj.id.replace('face_'.concat(obj.getAttribute('data-face-id')), 'face_'.concat(visfaceid));
+      visotherid = other.id.replace('face_'.concat(other.getAttribute('data-face-id')), 'face_'.concat(visfaceid));
+      
+      document.getElementById(visobjid).removeAttribute("selected"); 
+      document.getElementById(visotherid).removeAttribute("selected");
+    }
   }
 
   function requestImg(btn){
@@ -328,7 +380,7 @@
           url: "{% url 'detailed_result_imgdb' %}",
           data: {'img_id': btn.getAttribute('data-imgdb-id'),
                 csrfmiddlewaretoken: '{{ csrf_token }}',
-                'is_ajax': true},
+                },
                 
           success: function (response) {
               // on successfull 
@@ -345,12 +397,51 @@
     }
   }
 
+  function requestModalImg(tr){
+    if (!tr.hasAttribute('loaded')){
+      modal = tr.getAttribute('data-mdb-target')
+      imgs = $(modal.concat(' svg > image'))
+      views = $(`[id^=${modal.replace("#", "")}_content]`)
+      loaders = $(`[id^=${modal.replace("#", "")}_load]`)
+      $.ajax({
+            type: 'POST',
+            url: "{% url 'detailed_result_imgpath' %}",
+            data: {'path': tr.getAttribute('data-img-path'),
+                  csrfmiddlewaretoken: '{{ csrf_token }}',
+                  },
+                  
+            success: function (response) {
+                // on successfull 
+                var instance = response["instance"];
+
+                imgs.attr('href', instance['tmp'].concat('/').concat(instance['path']))
+            },
+            complete: function () {
+              loaders.removeClass('d-flex')
+              loaders.hide(); //Request is complete so hide spinner
+              views.fadeIn("slow");
+            },
+            error: function (response) {
+                // alert the error if any error occured
+                // alert(response["responseJSON"]["error"]);
+            }
+        })
+    }
+  }
+
 </script>
 
 <style>
   rect.face:hover{
-    cursor: pointer; !important;
+    cursor: pointer !important;
+  }
+  svg>*[selected][id$="_fill"]{
+    fill: #00cfb0 !important;
+  }
+  svg>*[selected][id$="_stroke"]{
+    stroke: #00cfb0 !important;
   }
 </style>
+
 
 {% endblock %}

@@ -9,11 +9,11 @@
         </div>
 
         <div class="row flex-row d-flex justify-content-left">
-            <div class="col-8">
-                <form method="post" novalidate>
+            <div class="col-8" id="form-container">
+                <form method="post" novalidate id="form">
                     {% csrf_token %}
                     <h4>{{ form.database.label }}</h4>
-                    <div id="text-db-helper" class="form-text" style="margin-bottom: 0.5rem;">
+                    <div id="text-db-helper" id="database-input-container" class="form-text" style="margin-bottom: 0.5rem;">
                         Seleciona um banco de dados de imagens para atualizar.
                     </div>
                     {{ form.database }}
@@ -26,7 +26,7 @@
 
                     <div id="dbName">
                         <h4>{{ form.dbName.label }}</h4>
-                        <div id="text-dbName-helper" class="form-text" style="margin-bottom: 0.5rem;">
+                        <div id="text-dbName-helper" id="dbname-input-container" class="form-text" style="margin-bottom: 0.5rem;">
                             Nome para o novo banco de imagens.
                         </div>
                         {{ form.dbName }}
@@ -42,9 +42,9 @@
                     <div id="text-folder-helper" class="form-text" style="margin-bottom: 0.5rem;">
                         Informe uma pasta local do sistema.
                     </div>
-                    <div class="form-outline">
-                    {{ form.folderInput }}
-                    <label class="form-label" for="{{ form.folderInput.id }}">Pasta</label>
+                    <div class="form-outline" id="folder-input-container">
+                        {{ form.folderInput }}
+                        <label class="form-label" for="{{ form.folderInput.id }}">Pasta</label>
                     </div>
                     {% if form.folderInput.errors %}
                         {% for error in form.folderInput.errors %}
@@ -61,20 +61,97 @@
         </div>
     </div>
 
+    <!-- Modal -->
+    <div class="modal fade" id="loading-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+            
+            <div class="modal-body">
+                <div class="d-flex justify-content-center flex-column align-items-center mb-3 mt-3" id="loading">
+                    <div class="spinner-border text-secondary" role="status">
+                        <span class="visually-hidden">Atualizando Banco...</span>
+                    </div>
+                    <br/>
+                    <h5 class="text-secondary text-center">Atualizando Banco.<br>Essa operação pode demorar vários minutos...</h5>
+                </div>
+            </div>
+            
+            </div>
+        </div>
+        </div>
 <script>
 
-newDB();
+    newDB();
 
-function newDB() {
-    d = $('#id_database').find(":selected").val();
-    if (d == "0") {
-        $('#dbName').show();
-        $("#id_dbName").prop('required', true);
-    } else {
-        $('#dbName').hide();
-        $("#id_dbName").prop('required', false);
+    function newDB() {
+        d = $('#id_database').find(":selected").val();
+        if (d == "0") {
+            $('#dbName').show();
+            $("#id_dbName").prop('required', true);
+        } else {
+            $('#dbName').hide();
+            $("#id_dbName").prop('required', false);
+        }
     }
-}
+
+    $("#form").submit(function (e) {
+        // preventing from page reload and default actions
+        e.preventDefault();
+        // serialize the data for sending the form data.
+        var serializedData = new FormData(this);
+        // make POST ajax call
+        
+        var myModalEl = document.querySelector('#loading-modal')
+        var myModal = bootstrap.Modal.getOrCreateInstance(myModalEl)
+
+        myModal.show();
+
+        $.ajax({
+            type: 'POST',
+            url: "{% url 'update_db' %}",
+            data: serializedData,
+            cache: false,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                // on successfull creating object
+                window.location.href = "{% url 'results' %}";
+            },
+            error: function (response) {
+                // alert the error if any error occured
+                setTimeout(function() {myModal.hide()}, 500);
+
+                errors = response["responseJSON"]["error"]
+
+                $("#form-container .d-block.text-danger").remove();
+                if('dbName' in errors){
+                    for (const err in errors['dbName']){
+                        $("#id_dbName").after(
+                            `<div class="d-block text-danger"><small>${errors['zipFile']}</small></div>`
+                        );
+                    }
+                }
+                if('folderInput' in errors){
+                    for (const err in errors['folderInput']){
+                        $("#folder-input-container").after(
+                            `<div class="d-block text-danger"><small>${errors['folderInput']}</small></div>`
+                        );
+                    }
+                }
+                if('database' in errors){
+                    for (const err in errors['database']){
+                        $("#id_database").after(
+                            `<div class="d-block text-danger"><small>${errors['database']}</small></div>`
+                        );
+                    }
+                }
+
+            },
+            complete : function(response) {
+                setTimeout(function() {myModal.hide()}, 500);
+            },
+        })
+    })
 
 </script>
 
