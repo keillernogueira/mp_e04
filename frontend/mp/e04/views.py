@@ -29,6 +29,8 @@ from zipfile import ZipFile
 
 from .models import Operation
 from .filters import OperationFilter
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from . import filters
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(os.path.dirname(currentdir)))
@@ -402,14 +404,32 @@ def detect_obj(request):
 def results(request):
     current_user = request.user
     if current_user.is_staff or current_user.is_superuser:
-        results_list = Operation.objects.all()
+        filtered_results_list = filters.OperationFilter(
+                      request.GET, 
+                      queryset=Operation.objects.all()
+                  ).qs
+        results_list = Operation.objects.get_queryset().all()
     else:
-        results_list = Operation.objects.filter(user_id=current_user.id)
-    
+        filtered_results_list = filters.OperationFilter(
+                      request.GET, 
+                      queryset=Operation.objects.get_queryset().all().filter(user_id=current_user.id)
+                  ).qs
+        results_list = Operation.objects.get_queryset().all().filter(user_id=current_user.id)
+
     myFilter = OperationFilter(request.GET, queryset=results_list)
-    results_list = myFilter.qs
-    context = {'results_list': results_list, 'myFilter': myFilter}
-    return render(request, 'e04/results.html', context)
+
+    paginator = Paginator(filtered_results_list,25)
+    page = request.GET.get('page')
+    try:
+        response = paginator.page(page)
+    except PageNotAnInteger:
+        response = paginator.page(1)
+    except EmptyPage:
+        response = paginator.page(paginator.num_pages)
+
+    '''context = {'results_list': results_list, 'myFilter': myFilter, 'response' : response}'''
+
+    return render(request, 'e04/results.html', {'response': response,'myFilter': myFilter } )
 
 
 def detailed_result(request, operation_id):

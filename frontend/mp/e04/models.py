@@ -24,6 +24,7 @@ class Operation(models.Model):
         ERROR = 'ER', _('Error')
     status = models.CharField(max_length=2, choices=OpStatus.choices)
     date = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return self.type, self.status

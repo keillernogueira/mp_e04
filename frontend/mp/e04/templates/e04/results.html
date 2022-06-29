@@ -23,9 +23,13 @@
                 </tr>
             </thead>
             <tbody>
-                {% for result in results_list %}
+                {% for result in response %}
                 <tr>
-                    <td class="ftd"> <a href="{{request.path}}{{ result.id }}">Resultado_{{ result.id }}</a>  </td>
+                    {%if result.type == 'TR' or result.type == 'UD' %}
+                        <td class="ftd">Resultado_{{ result.id }}</td>
+                    {%else%}
+                        <td class="ftd"> <a href="{{request.path}}{{ result.id }}">Resultado_{{ result.id }}</a>  </td>
+                    {%endif%}
                     <td> 
                         {%if result.type == 'TR' %}
                             Treino
@@ -57,6 +61,25 @@
             </tbody>
         </table>
     </div>
+
+    <div class="pagination">
+        <span class="step-links">
+            {% if response.has_previous %}
+                <a href="?page=1"><button class="btn btn-info" >&laquo; first</button></a>
+                <a href="?page={{ response.previous_page_number }}"><button  class="btn btn-info" > previous</button></a>
+            {% endif %}
+    
+            <span class="current">
+                Page {{ response.number }} of {{ response.paginator.num_pages }}.
+            </span>
+    
+            {% if response.has_next %}
+                <a href="?page={{ response.next_page_number }}"><button  class="btn btn-info" >next </button> </a>
+                <a href="?page={{ response.paginator.num_pages }}"><button  class="btn btn-info" > last &raquo; </button> </a>
+            {% endif %}
+        </span>
+    </div>
+
 </body>
 
 {% endblock %}

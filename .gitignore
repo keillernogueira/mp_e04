@@ -6,3 +6,4 @@
 *.yaml
 *.jpg
 *.sh
+frontend/mp/db.sqlite3
