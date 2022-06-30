@@ -343,7 +343,7 @@ def update_db(request):
             db.save()
 
             # return HttpResponseRedirect(reverse_lazy('results'))
-            return JsonResponse({'result_id': operation.id}, status=200)
+            return JsonResponse({'result_id': op.id}, status=200)
         else:
             # return render(request, 'e04/update_db.html', {'form': form})
             return JsonResponse({"error": form.errors}, status=400)
@@ -435,56 +435,77 @@ def results(request):
     return render(request, 'e04/results.html', {'response': response,'myFilter': myFilter } )
 
 
-def detailed_result(request, operation_id):
+def prepare_data_for_export(operation_id, num_ranks_saved):
+    export_face_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Rank1_label': []}
+    for i in range(num_ranks_saved):
+        export_face_dict['Rank' + str(i + 1) + '_label'] = []
+        export_face_dict['Rank' + str(i + 1) + '_score'] = []
+    export_detec_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Score': [], 'Label': []}
+
+    processeds_list = Processed.objects.filter(operation__id=operation_id)
+    for processed in processeds_list:
+        outputs = Output.objects.filter(processed=processed)
+        ranking = Ranking.objects.filter(processed=processed).order_by('position')
+        if ranking:  # there is a raking to process
+            export_face_dict['File'].append(processed.path)
+            export_face_dict['Hash'].append(processed.hash)
+            export_face_dict['Frame'].append(processed.frame)
+            if outputs:  # there is an output to process
+                export_face_dict['BoundBox'].append(outputs.first().value)
+            for i in range(0, num_ranks_saved):
+                try:
+                    export_face_dict['Rank' + str(i + 1) + '_label'].append(ranking[i].imagedb.label)
+                    export_face_dict['Rank' + str(i + 1) + '_score'].append(ranking[i].value)
+                except IndexError:
+                    export_face_dict['Rank' + str(i + 1) + '_label'].append("N/A")
+                    export_face_dict['Rank' + str(i + 1) + '_score'].append("N/A")
+        if outputs:
+            bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
+            bbs.sort(key=lambda x: x.obj)
+            scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
+            scs.sort(key=lambda x: x.obj)
+            lbl = [out for out in outputs if out.parameter == Output.ParameterOpt.LABEL]
+            lbl.sort(key=lambda x: x.obj)
+
+            for lb, sc, bb in zip(lbl, scs, bbs):
+                export_detec_dict['File'].append(processed.path)
+                export_detec_dict['Hash'].append(processed.hash)
+                export_detec_dict['Frame'].append(processed.frame)
+
+                export_detec_dict['BoundBox'].append(eval(bb.value))
+                export_detec_dict['Score'].append(eval(sc.value))
+                export_detec_dict['Label'].append(lb.value.replace("'", ""))
+
+    return export_face_dict, export_detec_dict
+
+
+def export_xls(user, export_face_dict, export_detec_dict, operation_id, save_path):
+    init = pd.DataFrame([user.username, user.first_name + ' ' + user.last_name, user.email,
+                         Operation.objects.filter(id=operation_id).first().date.replace(tzinfo=None)])
+    init.index = ['Username', 'Nome', 'Email', 'Data da execução']
+    df1 = pd.DataFrame(export_face_dict)
+    df2 = pd.DataFrame(export_detec_dict)
+
+    with pd.ExcelWriter(os.path.join(save_path, 'exported.xlsx')) as writer:
+        init.to_excel(writer, sheet_name='info', header=False, index=True)
+        df1.to_excel(writer, sheet_name='person_id')
+        df2.to_excel(writer, sheet_name='obj_detect')
+
+    return os.path.join(save_path, 'exported.xlsx')
+
+
+@login_required
+def detailed_result(request, operation_id, num_ranks_saved=3):
     if request.method == 'POST':
-        num_ranks_saved = 3
-        export_face_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Rank1_label': [], 'Rank1_score': [],
-                            'Rank2_label': [], 'Rank2_score': [], 'Rank3_label': [], 'Rank3_score': []}
-        export_detec_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Score': [], 'Label': []}
-
-        processeds_list = Processed.objects.filter(operation__id=operation_id)
-        for processed in processeds_list:
-            outputs = Output.objects.filter(processed=processed)
-            ranking = Ranking.objects.filter(processed=processed).order_by('position')
-            if ranking:  # there is a raking to process
-                export_face_dict['File'].append(processed.path)
-                export_face_dict['Hash'].append(processed.hash)
-                export_face_dict['Frame'].append(processed.frame)
-                if outputs:  # there is an output to process
-                    export_face_dict['BoundBox'].append(outputs.first().value)
-                for i in range(num_ranks_saved):
-                    export_face_dict['Rank' + str(i+1) + '_label'].append(ranking[i].imagedb.label)
-                    export_face_dict['Rank' + str(i+1) + '_score'].append(ranking[i].value)
-            if outputs:
-                bbs = [out for out in outputs if out.parameter == Output.ParameterOpt.BB]
-                bbs.sort(key=lambda x: x.obj)
-                scs = [out for out in outputs if out.parameter == Output.ParameterOpt.SCORE]
-                scs.sort(key=lambda x: x.obj)
-                lbl = [out for out in outputs if out.parameter == Output.ParameterOpt.LABEL]
-                lbl.sort(key=lambda x: x.obj)
-
-                for lb, sc, bb in zip(lbl, scs, bbs):
-                    export_detec_dict['File'].append(processed.path)
-                    export_detec_dict['Hash'].append(processed.hash)
-                    export_detec_dict['Frame'].append(processed.frame)
-
-                    export_detec_dict['BoundBox'].append(eval(bb.value))
-                    export_detec_dict['Score'].append(eval(sc.value))
-                    export_detec_dict['Label'].append(lb.value.replace("'", ""))
-
-        df1 = pd.DataFrame(export_face_dict)
-        df2 = pd.DataFrame(export_detec_dict)
-
         config_data = GeneralConfig.objects.all()
         config_data = config_data[0] if len(config_data) else GeneralConfig()
-        with pd.ExcelWriter(os.path.join(config_data.save_path, 'exported.xlsx')) as writer:
-            df1.to_excel(writer, sheet_name='person_id')
-            df2.to_excel(writer, sheet_name='obj_detect')
 
-        with open(os.path.join(config_data.save_path, 'exported.xlsx'), 'rb') as fh:
+        face_dict, detec_dict = prepare_data_for_export(operation_id, num_ranks_saved)
+        file = export_xls(request.user, face_dict, detec_dict, operation_id, config_data.save_path)
+
+        with open(file, 'rb') as fh:
             response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
-            response['Content-Disposition'] = 'inline; filename=' + \
-                                              os.path.basename(os.path.join(config_data.save_path, 'exported.xlsx'))
+            response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file)
             return response
     else:
         img_sz = 70
@@ -496,14 +517,10 @@ def detailed_result(request, operation_id):
         tmp = Path(os.path.join(root, static('')[1:], 'tmp', str(operation_id), 'results'))
         tmp.mkdir(parents=True, exist_ok=True)
 
-        print(tmp)
-        
-
         op = Operation.objects.filter(id=operation_id)[0]
         
-        operations = {Operation.OpType.RET_AND_DET:["ret", "det"],
-                    Operation.OpType.RETRIEVAL:["ret"],
-                    Operation.OpType.DETECTION:["det"],}
+        operations = {Operation.OpType.RET_AND_DET: ["ret", "det"],
+                      Operation.OpType.RETRIEVAL: ["ret"], Operation.OpType.DETECTION: ["det"]}
         
         processeds_list = Processed.objects.filter(operation__id=operation_id)
         unique = set([prc.path for prc in processeds_list])
@@ -512,12 +529,11 @@ def detailed_result(request, operation_id):
 
         for i, img in enumerate(unique):
             opimg = cv.imread(img)
-            formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", 
-                                                        path=img, w=opimg.shape[1], h=opimg.shape[0],
-                                                        operation=operation_id,
-                                                        detection_result_path=os.path.join(config_data.save_path,
-                                                                                            str(operation_id),
-                                                                                            'results', os.path.basename(img)),)
+            formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", path=img, w=opimg.shape[1],
+                                                         h=opimg.shape[0], operation=operation_id,
+                                                         detection_result_path=os.path.join(config_data.save_path,
+                                                                                            str(operation_id), 'results',
+                                                                                            os.path.basename(img)),)
 
         for processed in processeds_list:
             fprc = formated_processed_list[processed.path]
@@ -554,11 +570,13 @@ def detailed_result(request, operation_id):
 
                 ranking_img_info = [(r.value, r.imgdb.label, r.imgdb.path) for r in face.rankings]
 
-        context= {'op': operation_id,'processeds_list':processeds_list, 'formated_processed_list':formated_processed_list, 'operations': operations[op.type],
-                'tmp': static(os.path.join('tmp', str(operation_id), 'results')),
-                'w': img_sz*16,'h':img_sz*9}
+        context = {'op': operation_id,'processeds_list': processeds_list,
+                   'formated_processed_list': formated_processed_list, 'operations': operations[op.type],
+                   'tmp': static(os.path.join('tmp', str(operation_id), 'results')),
+                   'w': img_sz*16, 'h': img_sz*9}
 
         return render(request,'e04/detailed_result_v2.html',context)
+
 
 def requestImageDB(request):
     # request should be ajax and method should be POST.
@@ -587,6 +605,7 @@ def requestImageDB(request):
 
     # some error occured
     return JsonResponse({"error": ""}, status=400)
+
 
 def requestImagePath(request):
     # request should be ajax and method should be POST.

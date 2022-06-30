@@ -43,13 +43,14 @@ class DetectionForm(ProcessingForm):
     detectionThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
     doFaceRetrieval = forms.BooleanField(label=u'Realizar reconhecimento de pessoas?', required=False,
-                                            widget=forms.CheckboxInput(attrs={'class': 'form-check-input',
-                                                                              'onclick': 'toggleRet()'}))
+                                         widget=forms.CheckboxInput(attrs={'class': 'form-check-input',
+                                                                           'onclick': 'toggleRet()'}))
 
     # Retrieval configs
     databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
-                                 choices=dbs_as_choices(insert_new=False),
-                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+                                          # choices=dbs_as_choices(insert_new=False),
+                                          widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select',
+                                                                             'style': 'display: none;'}))
     retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
@@ -61,8 +62,9 @@ class DetectionForm(ProcessingForm):
 
 class IdPersonForm(ProcessingForm):
     databases = forms.MultipleChoiceField(label='Banco de dados onde procurar:', required=True,
-                                 choices=dbs_as_choices(insert_new=False),
-                                 widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select', 'style': 'display: none;'}))
+                                          # choices=dbs_as_choices(insert_new=False),
+                                          widget=forms.SelectMultiple(attrs={'class': 'form-select custom-select',
+                                                                             'style': 'display: none;'}))
     retrievalThreshold = forms.IntegerField(label=u'Confiança mínima:', min_value=0, max_value=99, initial=25,
                                             widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
@@ -122,10 +124,10 @@ class FaceTrainForm(ProcessingForm):
         self.fields['model_sel'].choices = [(x.name, x.name) for x in data]
         self.fields['model_sel'].choices.insert(0, ('', 'Selecione um Modelo'))
 
-    model_sel = forms.ChoiceField(widget=forms.Select(attrs={'class':'form-select'}), label='escolha', required=False)
+    model_sel = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-select'}), label='escolha', required=False)
     model_name = forms.CharField(label='Nome do novo banco:', required=False, min_length=1,
-                             widget=forms.TextInput(attrs={'class': 'form-control input-lg',
-                                                           'placeholder': 'Nomeie o Novo Modelo'}))
+                                 widget=forms.TextInput(attrs={'class': 'form-control input-lg',
+                                                               'placeholder': 'Nomeie o Novo Modelo'}))
     new_model = forms.BooleanField(label=u'Criar Novo Modelo', required=False,
                                    widget=forms.CheckboxInput(attrs={'class': 'form-check-input',
                                                                      'onclick': 'toggleRet()'}))
@@ -148,7 +150,7 @@ class FaceTrainForm(ProcessingForm):
             raise forms.ValidationError("Selecione o modelo a ser treinado.")
 
         if cleaned_data['new_model']:
-            models = Model.objects.filter(name = cleaned_data['model_name'])
+            models = Model.objects.filter(name=cleaned_data['model_name'])
             if len(models) > 1:
                 raise forms.ValidationError("Nome de modelo já existente.")
 
@@ -160,18 +162,19 @@ class FaceTrainForm(ProcessingForm):
 
         return cleaned_data
 
+
 class ObjectTrainForm(ProcessingForm):
 
     def __init__(self, *args, **kwargs):
-        super(ObjectTrainForm, self).__init__( *args, **kwargs)
+        super(ObjectTrainForm, self).__init__(*args, **kwargs)
         data = Model.objects.all().filter(type='OB')
         self.fields['model_sel'].choices = [(x.name, x.name) for x in data]
         self.fields['model_sel'].choices.insert(0, ('', 'Selecione um Modelo'))
 
-    model_sel = forms.ChoiceField(widget=forms.Select(attrs={'class':'form-select'}), label='escolha', required=False)
+    model_sel = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-select'}), label='escolha', required=False)
     model_name = forms.CharField(label='Nome do novo banco:', required=False, min_length=1,
-                             widget=forms.TextInput(attrs={'class': 'form-control input-lg',
-                                                           'placeholder': 'Nomeie o Novo Modelo'}))
+                                 widget=forms.TextInput(attrs={'class': 'form-control input-lg',
+                                                               'placeholder': 'Nomeie o Novo Modelo'}))
     new_model = forms.BooleanField(label=u'Criar Novo Modelo', required=False,
                                    widget=forms.CheckboxInput(attrs={'class': 'form-check-input',
                                                                      'onclick': 'toggleRet()'}))
@@ -194,7 +197,7 @@ class ObjectTrainForm(ProcessingForm):
             raise forms.ValidationError("Selecione o modelo a ser treinado.")
 
         if cleaned_data['new_model']:
-            models = Model.objects.filter(name = cleaned_data['model_name'])
+            models = Model.objects.filter(name=cleaned_data['model_name'])
             if len(models) > 1:
                 raise forms.ValidationError("Nome de modelo já existente.")
 
@@ -206,4 +209,3 @@ class ObjectTrainForm(ProcessingForm):
             raise forms.ValidationError("Apenas um conjunto de imagens pode ser utilizado.")
 
         return cleaned_data
-

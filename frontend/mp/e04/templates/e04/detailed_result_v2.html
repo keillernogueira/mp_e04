@@ -6,56 +6,59 @@
 {% load mathfilters %}
 
 <div class="container">
-<div class="row flex-row d-flex" style="padding-bottom: 1em;">
-    <div class="col-12"> <h2><b>Resultado {{op}}</b></h2>
-        Total de imagens analisados: {{formated_processed_list|length}}
+    <div class="row flex-row d-flex" style="padding-bottom: 1em;">
+        <div class="col-12"> <h2><b>Resultado {{op}}</b></h2>
+            Total de imagens analisados: {{formated_processed_list|length}}
+        </div>
     </div>
-    
-</div>
-<div class="row flex-row d-flex">
-    <div class="col12">
-        
-        <table class="table table-hover">
-            <thead>
-                <tr class="table-info">
-                    <th>Lista de Imagens</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody class="table-group-divider">
-                {% for img_path, processed in formated_processed_list.items %}
-                
-                    <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" data-img-path="{{img_path}}" onclick="requestModalImg(this)">
-                        <td><p class="p-button">{{img_path}}</p></td>
-                        <td>
-                            {% for face in processed.faces %}
-                            {% if face.rankings|length >= 1 %}
-                            <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|mul:100|stringformat:".2f" }} %</span>
-                            {% else %}
-                            <span class="badge rounded-pill badge-light" style="color:rgb(94, 94, 94)">Unmatched Face {{forloop.counter}}</span>
-                            {% endif %}
-                            {% endfor %}
-                            {% for obj in processed.detections %}
-                            <span class="badge rounded-pill  
-                            {% if obj.label == 'Arma de Fogo' %}
-                             badge-danger" style="color:#790619"
-                            {% elif obj.label == 'Arma Branca' %}
-                             badge-warning" style="color:#453008"
-                            {% else %}
-                             badge-success" style="color:#0b4121"
-                            {% endif %}
-                            >
-                             {{ obj.label|dash2space }}: {{ obj.score|stringformat:".2f" }} %</span>
-                            {% endfor %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-                
-        </table>
+    <div class="row flex-row d-flex">
+        <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()">
+            {% csrf_token %}
+            <div class="col12">
+                <table class="table table-hover">
+                    <thead>
+                        <tr class="table-info">
+                            <th>Lista de Imagens</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody class="table-group-divider">
+                        {% for img_path, processed in formated_processed_list.items %}
+
+                            <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" data-img-path="{{img_path}}" onclick="requestModalImg(this)">
+                                <td><p class="p-button">{{img_path}}</p></td>
+                                <td>
+                                    {% for face in processed.faces %}
+                                    {% if face.rankings|length >= 1 %}
+                                    <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|mul:100|stringformat:".2f" }} %</span>
+                                    {% else %}
+                                    <span class="badge rounded-pill badge-light" style="color:rgb(94, 94, 94)">Unmatched Face {{forloop.counter}}</span>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% for obj in processed.detections %}
+                                    <span class="badge rounded-pill
+                                    {% if obj.label == 'Arma de Fogo' %}
+                                     badge-danger" style="color:#790619"
+                                    {% elif obj.label == 'Arma Branca' %}
+                                     badge-warning" style="color:#453008"
+                                    {% else %}
+                                     badge-success" style="color:#0b4121"
+                                    {% endif %}
+                                    >
+                                     {{ obj.label|dash2space }}: {{ obj.score|stringformat:".2f" }} %</span>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+            </div>
+            <div class="form-group form-outline flex-row">
+                <button type="submit" class="btn btn-info">Exportar Relatório</button>
+            </div>
+        </form>
     </div>
-    
-</div>
 </div>
 <!-- <style>
   rect.gun:hover{

@@ -24,7 +24,6 @@ class Operation(models.Model):
         ERROR = 'ER', _('Error')
     status = models.CharField(max_length=2, choices=OpStatus.choices)
     date = models.DateTimeField(auto_now_add=True)
-    
 
     def __str__(self):
         return self.type, self.status
@@ -105,7 +104,7 @@ class Processed(models.Model):
     frame = models.IntegerField()
 
 
-class FullProcessed():  
+class FullProcessed:
     def __init__(self, id, path="", w=0, h=0, operation=0, detection_result_path = "", retrieval_result_path=""):
         self.operation = operation
         self.path = path
@@ -119,7 +118,7 @@ class FullProcessed():
         self.faces = []
         self.id = id
 
-    class Detection():
+    class Detection:
         label_to_superlabel = {'pistol': 'Arma de Fogo',
                                'knife': 'Arma Branca',
                                'bicycle': 'Veículo',
@@ -140,10 +139,9 @@ class FullProcessed():
             self.label = self.label_to_superlabel[label]
             self.score = score * 100.0
             self.bbx = bbx
-            
 
-    class Faces():
-        class Ranking():
+    class Faces:
+        class Ranking:
             def __init__(self, position, value, imgdb):
                 self.position = position
                 self.value = value
