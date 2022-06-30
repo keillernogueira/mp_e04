@@ -10,16 +10,16 @@ import torch
 from torch import nn
 import torch.optim as optim
 
-from dataloaders.LFW_dataloader import LFW
-from dataloaders.generic_dataloader import GenericDataLoader
-from networks.mobilefacenet import ArcMarginProduct
-from networks.cosface import CosineMarginProduct
-from networks.curricularface import CurricularFace
-from processors.dataset_processor import extract_features, evaluate_dataset
-from networks.load_network import load_net
+from .dataloaders.LFW_dataloader import LFW
+from .dataloaders.generic_dataloader import GenericDataLoader
+from .networks.mobilefacenet import ArcMarginProduct
+from .networks.cosface import CosineMarginProduct
+from .networks.curricularface import CurricularFace
+from .processors.dataset_processor import extract_features, evaluate_dataset
+from .networks.load_network import load_net
 
 
-def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71):
+def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch):
     """
     Train a model.
 
@@ -47,7 +47,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
 
     # create dataset
     train_dataset = GenericDataLoader(dataset_path, preprocessing_method=preprocessing_method, crop_size=crop_size)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=128,
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=4,
                                                    shuffle=True, num_workers=0, drop_last=False)
 
     # validation dataset
@@ -134,12 +134,14 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
 
     SAVE_FREQ = 1
     TEST_FREQ = 5
-    start_epoch = 1
+    start_epoch = 0
 
     # if resume_path:
     #     ckpt = torch.load(resume_path)
     #     net.load_state_dict(ckpt['net_state_dict'])
     #     start_epoch = ckpt['epoch'] + 1
+
+    mAP = 0
 
     for epoch in range(start_epoch, num_epoch+1):
         # train model
@@ -172,18 +174,20 @@ def train(dataset_path, save_dir, model_name, preprocessing_method='sphereface',
         logging.info(loss_msg)
 
         # test model on lfw
-        if epoch % TEST_FREQ == 0:
+        if epoch % TEST_FREQ == 0 and epoch == num_epoch:
             features = extract_features(validate_dataloader, model=net, gpu=True, save_img_results=True)
-            evaluate_dataset(features)
+            mAP = evaluate_dataset(features)
 
         # save model
-        if epoch % SAVE_FREQ == 0:
+        if epoch % SAVE_FREQ == 0 or epoch == num_epoch:
             logging.info('Saving checkpoint: {}'.format(epoch))
             net_state_dict = net.state_dict()
             if not os.path.exists(save_dir):
                 os.mkdir(save_dir)
-            torch.save({'epoch': epoch, 'net_state_dict': net_state_dict}, os.path.join(save_dir, '%03d.ckpt' % epoch))
+            save_name = os.path.join(save_dir, '%03d.ckpt' % epoch)
+            torch.save({'epoch': epoch, 'net_state_dict': net_state_dict}, save_name)
     logging.info('finishing training')
+    return mAP, save_name
 
 
 if __name__ == '__main__':

@@ -11,7 +11,8 @@ from django.core import serializers
 
 from django.templatetags.static import static
 
-from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm, FaceTrainForm
+from .forms import ProcessingForm, IdPersonForm, DetectionForm, UpdateDBForm, ConfigForm, FaceTrainForm, ObjectTrainForm
+
 from .models import Database, Operation, OpConfig, GeneralConfig, Model, ImageDB, Processed, Output, Ranking, FullProcessed
 from .filters import OperationFilter
 
@@ -38,11 +39,13 @@ sys.path.insert(0, parentdir)
 
 from django.contrib.auth.decorators import login_required
 from pessoas.manipulate_dataset import manipulate_dataset
+from pessoas.train import train as train_face_func
 from pessoas.retrieval import retrieval as face_retrieval
 from pessoas.plots import plot_top15_person_retrieval
 from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
 from objetos.yolov5.detect_obj import retrieval as detect_object
+from objetos.yolov5.train_light import train as train_obj_func
 
 
 # TODO tem uma flag debug do proprio django no seetings.py
@@ -619,11 +622,13 @@ def config(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
 
-    data = GeneralConfig.objects.all()[0]
-    # Get Values from database and load as initial form value
-    form = ConfigForm(initial={'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model,
-                               'det_model': data.det_model, 'save_path': data.save_path})
-    print(data)
+    try:
+        data = GeneralConfig.objects.all()[0]
+        # Get Values from database and load as initial form value
+        form = ConfigForm(initial={'ret_pre_process': data.ret_pre_process, 'ret_model': data.ret_model,
+                                'det_model': data.det_model, 'save_path': data.save_path})
+    except:
+        form = ConfigForm()
 
     if request.method == 'POST':
         print(request.POST)
@@ -656,19 +661,87 @@ def train(request):
         return render(request, 'e04/permissiondenied.html')
     return HttpResponseRedirect('/e04/train/face')
 
-
 @login_required
 def train_face(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
     form = FaceTrainForm()
-    data = Model.objects.all().filter(type='FA')
 
     if request.method == 'POST':
         form = FaceTrainForm(request.POST)
+        if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
+            form.add_error(None, "Either a zip file or a local folder should be informed.")
+            form.add_error('folderInput', "*")
+            form.add_error('zipFile', "*")
         if form.is_valid():
             data = form.cleaned_data
             print(data)
+            #dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71
+            model_name = 'curricularface'
+            save_dir = ''
+            dataset_path = ''
+            num_epoch = data['num_epoch']
+            op = Operation(user=request.user,
+                           type=Operation.OpType.TRAIN,
+                           status=Operation.OpStatus.PROCESSING)
+            op.save()
+
+            operation_config = OpConfig(op=op, parameter=OpConfig.ParameterOpt.TRAIN_EPOCH,
+                                               value=num_epoch)
+            operation_config.save()
+
+            try:
+                preprocessing_method = GeneralConfig.objects.all()[0].ret_pre_process
+            except:
+                preprocessing_method = 'sphereface'
+
+            config_data = GeneralConfig.objects.all()
+            config_data = config_data[0] if len(config_data) else GeneralConfig()
+
+            dataset_path = get_image_folder(request, data, op, config_data)
+            print('------------')
+            print(dataset_path)
+
+            if data['new_model']:
+                resume_path = None
+                save_dir = ''
+                print('new')
+                path = os.path.join(sys.path[0], 'pessoas', 'train_model')
+                if not os.path.isdir(path):
+                    os.mkdir(path)
+                path = os.path.join(path, data['model_name'])
+                if not os.path.isdir(path):
+                    os.mkdir(path)
+                save_dir = path
+                print(save_dir)
+                
+            else:
+                save_dir = os.path.join(sys.path[0], 'pessoas', 'train_model', data['model_sel'])
+                resume_path = Model.objects.all().filter(name=data['model_sel'])[0].model_path
+
+            if not debug:
+                try:
+                    print("Aaa")
+                    print(request.user)
+                    print(train_face.__code__.co_varnames)
+                    val_acc, save_name = train_face_func(dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch)
+                    print('a')
+
+                    m = Model(op_id = op, type=Model.ModelType.FACE, name=data['model_name'], model_path= save_name, val_acc = val_acc)
+                    m.save()
+                except Exception:
+                        op.status = Operation.OpStatus.ERROR
+                        op.save()
+                        traceback.print_exc()
+
+            # If in thread it will be different
+            if op.status != Operation.OpStatus.ERROR:
+                op.status = Operation.OpStatus.FINISHED
+                op.save()
+            else:
+                messages.error(request, 'Falha no treino.')
+                return HttpResponseRedirect("/e04/train/face")
+
             messages.success(request, 'Treino Iniciado com Sucesso')
             return HttpResponseRedirect("/e04/train/face")
         else:
@@ -680,8 +753,6 @@ def train_face(request):
                     err_msg += msg.message + ' | '
             messages.error(request, err_msg)
 
-    form.fields['model_sel'].choices = [(x.name, x.name) for x in data]
-    form.fields['model_sel'].choices.insert(0, ('', 'Selecione um Modelo'))
 
     context = {'form': form}
     return render(request, 'e04/train_face.html', context)
@@ -691,7 +762,90 @@ def train_face(request):
 def train_object(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
-    return render(request, 'e04/train_object.html')
+    form = ObjectTrainForm()
+
+    if request.method == 'POST':
+        form = FaceTrainForm(request.POST)
+        if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
+            form.add_error(None, "Either a zip file or a local folder should be informed.")
+            form.add_error('folderInput', "*")
+            form.add_error('zipFile', "*")
+        if form.is_valid():
+            data = form.cleaned_data
+            print(data)
+            #dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71
+            model_name = 'curricularface'
+            save_dir = ''
+            dataset_path = ''
+            num_epoch = data['num_epoch']
+            op = Operation(user=request.user,
+                           type=Operation.OpType.TRAIN,
+                           status=Operation.OpStatus.PROCESSING)
+            op.save()
+
+            operation_config = OpConfig(op=op, parameter=OpConfig.ParameterOpt.TRAIN_EPOCH,
+                                               value=num_epoch)
+            operation_config.save()
+
+            config_data = GeneralConfig.objects.all()
+            config_data = config_data[0] if len(config_data) else GeneralConfig()
+
+            dataset_path = get_image_folder(request, data, op, config_data)
+            print('------------')
+            print(dataset_path)
+
+            if data['new_model']:
+                resume_path = None
+                save_dir = ''
+                print('new')
+                path = os.path.join(sys.path[0], 'objetos', 'train_model')
+                if not os.path.isdir(path):
+                    os.mkdir(path)
+                path = os.path.join(path, data['model_name'])
+                if not os.path.isdir(path):
+                    os.mkdir(path)
+                save_dir = path
+                print(save_dir)
+                
+            else:
+                resume_path = Model.objects.all().filter(name=data['model_sel'])[0].model_path
+                path = os.path.join(sys.path[0], 'objetos', 'train_model', data['model_sel'])
+
+            if not debug:
+                try:
+                    val_acc = train_obj_func(hyp_path = os.path.join(sys.path[0], 'objetos', 'yolov5', 'hyp.scratch.yaml'), 
+                                            data=dataset_path, output_path=save_dir, num_epochs=num_epoch)
+                    val_acc = val_acc[2]
+
+                    m = Model(op_id = op, type=Model.ModelType.OBJECT, name=data['model_name'], model_path=save_dir, val_acc = val_acc)
+                    m.save()
+                except Exception:
+                        op.status = Operation.OpStatus.ERROR
+                        op.save()
+                        traceback.print_exc()
+
+            # If in thread it will be different
+            if op.status != Operation.OpStatus.ERROR:
+                op.status = Operation.OpStatus.FINISHED
+                op.save()
+            else:
+                messages.error(request, 'Falha no treino.')
+                return HttpResponseRedirect("/e04/train/object")
+
+            messages.success(request, 'Treino Concluído com Sucesso')
+            return HttpResponseRedirect("/e04/train/object")
+        else:
+            print('invalid')
+            print(form.errors.as_data())
+            err_msg = ''
+            for key in form.errors.as_data():
+                for msg in form.errors.as_data()[key]:
+                    err_msg += msg.message + ' | '
+            messages.error(request, err_msg)
+
+
+    context = {'form': form}
+    return render(request, 'e04/train_object.html', context)
 
 
 @login_required

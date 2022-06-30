@@ -230,8 +230,14 @@ def evaluate_dataset(result, metric='map', bib="numpy", gpu=False, save_dir=None
         top100 = np.mean(np.sum(aps[:, 0:100], axis=1) / np.minimum(corrects, 100))
         print('mAP: %f top1: %f top5: %f top10: %f top20: %f top50: %f top100: %f' %
               (mean_ap, top1, top5, top10, top20, top50, top100))
+
     print("Total execution time: %f seconds. Execution time per query: %f seconds." %
           (end - start, (end - start)/len(features)))
+
+    if metric == 'cmc':
+        return mean_cmc[0]
+    else:
+       return mean_ap 
 
 
 def process_dataset(operation, model_name, batch_size,

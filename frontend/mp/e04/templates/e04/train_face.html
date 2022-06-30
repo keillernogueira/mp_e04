@@ -20,13 +20,15 @@
                 <button type="submit" onclick="location.href='/e04/train/object'" class = 'btn btn-primary' style="width:18rem;margin-left:1rem;">Detecção de Objetos</button>
             </div>
             <hr>
-            <form method="post" action = '' novalidate onreset="resetFields()">
+            <form method="post" enctype = 'multipart/form-data' novalidate onreset="resetFields()">
                 {% csrf_token %}
                 <h5 style = "margin-top: 1rem;" title = "Banco de dados para o treino">Conjunto de Imagens:</h5>
                 <!-- File Input    -->
                 Envie um arquivo .zip
                 <div class="input-group" title="Envie um arquivo .zip">
+                    <!-- <input class="form-control" name="zipFile" id="zipFile" type="file" accept=".zip, .arj, .rar, .tar.gz, .tgz" onchange="toggleFolder(this)" required/> -->
                     {{ form.zipFile }}
+                    
                     <button class="btn btn-sm btn-outline-dark" type="button" id="removeBtn" data-mdb-ripple-color="dark" 
                     style="border-width: 1px; border-color:#bdbdbd;color:#666666;" hidden onclick="removeFile()">
                         <i class="fa-solid fa-xmark"></i>

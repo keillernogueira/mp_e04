@@ -20,42 +20,28 @@
     <div class = 'background_box'>
 
       <div class = 'login_box'>
-
+        <br>
         <h5>Faça o seu Login</h5>
         <hr>
 
         <div class = 'form_box'>
           <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
-            <table>
-              <tr>
-                <td>Usuário:</td>
-                <td>{{ form.username }}</td>
-              </tr>
-              <tr>
-                <td>Senha:</td>
-                <td>{{ form.password }}</td>
-              </tr>
-            </table>
+            <h6>Usuário:</h6>
+            <div>{{ form.username }}</div>
+            <br>
+              <h6>Senha:</h6>
+            <div>{{ form.password }}</div>
             <input class = 'btn btn-primary' type="submit" value="login" style="margin-top:1rem;"/>
             <input type="hidden" name="next" value="{{ next }}" />
           </form>
         </div>
 
-        <p><a href = "{% url 'signup' %}"> Ainda não tem uma conta? </a> </p>
+        <p><a href = "{% url 'signup' %}"> Ainda não tem uma conta? Cadastre-se! </a> </p>
 
         {# Assumes you setup the password_reset view in your URLconf #}
         <p><a href="{% url 'password_reset' %}">Esqueceu a Senha?</a></p>
 
-      </div>
-
-      
-      <div class = 'logo_box'>
-        <div style="text-align:center">
-          <a class="navbar-brand" href="{% url 'index' %}">
-            <i class="fa-brands fa-searchengin h3" style="margin-bottom:0;"></i><span class="h2" style="margin-bottom:0;margin-left: 0.5rem;">E04</span>
-          </a>
-        </div>
       </div>
 
     </div>

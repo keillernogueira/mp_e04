@@ -51,7 +51,9 @@ class GenericDataLoader(object):
         return _files, _labels, _labels_string
 
     def __getitem__(self, index):
+
         img = imageio.imread(self.img_list[index])
+
         cl = self.labels[index]
         hash = generate_sha256(self.img_list[index])
 
@@ -62,6 +64,11 @@ class GenericDataLoader(object):
         # rgba to rgb
         if img.shape[2] == 4:
             img = img[:, :, :3]
+
+        # Transpose images with RGB channels as first dimension
+        if img.shape[0] == 3:
+            img = np.transpose(img, (1, 2, 0))
+
 
         img, bb = self.preprocess.preprocess(img)
         img = img.squeeze()

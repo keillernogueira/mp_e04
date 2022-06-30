@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 # def train(opt, data, hyp_path, output_path, weights, epochs, device, cfg, batch_size, img_size, resume,
 # nosave, notest, cache_images, multi_scale, single_cls, sync_bn, local_rank, workers, save_period):
 
-def train(hyp_path='hyp.scratch.yaml', data='dataset.yaml', output_path='runs/train/exp',
-          opt=defaultOptTrain(), tb_writer=None):
+def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/train/exp',
+          opt=defaultOptTrain(), tb_writer=None, num_epochs=None):
     opt.hyp = hyp_path
     opt.data = data
     opt.output_path = output_path
@@ -100,6 +100,8 @@ def train(hyp_path='hyp.scratch.yaml', data='dataset.yaml', output_path='runs/tr
     logger.info(colorstr('hyperparameters: ') + ', '.join(f'{k}={v}' for k, v in hyp.items()))
     save_dir, epochs, batch_size, total_batch_size, weights, rank = \
         Path(opt.save_dir), opt.epochs, opt.batch_size, opt.total_batch_size, opt.weights, opt.global_rank
+    if num_epochs is not None:
+        epochs = num_epochs
 
     # Directories
     wdir = save_dir / 'weights'

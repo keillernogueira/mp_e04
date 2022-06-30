@@ -8,7 +8,7 @@
 
         <link rel="stylesheet" href="{% static 'e04/css/config.css' %}">
 
-        <div style = "margin-left: 1rem;width:40rem">
+        <div style = "margin-left: 1rem;width:40rem;">
 
             <h3>
                 Treinamento de Modelos
@@ -16,11 +16,132 @@
             <hr>
 
             <div>
-               <button class = 'btn btn-primary' onclick="location.href='/e04/train/face'" style="width:18rem;margin-right:1rem;margin-left:1rem;">Reconhecimento de Pessoas</button> 
-               <button disabled class = 'btn btn-primary' style="width:18rem;margin-left:1rem;">Detecção de Objetos</button> 
+                <button class = 'btn btn-primary'  onclick="location.href='/e04/train/face'"style="width:18rem;margin-right:1rem;margin-left:1rem;">Reconhecimento de Pessoas</button> 
+                <button disabled type="submit" class = 'btn btn-primary' style="width:18rem;margin-left:1rem;">Detecção de Objetos</button>
             </div>
+            <hr>
+            <form method="post" enctype = 'multipart/form-data' novalidate onreset="resetFields()">
+                {% csrf_token %}
+                <h5 style = "margin-top: 1rem;" title = "Banco de dados para o treino">Conjunto de Imagens:</h5>
+                <!-- File Input    -->
+                Envie um arquivo .zip
+                <div class="input-group" title="Envie um arquivo .zip">
+                    <!-- <input class="form-control" name="zipFile" id="zipFile" type="file" accept=".zip, .arj, .rar, .tar.gz, .tgz" onchange="toggleFolder(this)" required/> -->
+                    {{ form.zipFile }}
+                    
+                    <button class="btn btn-sm btn-outline-dark" type="button" id="removeBtn" data-mdb-ripple-color="dark" 
+                    style="border-width: 1px; border-color:#bdbdbd;color:#666666;" hidden onclick="removeFile()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                {% if form.zipFile.errors %}
+                        {% for error in form.zipFile.errors %}
+                            <div class="d-block text-danger"><small>{{ error }}</small></div>
+                        {% endfor %}
+                {% endif %}
+                <div style ="margin:0.5rem"><h5>Ou</h5></div>
+                <div class="form-outline" title = "Insira um caminho válido para a pasta contendo as imagens de treino">
+                    <!-- <input type="text" name="folderInput" id="folderInput" class="form-control input-lg " placeholder="/home" onchange="toggleZip(this)" required/> -->
+                    {{ form.folderInput }}
+                    <label class="form-label" for="folderInput"> Insira o caminho para o conjunto de imagens. </label>
+                </div>
+                {% if form.folderInput.errors %}
+                        {% for error in form.folderInput.errors %}
+                            <div class="d-block text-danger"><small>{{ error }}</small></div>
+                        {% endfor %}
+                {% endif %}
+                <hr>
+                <h5 title = "Modelo a ser treinado. Crie um novo ou treine um já existente.">Seleção de Modelos:</h5>
+                <div id="model_sel">
+                    {{form.model_sel}}
+                </div>
+
+                <div id="model_name" style = "display: none;">
+                    {{form.model_name}}
+                </div>
+
+                <div class="form-check" id = "check" style = "margin-top:0.2rem;width:12rem;">
+                    {{ form.new_model }}
+                    <label class="form-check-label" for="new_model">{{ form.new_model.label }}</label>
+                </div>
+                <hr>
+                <h5 title = "Número de iterações a serem realizadas no treinamento">Número de Epochs:</h5>                
+                <div style = "width:6rem;">
+                    {{form.num_epoch}}
+                </div>
+
+                <input class="btn btn-primary" type="submit" value = 'Iniciar Treino' 
+                        style="margin-top: 0.5rem; margin-left:14rem;width: 12rem;text-align:center;border-radius: 0.8rem;">
+                </input>
+
+            </form>
+            
         </div>
 
     </body>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.0/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@dashboardcode/bsmultiselect@1.1.18/dist/js/BsMultiSelect.min.js"></script>
+    <script>
+
+        $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
+        })
+
+        function createMultiSelect(){
+                var $bsMultiSelects = $('#databases')
+                $bsMultiSelects.bsMultiSelect({ cssPatch : {  choices: {columnCount:'3' }}});
+            }
+        createMultiSelect();
+
+        function toggleZip(folderInput){
+            fzip = document.getElementById("zipFile");
+            if (folderInput.value !== ''){
+                fzip.disabled = true;
+                fzip.required = false;
+            }
+            else{
+                fzip.disabled = false;
+                fzip.required = true;
+            }
+        }
+
+        function toggleFolder(fzipInput){
+            folder = document.getElementById("folderInput");
+            if (fzipInput.value !== ''){
+                folder.disabled = true;
+                document.getElementById("removeBtn").hidden = false;
+                folder.required = false;
+            }
+            else{
+                folder.disabled = false;
+                document.getElementById("removeBtn").hidden = true;
+                folder.required = true;
+            }
+        }
+
+        function removeFile(){
+            var fzip = document.getElementById("zipFile");
+            fzip.value = '';
+            toggleFolder(fzip);
+        }
+
+        function resetFields() {
+            $('#folderInput').prop('disabled', false);
+            $('#folderInput').prop('required', true);
+            $('#zipFile').prop('disabled', false);
+            $('#folderInput').prop('required', true);
+        }
+        function checkDisplay(){
+            if (document.getElementById('id_new_model').checked){
+                toggleRet();
+            }
+            }
+        checkDisplay();
+        function toggleRet(){
+            $('#model_sel').toggle();
+            $('#model_name').toggle();
+        }
+
+</script>
 
 {% endblock %}
