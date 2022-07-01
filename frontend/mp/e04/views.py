@@ -27,7 +27,9 @@ from sklearn.preprocessing import normalize
 import cv2 as cv
 from pathlib import Path
 from zipfile import ZipFile
+from fpdf import FPDF
 
+from datetime import datetime
 from .models import Operation
 from .filters import OperationFilter
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
@@ -46,6 +48,8 @@ from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
 from objetos.yolov5.detect_obj import retrieval as detect_object
 from objetos.yolov5.train_light import train as train_obj_func
+
+from pessoas.retrieval import img_formats, vid_formats
 
 
 # TODO tem uma flag debug do proprio django no seetings.py
@@ -135,14 +139,17 @@ def save_retrieval_results(operation, data, confidence):
     
     for i, img in enumerate(data):
         for key, face in img.items():
-            if 'face' not in key: continue
-            prc = Processed(operation=operation, path=img['path'], frame=0)
+            if 'face' not in key:
+                continue
+            prc = Processed(operation=operation, path=img['path'], hash=img['hash'],
+                            frame=face['frame_num'] if 'frame_num' in face else 0)
             prc.save()
     
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(face['box']))
             out_data.append(out_bb)
 
-            if face['confidence most similar'] < confidence: continue
+            if face['confidence most similar'] < confidence:
+                continue
 
             # r ranking, k name, person [score, imgdb_id]
             for r, (k, person) in enumerate(sorted(face['top options'].items(), key=lambda x: x[1][0], reverse=True)):
@@ -169,8 +176,10 @@ def save_detection_results(operation, data):
         for obj_id in range(1, img['objects'] + 1):
             obj = img[f'object_{obj_id}']
             out_bb = Output(processed=prc, parameter=Output.ParameterOpt.BB, value=repr(obj['box']), obj=obj_id-1)
-            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']), obj=obj_id-1)
-            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']), obj=obj_id-1)
+            out_score = Output(processed=prc, parameter=Output.ParameterOpt.SCORE, value=repr(obj['confidence']),
+                               obj=obj_id-1)
+            out_label = Output(processed=prc, parameter=Output.ParameterOpt.LABEL, value=repr(obj['class']),
+                               obj=obj_id-1)
             out_data.append(out_bb)
             out_data.append(out_score)
             out_data.append(out_label)
@@ -179,7 +188,7 @@ def save_detection_results(operation, data):
     Output.objects.bulk_create(out_data)
 
 
-def retrival_process(operation, config_data, img_folder, database, confid_threshold):
+def retrieval_process(operation, config_data, img_folder, database, confid_threshold):
     ret_model = Model.objects.filter(id=config_data.ret_model_id)[0]
     preprocessing = dict(GeneralConfig.PreProcess.choices)[config_data.ret_pre_process].lower()
     conf_thres = float(confid_threshold) / 100.0
@@ -276,8 +285,8 @@ def id_person(request):
 
             img_folder = get_image_folder(request, form_data, operation, config_data)
 
-            retrival_process(operation, config_data, img_folder,
-                             form_data['databases'], form_data['retrievalThreshold'])
+            retrieval_process(operation, config_data, img_folder,
+                              form_data['databases'], form_data['retrievalThreshold'])
 
             # Detection
             if form_data['doObjectDetection']:
@@ -382,8 +391,8 @@ def detect_obj(request):
             
             # Retrieval
             if form_data['doFaceRetrieval']:
-                retrival_process(operation, config_data, img_folder,
-                                 form_data['databases'], form_data['retrievalThreshold'])
+                retrieval_process(operation, config_data, img_folder,
+                                  form_data['databases'], form_data['retrievalThreshold'])
 
             # If in thread it will be different
             if operation.status != Operation.OpStatus.ERROR:
@@ -436,14 +445,20 @@ def results(request):
 
 
 def prepare_data_for_export(operation_id, num_ranks_saved):
-    export_face_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Rank1_label': []}
+    export_face_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': []}
     for i in range(num_ranks_saved):
         export_face_dict['Rank' + str(i + 1) + '_label'] = []
         export_face_dict['Rank' + str(i + 1) + '_score'] = []
     export_detec_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Score': [], 'Label': []}
 
     processeds_list = Processed.objects.filter(operation__id=operation_id)
+    count_videos = 0
+    count_images = 0
     for processed in processeds_list:
+        if processed.path.split('.')[-1] in img_formats:
+            count_images += 1
+        elif processed.path.split('.')[-1] in vid_formats:
+            count_videos += 1
         outputs = Output.objects.filter(processed=processed)
         ranking = Ranking.objects.filter(processed=processed).order_by('position')
         if ranking:  # there is a raking to process
@@ -476,7 +491,7 @@ def prepare_data_for_export(operation_id, num_ranks_saved):
                 export_detec_dict['Score'].append(eval(sc.value))
                 export_detec_dict['Label'].append(lb.value.replace("'", ""))
 
-    return export_face_dict, export_detec_dict
+    return export_face_dict, export_detec_dict, len(processeds_list), count_images, count_videos
 
 
 def export_xls(user, export_face_dict, export_detec_dict, operation_id, save_path):
@@ -491,17 +506,125 @@ def export_xls(user, export_face_dict, export_detec_dict, operation_id, save_pat
         df1.to_excel(writer, sheet_name='person_id')
         df2.to_excel(writer, sheet_name='obj_detect')
 
-    return os.path.join(save_path, 'exported.xlsx')
+    return os.path.join(save_path, 'report.xlsx')
+
+
+def export_pdf(user, export_face_dict, export_detec_dict, total, t_img, t_videos, operation_id,
+               save_path, num_ranks_saved):
+    class PDF(FPDF):
+        def __init__(self):
+            super().__init__()
+            self.set_margins(25, 25, 25)
+
+        def header(self):
+            self.image(os.path.join(os.getcwd(), 'e04', 'static', 'mpmg_logo.png'), 79, 15, 50)
+
+            self.set_font('Arial', 'B', 16)
+            self.ln(20)
+            self.cell(0, 0, 'Relatório Automático', 0, 0, 'C')
+            self.ln(14)
+
+        def footer(self):
+            # Page numbers in the footer
+            self.set_y(-15)
+            self.set_font('Arial', 'I', 8)
+            self.set_text_color(128)
+
+            self.cell(0, 0, 'Sistema -- ' + datetime.now().strftime("%d/%m/%Y %H:%M:%S"), 0, 0, 'L')
+            self.cell(0, 0, 'Page ' + str(self.page_no()) + '/' + str(self.alias_nb_pages()), 0, 0, 'R')
+
+        def bold_part_text(self, text_part1, text_part2, width, height=3, ln=2, fill=False, rgb=[211, 227, 230]):
+            if fill is True:
+                self.set_fill_color(rgb[0], rgb[1], rgb[2])
+            self.set_font('Arial', 'B', 11)
+            self.cell(width, height, text_part1, 0, 0, fill=fill)
+            self.set_font('Arial', '', 11)
+            self.multi_cell(0, height, text_part2, 0, 1, fill=fill)
+            self.ln(ln)
+
+    pdf = PDF()
+    pdf.alias_nb_pages()
+    pdf.add_page()
+
+    pdf.bold_part_text('Software: ', 'Sistema para reconhecimento de pessoas e detecção de objetos', width=20)
+    pdf.bold_part_text('Versão: ', '1.0 - 01/07/2022', width=16, ln=8)
+
+    pdf.bold_part_text('Código identificador da análise: ', str(operation_id), width=60)
+    pdf.bold_part_text('Total de registros processados: ', str(total), width=60)
+    pdf.bold_part_text('Total de imagens processadas: ', str(t_img), width=59)
+    pdf.bold_part_text('Total de vídeos processados: ', str(t_videos), width=55)
+    pdf.bold_part_text('Data e hora: ', datetime.now().strftime("%d/%m/%Y %H:%M:%S"), width=23, ln=8)
+
+    pdf.bold_part_text('Usuário: ', user.first_name + ' ' + user.last_name, width=18)
+    pdf.bold_part_text('E-mail: ', user.email, width=15, ln=18)
+
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 0, 'Resultado da Análise', 0, 0, 'C')
+    pdf.ln(14)
+
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 5, 'Os resultados a seguir são fruto de um modelo probabilístico, '
+                         'com o objetivo de auxiliar na triagem de imagens e vídeos. Portanto, '
+                         'podem ocorrer falsos positivos ou falsos negativos. Necessário executar a '
+                         'verificação visual.', 0, 'J', False)
+    pdf.ln(12)
+
+    count_id = 0
+    for i in range(len(export_face_dict['File'])):
+        img_flag = False
+        if export_face_dict['File'][i].split('.')[-1] in img_formats:
+            img_flag = True
+        pdf.bold_part_text('ID: ', str(count_id), width=7, height=5, fill=True, rgb=[183, 206, 172])
+        pdf.bold_part_text('Arquivo: ', export_face_dict['File'][i], width=18, height=5)
+        pdf.bold_part_text('Tipo: ', 'Imagem' if img_flag else 'Vídeo', width=11)
+        pdf.bold_part_text('Hash: ', export_face_dict['Hash'][i], width=13)
+        if not img_flag:
+            pdf.bold_part_text('Timestamp: ', export_face_dict['Frame'][i], width=15)
+
+        string_rank = ''
+        string_confidence = ''
+        for j in range(num_ranks_saved):
+            if export_face_dict['Rank' + str(j + 1) + '_label'][i] == 'N/A':
+                break
+            string_rank += export_face_dict['Rank' + str(j + 1) + '_label'][i] + ', '
+            string_confidence += str("%.2f" % round(export_face_dict['Rank' + str(j + 1) + '_score'][i]*100, 2)) + ', '
+        pdf.bold_part_text('Ranking: ', string_rank[:-2], width=17)
+        pdf.bold_part_text('Confiança: ', string_confidence[:-2], width=21, ln=8)
+        count_id += 1
+
+    for i in range(len(export_detec_dict['File'])):
+        img_flag = False
+        if export_detec_dict['File'][i].split('.')[-1] in img_formats:
+            img_flag = True
+        pdf.bold_part_text('ID: ', str(count_id), width=7, height=5, fill=True)
+        pdf.bold_part_text('Arquivo: ', export_detec_dict['File'][i], width=18, height=5)
+        pdf.bold_part_text('Tipo: ', 'Imagem' if img_flag else 'Vídeo', width=11)
+        pdf.bold_part_text('Hash: ', export_detec_dict['Hash'][i], width=13)
+        if not img_flag:
+            pdf.bold_part_text('Timestamp: ', export_detec_dict['Frame'][i], width=15)
+        pdf.bold_part_text('Rótulo: ', FullProcessed.Detection.label_to_superlabel[export_detec_dict['Label'][i]],
+                           width=16)
+        pdf.bold_part_text('Confiança: ', str("%.2f" % round(export_detec_dict['Score'][i]*100, 2)), width=23, ln=8)
+        count_id += 1
+
+    pdf.output(os.path.join(save_path, 'report.pdf'), 'F')
+    return os.path.join(save_path, 'report.pdf')
 
 
 @login_required
-def detailed_result(request, operation_id, num_ranks_saved=3):
+def detailed_result(request, operation_id):
     if request.method == 'POST':
+        num_ranks_saved = 3
         config_data = GeneralConfig.objects.all()
         config_data = config_data[0] if len(config_data) else GeneralConfig()
 
-        face_dict, detec_dict = prepare_data_for_export(operation_id, num_ranks_saved)
-        file = export_xls(request.user, face_dict, detec_dict, operation_id, config_data.save_path)
+        face_dict, detec_dict, total, t_img, t_videos = prepare_data_for_export(operation_id, num_ranks_saved)
+
+        if request.POST.get("xls"):
+            file = export_xls(request.user, face_dict, detec_dict, operation_id, config_data.save_path)
+        else:
+            file = export_pdf(request.user, face_dict, detec_dict, total, t_img, t_videos,
+                              operation_id, config_data.save_path, num_ranks_saved)
 
         with open(file, 'rb') as fh:
             response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
@@ -528,6 +651,7 @@ def detailed_result(request, operation_id, num_ranks_saved=3):
         formated_processed_list = {}
 
         for i, img in enumerate(unique):
+            # TODO isso nao funciona pra video - @Pedro
             opimg = cv.imread(img)
             formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", path=img, w=opimg.shape[1],
                                                          h=opimg.shape[0], operation=operation_id,
@@ -570,12 +694,12 @@ def detailed_result(request, operation_id, num_ranks_saved=3):
 
                 ranking_img_info = [(r.value, r.imgdb.label, r.imgdb.path) for r in face.rankings]
 
-        context = {'op': operation_id,'processeds_list': processeds_list,
+        context = {'op': operation_id, 'processeds_list': processeds_list,
                    'formated_processed_list': formated_processed_list, 'operations': operations[op.type],
                    'tmp': static(os.path.join('tmp', str(operation_id), 'results')),
                    'w': img_sz*16, 'h': img_sz*9}
 
-        return render(request,'e04/detailed_result_v2.html',context)
+        return render(request, 'e04/detailed_result_v2.html',context)
 
 
 def requestImageDB(request):
@@ -585,9 +709,10 @@ def requestImageDB(request):
     if is_ajax and request.method == "POST":
         img_id = request.POST.get('img_id', '')
 
-        if img_id == '': return JsonResponse({"error": ""}, status=400)
+        if img_id == '':
+            return JsonResponse({"error": ""}, status=400)
 
-        imagedb = ImageDB.objects.filter(id = img_id)[0]
+        imagedb = ImageDB.objects.filter(id=img_id)[0]
 
         root = os.path.split(os.path.abspath(__file__))[0]
         tmp = Path(os.path.join(root, static('')[1:], 'tmp', 'images'))
@@ -601,7 +726,6 @@ def requestImageDB(request):
 
         # send to client side.
         return JsonResponse({"instance": instance}, status=200)
-        
 
     # some error occured
     return JsonResponse({"error": ""}, status=400)
@@ -614,9 +738,11 @@ def requestImagePath(request):
     if is_ajax and request.method == "POST":
         img_path = request.POST.get('path', '')
 
-        if img_path == '': return JsonResponse({"error": ""}, status=400)
+        if img_path == '':
+            return JsonResponse({"error": ""}, status=400)
 
-        if not os.path.exists(img_path): return JsonResponse({"error": ""}, status=400)
+        if not os.path.exists(img_path):
+            return JsonResponse({"error": ""}, status=400)
 
         root = os.path.split(os.path.abspath(__file__))[0]
         tmp = Path(os.path.join(root, static('')[1:], 'tmp', 'images'))
@@ -625,12 +751,11 @@ def requestImagePath(request):
         if not os.path.exists(tmp/os.path.basename(img_path)):
             shutil.copy(img_path, tmp/os.path.basename(img_path))
 
-        instance = {'tmp' : static(os.path.join('tmp', 'images')),
+        instance = {'tmp': static(os.path.join('tmp', 'images')),
                     'path': os.path.basename(img_path)}
 
         # send to client side.
         return JsonResponse({"instance": instance}, status=200)
-        
 
     # some error occured
     return JsonResponse({"error": ""}, status=400)
@@ -679,6 +804,7 @@ def train(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
     return HttpResponseRedirect('/e04/train/face')
+
 
 @login_required
 def train_face(request):

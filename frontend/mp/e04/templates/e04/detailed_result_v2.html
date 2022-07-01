@@ -12,7 +12,7 @@
         </div>
     </div>
     <div class="row flex-row d-flex">
-        <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()">
+        <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()" id="form">
             {% csrf_token %}
             <div class="col12">
                 <table class="table table-hover">
@@ -55,7 +55,8 @@
                 </table>
             </div>
             <div class="form-group form-outline flex-row">
-                <button type="submit" class="btn btn-info">Exportar Relatório</button>
+                <button type="submit" name="xls" value="xls" class="btn btn-info">Exportar Relatório (XLS)</button>
+                <button type="submit" name="pdf" value="pdf" class="btn btn-info">Exportar Relatório (PDF)</button>
             </div>
         </form>
     </div>
@@ -284,6 +285,13 @@
 {% endfor %}
 
 <script>
+    $('#form').on(function(event){
+        var clickedbutton = event.findElement();
+
+        //then you can fire your submitMe() function
+        submitMe(this);
+    });
+
   function highlight(box){
     color = "";
     switch(box.className.baseVal.trim()){

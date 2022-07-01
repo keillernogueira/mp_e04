@@ -105,7 +105,7 @@ class Processed(models.Model):
 
 
 class FullProcessed:
-    def __init__(self, id, path="", w=0, h=0, operation=0, detection_result_path = "", retrieval_result_path=""):
+    def __init__(self, id, path="", w=0, h=0, operation=0, detection_result_path="", retrieval_result_path=""):
         self.operation = operation
         self.path = path
         self.w = w
@@ -133,7 +133,7 @@ class FullProcessed:
                                'shotgun': 'Arma de Fogo',
                                'machine gun': 'Arma de Fogo',
                                'submachine gun': 'Arma de Fogo',
-                              }
+                               }
 
         def __init__(self, label, score, bbx):
             self.label = self.label_to_superlabel[label]
