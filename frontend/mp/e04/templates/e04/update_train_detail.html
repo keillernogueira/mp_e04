@@ -1,0 +1,28 @@
+{% extends 'e04/base_v2.html' %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row flex-row d-flex" style="padding-bottom: 1em;">
+        <div class="col-12"> <h2><b>{{operation.get_type_display}} {{operation.id}}</b></h2>
+            Total de imagens atualizadas: {{image_list|length}}
+        </div>
+    </div>
+</div>
+<div class="row flex-row d-flex">
+    <div class="col12">
+        <table class="table table-hover">
+            <thead>
+                <tr class="table-info">Lista de Imagens</tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for image in image_list %}
+                    <tr>
+                        <td>{{image.path}}</td>
+                    </tr>
+                {% endfor %}    
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

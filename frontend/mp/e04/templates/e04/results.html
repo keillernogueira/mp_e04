@@ -26,7 +26,7 @@
                 {% for result in response %}
                 <tr>
                     {%if result.type == 'TR' or result.type == 'UD' %}
-                        <td class="ftd">Resultado_{{ result.id }}</td>
+                        <td class="ftd"><a href="UpTr{{result.id}}">Resultado_{{ result.id }}</a> </td>
                     {%else%}
                         <td class="ftd"> <a href="{{request.path}}{{ result.id }}">Resultado_{{ result.id }}</a>  </td>
                     {%endif%}

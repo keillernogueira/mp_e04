@@ -610,6 +610,15 @@ def export_pdf(user, export_face_dict, export_detec_dict, total, t_img, t_videos
     pdf.output(os.path.join(save_path, 'report.pdf'), 'F')
     return os.path.join(save_path, 'report.pdf')
 
+@login_required
+def update_train_detail(request, operation_id):
+    image_list = ImageDB.objects.filter(operation__id=operation_id)
+    operation = Operation.objects.get(id=operation_id)
+    database_images = ImageDB.objects.filter(operation__id=operation_id)[0].database
+
+    context = {'image_list':image_list,'operation':operation, 'database':database_images}
+
+    return render(request,'e04/update_train_detail.html',context)
 
 @login_required
 def detailed_result(request, operation_id):
