@@ -73,6 +73,11 @@ body {
     background-image: none;
 }
 
+.form-check-input2[type=checkbox]:checked:after{
+    transform: scale(0.8) rotate(45deg);
+    margin-left: 0.19rem;
+}
+
 tr.row-button:hover{
     cursor: pointer;
     /* font-weight: 600; */
@@ -94,3 +99,68 @@ tr.row-button:hover{
 /* .p-button:hover{
     color:#b9b9b9;
 } */
+
+/* Switch info */
+.switch-info label input[type=checkbox]:checked+.lever {
+    background-color: #33b5e5;
+}
+
+.switch-info label input[type=checkbox]+.lever {
+    background-color: #75d2f1;
+}
+
+.switch-info label input[type=checkbox]:checked+.lever:after {
+    background-color: #0099CC;
+}
+
+/* Switch danger */
+.switch-danger label input[type=checkbox]:checked+.lever {
+    background-color: #ff4444;
+}
+
+.switch-danger label input[type=checkbox]+.lever {
+    background-color: #f18585;
+}
+
+.switch-danger label input[type=checkbox]:checked+.lever:after {
+    background-color: #CC0000;
+}
+
+/* Switch warning */
+.switch-warning label input[type=checkbox]:checked+.lever {
+    background-color: #ffbb33;
+}
+
+.switch-warning label input[type=checkbox]+.lever {
+    background-color: #fdd075;
+}
+
+.switch-warning label input[type=checkbox]:checked+.lever:after {
+    background-color: #FF8800;
+}
+
+/* Switch success */
+.switch-success label input[type=checkbox]:checked+.lever {
+    background-color: #00C851;
+}
+
+.switch-success label input[type=checkbox]+.lever {
+    background-color: #56bb7f;
+}
+
+.switch-success label input[type=checkbox]:checked+.lever:after {
+    background-color: #007E33;
+}
+
+/* Switch light */
+.switch-light label input[type=checkbox]:checked+.lever {
+    background-color: #2a2a2a;
+}
+
+.switch-light label input[type=checkbox]+.lever {
+    background-color: #b1b1b1;
+}
+
+.switch-light label input[type=checkbox]:checked+.lever:after {
+    background-color: #343434;
+}

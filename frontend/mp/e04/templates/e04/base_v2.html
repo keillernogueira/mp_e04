@@ -27,6 +27,8 @@
     rel="stylesheet"
     />
 
+    <link rel="stylesheet" href="{% static 'e04/css/c-mdb.min.css' %}">
+
     <link
     href="https://cdn.jsdelivr.net/npm/@dashboardcode/bsmultiselect@1.1.18/dist/css/BsMultiSelect.min.css"
     rel="stylesheet"
@@ -47,6 +49,9 @@
     crossorigin="anonymous"></script>
 
     <link rel="stylesheet" href="{% static 'e04/css/style.css' %}">
+
+    <!-- Toogle -->
+    <link href="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/css/bootstrap4-toggle.min.css" rel="stylesheet">
 </head>
 
 <body>
@@ -90,8 +95,9 @@
               <span>Treino</span>
           </a>
           <!-- {%endif%} -->
+          <hr/>
           <h5>Olá {{user.username}}</h5>
-          <a href="/accounts/logout">Deseja sair?</a>
+          <a href="/accounts/logout" class="text-light">Deseja sair?</a>
         </div>
       </div>
     </nav>
@@ -150,6 +156,11 @@
 type="text/javascript"
 src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/4.0.0/mdb.min.js"
 ></script>
+
+<!-- <script
+type="text/javascript"
+src="{% static 'e04/script/mdb.min.js' %}"
+></script> -->
 
 </body>
 

@@ -1,0 +1,47 @@
+/*!
+ * Material Design for Bootstrap 4
+ * Version: MDB PRO 4.7.4
+ *
+ *
+ * Copyright: Material Design for BootstrapS
+ * https://mdbootstrap.com/
+ *
+ * Read the license: https://mdbootstrap.com/general/license/
+ *
+ *
+ * Documentation: https://mdbootstrap.com/
+ *
+ * Getting started: https://mdbootstrap.com/docs/jquery/getting-started/download/
+ *
+ * Tutorials: https://mdbootstrap.com/education/bootstrap/
+ *
+ * Templates: https://mdbootstrap.com/templates/
+ *
+ * Support: https://mdbootstrap.com/support/
+ *
+ * Contact: office@mdbootstrap.com
+ *
+ * Attribution: Animate CSS, Twitter Bootstrap, Materialize CSS, Normalize CSS, Waves JS, WOW JS, Toastr, Chart.js
+ *
+ */
+ .switch label .lever,.switch label .lever:after{
+    display:inline-block;content:""
+}
+
+.switch label{cursor:pointer}.picker__input,.switch label input[type=checkbox]:disabled+.lever{cursor:default}
+
+.switch label input[type=checkbox]{opacity:0;width:0;height:0}
+
+.switch label input[type=checkbox]:checked+.lever{background-color:#dccfe2}
+
+.switch label input[type=checkbox]:checked+.lever:after{background-color:#a6c;left:1.5rem}
+
+.switch label input[type=checkbox]:checked:not(:disabled)~.lever:active:after{-webkit-box-shadow:0 .0625rem .1875rem .0625rem rgba(0,0,0,.4),0 0 0 .9375rem rgba(170,102,204,.1);box-shadow:0 .0625rem .1875rem .0625rem rgba(0,0,0,.4),0 0 0 .9375rem rgba(170,102,204,.1)}
+
+.switch label input[type=checkbox]:not(:disabled)~.lever:active:after{-webkit-box-shadow:0 .0625rem .1875rem .0625rem rgba(0,0,0,.4),0 0 0 .9375rem rgba(0,0,0,.08);box-shadow:0 .0625rem .1875rem .0625rem rgba(0,0,0,.4),0 0 0 .9375rem rgba(0,0,0,.08)}
+
+.switch label input[type=checkbox]:disabled+.lever:after,.switch label input[type=checkbox]:disabled:checked+.lever:after{background-color:#BDBDBD}
+
+.switch label .lever{position:relative;background-color:#818181;-webkit-border-radius:.9375rem;border-radius:.9375rem;vertical-align:middle;margin:0 1rem;width:2.5rem;height:.9375rem;-webkit-transition:background .3s ease;-o-transition:background .3s ease;transition:background .3s ease}
+
+.switch label .lever:after{position:absolute;background-color:#F1F1F1;-webkit-border-radius:1.3125rem;border-radius:1.3125rem;left:-.3125rem;top:-.1875rem;-webkit-box-shadow:0 .0625rem .1875rem .0625rem rgba(0,0,0,.4);box-shadow:0 .0625rem .1875rem .0625rem rgba(0,0,0,.4);width:1.3125rem;height:1.3125rem;-webkit-transition:left .3s ease,background .3s ease,-webkit-box-shadow 1s ease;-o-transition:left .3s ease,background .3s ease,box-shadow 1s ease;transition:left .3s ease,background .3s ease,box-shadow 1s ease;transition:left .3s ease,background .3s ease,box-shadow 1s ease,-webkit-box-shadow 1s ease}.file-field{position:relative}

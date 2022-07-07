@@ -117,6 +117,7 @@ class FullProcessed:
         self.detections = []
         self.faces = []
         self.id = id
+        self.related_prcs = []
 
     class Detection:
         label_to_superlabel = {'pistol': 'Arma de Fogo',

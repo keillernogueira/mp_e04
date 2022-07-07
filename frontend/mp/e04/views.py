@@ -444,14 +444,14 @@ def results(request):
     return render(request, 'e04/results.html', {'response': response,'myFilter': myFilter } )
 
 
-def prepare_data_for_export(operation_id, num_ranks_saved):
+def prepare_data_for_export(operation_id, num_ranks_saved, selected_prcs=[]):
     export_face_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': []}
     for i in range(num_ranks_saved):
         export_face_dict['Rank' + str(i + 1) + '_label'] = []
         export_face_dict['Rank' + str(i + 1) + '_score'] = []
     export_detec_dict = {'File': [], 'Hash': [], 'BoundBox': [], 'Frame': [], 'Score': [], 'Label': []}
 
-    processeds_list = Processed.objects.filter(operation__id=operation_id)
+    processeds_list = Processed.objects.filter(operation__id=operation_id).filter(id__in=selected_prcs)
     count_videos = 0
     count_images = 0
     for processed in processeds_list:
@@ -615,10 +615,14 @@ def export_pdf(user, export_face_dict, export_detec_dict, total, t_img, t_videos
 def detailed_result(request, operation_id):
     if request.method == 'POST':
         num_ranks_saved = 3
+        
         config_data = GeneralConfig.objects.all()
         config_data = config_data[0] if len(config_data) else GeneralConfig()
 
-        face_dict, detec_dict, total, t_img, t_videos = prepare_data_for_export(operation_id, num_ranks_saved)
+        selected_prcs = request.POST.getlist('checkbox')
+        selected_prcs = [int(x) for y in selected_prcs for x in eval(y)]
+
+        face_dict, detec_dict, total, t_img, t_videos = prepare_data_for_export(operation_id, num_ranks_saved, selected_prcs=selected_prcs)
 
         if request.POST.get("xls"):
             file = export_xls(request.user, face_dict, detec_dict, operation_id, config_data.save_path)
@@ -661,6 +665,7 @@ def detailed_result(request, operation_id):
 
         for processed in processeds_list:
             fprc = formated_processed_list[processed.path]
+            fprc.related_prcs.append(processed.id)
 
             outputs = Output.objects.filter(processed=processed)
 

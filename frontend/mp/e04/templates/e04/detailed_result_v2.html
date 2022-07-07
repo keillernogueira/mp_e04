@@ -12,22 +12,171 @@
         </div>
     </div>
     <div class="row flex-row d-flex">
-        <form method="post" enctype="multipart/form-data" novalidate onreset="resetFields()" id="form">
+        <form method="post" onreset="resetFields()" id="form">
+            <div class="row form-group form-outline flex-row">
+              <div class="container">
+                <div class="row">
+                  <div class="col-2" style="padding-left: 0;">
+                    <a
+                    class="btn shadow-0"
+                    data-mdb-toggle="collapse"
+                    href="#filterBox"
+                    role="button"
+                    aria-expanded="false"
+                    aria-controls="filterBox"
+                    ><i class="fa-solid fa-sliders me-2"></i>Filtros</a>
+                  </div>
+                </div>
+                <div class="row collapse mb-3" id="filterBox">
+                  <!-- <table class="table table-borderless">
+                    <tbody>
+                      <tr style="border-bottom-width: 1px;border-bottom-color: #c5c5c5;">
+                        <td class="align-middle">Faces</td>
+                        <td>
+                          <table class="mb-1" style="margin-left: -0.1em;">
+                            <tbody>
+                              <tr>
+                                <td> 
+                                  <div class="switch switch-info">
+                                  <label>
+                                    <input type="checkbox" checked>
+                                    <span class="lever"></span>Reconhecidas
+                                  </label>
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr>
+                                <td> 
+                                  <div class="switch switch-light">
+                                    <label>
+                                      <input type="checkbox" checked>
+                                      <span class="lever"></span>Não-Reconhecidas
+                                    </label>
+                                  </div>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td> 
+                          <div class="mt-1 switch switch-danger">
+                            <label>
+                              <input type="checkbox" checked>
+                              <span class="lever"></span>Armas de Fogo
+                            </label>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td> 
+                          <div class="mt-1 switch switch-warning">
+                            <label>
+                              <input type="checkbox" checked>
+                              <span class="lever"></span>Armas Brancas
+                            </label>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td></td>
+                        <td> 
+                          <div class="mt-1 switch switch-success">
+                            <label>
+                              <input type="checkbox" checked>
+                              <span class="lever"></span>Veículos
+                            </label>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>                 -->
+                  <div class="col-4">
+                    <div class="row">
+                      <div class="col-12 switch switch-info">
+                        <label filter="primary" onclick="filterChecks(this)">
+                          Faces <input type="checkbox" checked>
+                          <span class="lever"></span>Reconhecidas
+                        </label>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-12 switch switch-light">
+                        <label filter="light" onclick="filterChecks(this)">
+                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                          <input type="checkbox" checked>
+                          <span class="lever"></span>Não-Reconhecidas
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-3 switch switch-danger">
+                    <label filter="danger" onclick="filterChecks(this)">
+                      <input type="checkbox" checked>
+                      <span class="lever"></span>Armas de Fogo
+                    </label>
+                  </div>
+                  <div class="col-3 switch switch-warning">
+                    <label filter="warning" onclick="filterChecks(this)">
+                      <input type="checkbox" checked>
+                      <span class="lever"></span>Armas Brancas
+                    </label>
+                  </div>
+                  <div class="col-2 switch switch-success">
+                    <label filter="success" onclick="filterChecks(this)">
+                      <input type="checkbox" checked>
+                      <span class="lever"></span>Veículos
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <!-- <div class="col-8 align-self-end">
+                <button type="submit" name="xls" value="xls" class="btn btn-sm btn-info shadow-0 float-end mb-2 ms-2">
+                  <i class="fa-solid fa-file-excel me-2"></i>Exportar Relatório (XLS)
+                </button>
+                <button type="submit" name="pdf" value="pdf" class="btn btn-sm btn-info shadow-0 float-end mb-2 ms-2">
+                  <i class="fa-solid fa-file-pdf me-2"></i>Exportar Relatório (PDF)
+                </button>
+              </div>
+            </div> -->
             {% csrf_token %}
             <div class="col12">
                 <table class="table table-hover">
                     <thead>
                         <tr class="table-info">
-                            <th>Lista de Imagens</th>
-                            <th></th>
+                            <th class="align-middle">
+                              <input class="form-check-input form-check-input2"  type="checkbox" value="" id="table-check" checked onclick="alterChecks(this)"/>
+                            </th>
+                            <th style="border:none;padding:3px;background-color:#fbfbfb;" class=""></th>
+                            <th class="align-middle">Lista de Imagens</th>
+                            <th class="text-end">
+                              Exportar:
+                              <div class="btn-group shadow-0" role="group" aria-label="exportBtns">
+                              <button type="submit" name="pdf" value="pdf" class="btn btn-sm btn-info shadow-0" data-mdb-toggle="tooltip" title="Exportar relatório no formato PDF">
+                              <i class="fa-solid fa-file-pdf me-2"></i>PDF
+                              </button>
+                              <button type="submit" name="xls" value="xls" class="btn btn-sm btn-info shadow-0" data-mdb-toggle="tooltip" title="Exportar relatório no formato XLS">
+                              <i class="fa-solid fa-file-excel me-2"></i>XLS
+                              </button>
+                              </div>
+                          </th>
                         </tr>
                     </thead>
                     <tbody class="table-group-divider">
                         {% for img_path, processed in formated_processed_list.items %}
 
-                            <tr class="row-button" data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" data-img-path="{{img_path}}" onclick="requestModalImg(this)">
-                                <td><p class="p-button">{{img_path}}</p></td>
-                                <td>
+                            <tr class="align-middle row-button" data-img-path="{{img_path}}">
+                                <th>
+                                  <input class="form-check-input form-check-input2" type="checkbox" value="{{processed.related_prcs}}" id="check_{{processed.id}}" name="checkbox" checked/>
+                                </th>
+                                <th style="border:none;padding:3px;background-color:#fbfbfb;" class=""></th>
+                                <td data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" onclick="requestModalImg(this)">
+                                  <p class="p-button">{{img_path}}</p>
+                                </td>
+                                <td data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" onclick="requestModalImg(this)">
                                     {% for face in processed.faces %}
                                     {% if face.rankings|length >= 1 %}
                                     <span class="badge rounded-pill badge-primary" style="color:#0a47a9">{{ face.rankings.0.imgdb.label|dash2space }}: {{ face.rankings.0.value|mul:100|stringformat:".2f" }} %</span>
@@ -54,10 +203,7 @@
 
                 </table>
             </div>
-            <div class="form-group form-outline flex-row">
-                <button type="submit" name="xls" value="xls" class="btn btn-info">Exportar Relatório (XLS)</button>
-                <button type="submit" name="pdf" value="pdf" class="btn btn-info">Exportar Relatório (PDF)</button>
-            </div>
+            
         </form>
     </div>
 </div>
@@ -285,12 +431,32 @@
 {% endfor %}
 
 <script>
-    $('#form').on(function(event){
-        var clickedbutton = event.findElement();
+    // $('#form').on(function(event){
+    //     var clickedbutton = event.findElement();
 
-        //then you can fire your submitMe() function
-        submitMe(this);
-    });
+    //     //then you can fire your submitMe() function
+    //     submitMe(this);
+    // });
+  
+  // $("#form").submit(function (e) {
+  //     // preventing from page reload and default actions
+  //     e.preventDefault();
+  //     // serialize the data for sending the form data.
+  //     var formData = new FormData(this);
+  //     for(const pair of formData.entries()) {
+  //       console.log(`${pair[0]}, ${pair[1]}`);
+  //     }
+  //     // for(const el of document.getElementsByTagName('input')){
+  //     //   if (el.id.includes('check_')){
+  //     //     if(el.getAttribute('checked')){
+  //     //       formData.append(el.id, true);
+  //     //     }
+  //     //   }
+  //     // }
+  //     // for(const pair of formData.entries()) {
+  //     //   console.log(`${pair[0]}, ${pair[1]}`);
+  //     // }
+  // });
 
   function highlight(box){
     color = "";
@@ -408,9 +574,10 @@
     }
   }
 
-  function requestModalImg(tr){
+  function requestModalImg(td){
+    tr = td.parentElement;
     if (!tr.hasAttribute('loaded')){
-      modal = tr.getAttribute('data-mdb-target')
+      modal = td.getAttribute('data-mdb-target')
       imgs = $(modal.concat(' svg > image'))
       views = $(`[id^=${modal.replace("#", "")}_content]`)
       loaders = $(`[id^=${modal.replace("#", "")}_load]`)
@@ -426,6 +593,7 @@
                 var instance = response["instance"];
 
                 imgs.attr('href', instance['tmp'].concat('/').concat(instance['path']))
+                tr.setAttribute('loaded', true);
             },
             complete: function () {
               loaders.removeClass('d-flex')
@@ -440,6 +608,18 @@
     }
   }
 
+  function filterChecks(label){
+    classTarget = label.getAttribute('filter');
+    on = $(label).children(':checkbox').is(':checked');
+    $(`tr:has(td:has(span.badge-${classTarget})) :checkbox`).prop("checked", on);
+  }
+
+  function alterChecks(input){
+    on = $(input).is(':checked');
+    $(":checkbox").prop("checked", on);
+  }
+
+
 </script>
 
 <style>
@@ -453,6 +633,8 @@
     stroke: #00cfb0 !important;
   }
 </style>
+
+<!-- <script src="https://cdn.jsdelivr.net/gh/gitbrent/bootstrap4-toggle@3.6.1/js/bootstrap4-toggle.min.js"></script> -->
 
 
 {% endblock %}
