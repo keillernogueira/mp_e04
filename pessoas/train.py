@@ -47,7 +47,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
 
     # create dataset
     train_dataset = GenericDataLoader(dataset_path, preprocessing_method=preprocessing_method, crop_size=crop_size)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=4,
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=64,
                                                    shuffle=True, num_workers=0, drop_last=False)
 
     # validation dataset
@@ -174,7 +174,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
         logging.info(loss_msg)
 
         # test model on lfw
-        if epoch % TEST_FREQ == 0 and epoch == num_epoch:
+        if epoch % TEST_FREQ == 0 or epoch == num_epoch:
             features = extract_features(validate_dataloader, model=net, gpu=True, save_img_results=True)
             mAP = evaluate_dataset(features)
 

@@ -107,13 +107,18 @@ class ConfigForm(ModelForm):
     class Meta:
         model = GeneralConfig
         fields = ('save_path', "ret_model", 'ret_pre_process', "det_model")
-
+        
         widgets = {
             'save_path': forms.TextInput(attrs={'class': 'form-control'}),
             'ret_model': forms.Select(attrs={'class': 'select-form'}),
             'det_model': forms.Select(attrs={'class': 'select-form'}),
             'ret_pre_process': forms.Select(attrs={'class': 'select-form'})
         }
+        
+    def __init__(self, *args, **kwargs):
+        super(ConfigForm, self).__init__(*args, **kwargs)
+        self.fields['ret_model'].queryset = Model.objects.filter(type='FA')
+        self.fields['det_model'].queryset = Model.objects.filter(type='OB')
 
 
 class FaceTrainForm(ProcessingForm):
@@ -168,6 +173,9 @@ class ObjectTrainForm(ProcessingForm):
     def __init__(self, *args, **kwargs):
         super(ObjectTrainForm, self).__init__(*args, **kwargs)
         data = Model.objects.all().filter(type='OB')
+        print("Imprimindo nomes")
+        for model in data:
+          print(model.name)
         self.fields['model_sel'].choices = [(x.name, x.name) for x in data]
         self.fields['model_sel'].choices.insert(0, ('', 'Selecione um Modelo'))
 
@@ -183,7 +191,7 @@ class ObjectTrainForm(ProcessingForm):
                                    widget=forms.NumberInput(attrs={'class': 'form-control', }))
 
     def clean(self):
-        cleaned_data = super(FaceTrainForm, self).clean()
+        cleaned_data = super(ObjectTrainForm, self).clean()
 
         print(cleaned_data)
 

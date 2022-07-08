@@ -45,6 +45,9 @@ class OpConfig(models.Model):
 class Model(models.Model):
     # https://vertabelo.com/blog/one-to-one-relationship-in-database/
     op_id = models.OneToOneField(Operation, on_delete=models.CASCADE)
+    
+    def __str__(self):
+      return self.name
 
     class ModelType(models.TextChoices):
         FACE = 'FA', _('Face')

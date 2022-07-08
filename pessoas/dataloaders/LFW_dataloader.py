@@ -70,7 +70,7 @@ class LFW(object):
             imglist[i] = imglist[i].transpose(2, 0, 1)
         imgs = [torch.from_numpy(i).float() for i in imglist]
 
-        return imgs, cl, imgl, bb, self.imgl_list[index], self.people[index]
+        return imgs, cl, imgl, bb, self.imgl_list[index], self.people[index], 0
 
     def __len__(self):
         return len(self.imgl_list)

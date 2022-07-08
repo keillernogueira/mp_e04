@@ -48,6 +48,7 @@ from objetos.yolov5.utils.data import img_formats, vid_formats
 from objetos.yolov5.utils.options import defaultOpt
 from objetos.yolov5.detect_obj import retrieval as detect_object
 from objetos.yolov5.train_light import train as train_obj_func
+from objetos.yolov5.utils.options import defaultOptTrain
 
 from pessoas.retrieval import img_formats, vid_formats
 
@@ -813,8 +814,7 @@ def train(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
     return HttpResponseRedirect('/e04/train/face')
-
-
+    
 @login_required
 def train_face(request):
     if not request.user.is_superuser:
@@ -846,6 +846,14 @@ def train_face(request):
 
             try:
                 preprocessing_method = GeneralConfig.objects.all()[0].ret_pre_process
+                if preprocessing_method == 'MT':
+                    preprocessing_method = 'mtcnn'
+                elif preprocessing_method == 'OP':
+                    preprocessing_method = 'openface'
+                elif preprocessing_method == 'SP':
+                    preprocessing_method = 'sphereface'
+                elif preprocessing_method == 'DE':
+                    preprocessing_method = None
             except:
                 preprocessing_method = 'sphereface'
 
@@ -873,20 +881,21 @@ def train_face(request):
                 save_dir = os.path.join(sys.path[0], 'pessoas', 'train_model', data['model_sel'])
                 resume_path = Model.objects.all().filter(name=data['model_sel'])[0].model_path
 
-            if not debug:
-                try:
-                    print("Aaa")
-                    print(request.user)
-                    print(train_face.__code__.co_varnames)
-                    val_acc, save_name = train_face_func(dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch)
-                    print('a')
+            try:
+                print("Aaa")
+                print(request.user)
+                print(train_face.__code__.co_varnames)
+                print(preprocessing_method)
+                val_acc, save_name = train_face_func(dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch)
+                print('a')
 
-                    m = Model(op_id = op, type=Model.ModelType.FACE, name=data['model_name'], model_path= save_name, val_acc = val_acc)
-                    m.save()
-                except Exception:
-                        op.status = Operation.OpStatus.ERROR
-                        op.save()
-                        traceback.print_exc()
+                m = Model(op_id = op, type=Model.ModelType.FACE, name=data['model_name'], model_path= save_name, val_acc = val_acc)
+                m.save()
+                print("model created with mAP =", m.val_acc)
+            except Exception:
+                    op.status = Operation.OpStatus.ERROR
+                    op.save()
+                    traceback.print_exc()
 
             # If in thread it will be different
             if op.status != Operation.OpStatus.ERROR:
@@ -919,7 +928,7 @@ def train_object(request):
     form = ObjectTrainForm()
 
     if request.method == 'POST':
-        form = FaceTrainForm(request.POST)
+        form = ObjectTrainForm(request.POST)
         if (request.POST.get('folderInput', '') == '') and (request.FILES.get('zipFile', '') == ''):
             form.add_error(None, "Either a zip file or a local folder should be informed.")
             form.add_error('folderInput', "*")
@@ -947,6 +956,7 @@ def train_object(request):
             dataset_path = get_image_folder(request, data, op, config_data)
             print('------------')
             print(dataset_path)
+            model_name = ''
 
             if data['new_model']:
                 resume_path = None
@@ -956,6 +966,7 @@ def train_object(request):
                 if not os.path.isdir(path):
                     os.mkdir(path)
                 path = os.path.join(path, data['model_name'])
+                model_name = data['model_name']
                 if not os.path.isdir(path):
                     os.mkdir(path)
                 save_dir = path
@@ -964,19 +975,37 @@ def train_object(request):
             else:
                 resume_path = Model.objects.all().filter(name=data['model_sel'])[0].model_path
                 path = os.path.join(sys.path[0], 'objetos', 'train_model', data['model_sel'])
+                model_name = data['model_sel']
+                save_dir = path
 
-            if not debug:
-                try:
-                    val_acc = train_obj_func(hyp_path = os.path.join(sys.path[0], 'objetos', 'yolov5', 'hyp.scratch.yaml'), 
-                                            data=dataset_path, output_path=save_dir, num_epochs=num_epoch)
-                    val_acc = val_acc[2]
+            try:
+                opt = defaultOptTrain()
+                opt.epochs = num_epoch
+                if not data['new_model']:
+                  opt.weights = resume_path + '/weights/best.pt'
+                print(save_dir)
+                val_acc = train_obj_func(opt = opt, hyp_path = os.path.join(sys.path[0], 'objetos', 'yolov5', 'hyp.scratch.yaml'), 
+                                        data=dataset_path, output_path=save_dir)
+                val_acc = val_acc[2]
+                
+                model_dir = ''
+                maxn = 0
+                for f in os.listdir(os.path.join(sys.path[0], 'objetos', 'train_model')):
+                  if f.startswith(model_name):
+                    print(f)
+                    maxn += 1
+                model_dir = path + str(maxn)
+                print(model_dir)
+            
+                
 
-                    m = Model(op_id = op, type=Model.ModelType.OBJECT, name=data['model_name'], model_path=save_dir, val_acc = val_acc)
-                    m.save()
-                except Exception:
-                        op.status = Operation.OpStatus.ERROR
-                        op.save()
-                        traceback.print_exc()
+                m = Model(op_id = op, type=Model.ModelType.OBJECT, name=data['model_name'], model_path=model_dir, val_acc = val_acc)
+                m.save()
+                print("model created with mAP =", m.val_acc)
+            except Exception:
+                    op.status = Operation.OpStatus.ERROR
+                    op.save()
+                    traceback.print_exc()
 
             # If in thread it will be different
             if op.status != Operation.OpStatus.ERROR:
@@ -1000,7 +1029,6 @@ def train_object(request):
 
     context = {'form': form}
     return render(request, 'e04/train_object.html', context)
-
 
 @login_required
 def login(request):

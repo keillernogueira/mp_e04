@@ -68,12 +68,11 @@ class GenericDataLoader(object):
         # Transpose images with RGB channels as first dimension
         if img.shape[0] == 3:
             img = np.transpose(img, (1, 2, 0))
-
+        
 
         img, bb = self.preprocess.preprocess(img)
         img = img.squeeze()
         bb = bb.squeeze()
-
         if self.train is True:
             # basic data augmentation
             flip = np.random.choice(2) * 2 - 1
@@ -81,9 +80,9 @@ class GenericDataLoader(object):
 
             # normalization
             img = (img - 127.5) / 128.0
-            if self.preprocessing_method != "mtcnn":
-                img = img.transpose(2, 0, 1)
+            img = img.transpose(2, 0, 1)
             img = torch.from_numpy(img).float()
+
 
             return img, cl
         else:
