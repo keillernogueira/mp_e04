@@ -580,7 +580,7 @@ def export_pdf(user, export_face_dict, export_detec_dict, total, t_img, t_videos
         pdf.bold_part_text('Tipo: ', 'Imagem' if img_flag else 'Vídeo', width=11)
         pdf.bold_part_text('Hash: ', export_face_dict['Hash'][i], width=13)
         if not img_flag:
-            pdf.bold_part_text('Timestamp: ', export_face_dict['Frame'][i], width=15)
+            pdf.bold_part_text('Timestamp: ', str(export_face_dict['Frame'][i]), width=15)
 
         string_rank = ''
         string_confidence = ''
@@ -602,7 +602,7 @@ def export_pdf(user, export_face_dict, export_detec_dict, total, t_img, t_videos
         pdf.bold_part_text('Tipo: ', 'Imagem' if img_flag else 'Vídeo', width=11)
         pdf.bold_part_text('Hash: ', export_detec_dict['Hash'][i], width=13)
         if not img_flag:
-            pdf.bold_part_text('Timestamp: ', export_detec_dict['Frame'][i], width=15)
+            pdf.bold_part_text('Timestamp: ', str(export_detec_dict['Frame'][i]), width=15)
         pdf.bold_part_text('Rótulo: ', FullProcessed.Detection.label_to_superlabel[export_detec_dict['Label'][i]],
                            width=16)
         pdf.bold_part_text('Confiança: ', str("%.2f" % round(export_detec_dict['Score'][i]*100, 2)), width=23, ln=8)
