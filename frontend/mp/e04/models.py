@@ -113,7 +113,7 @@ class FullProcessed:
         self.path = path
         self.w = w
         self.h = h
-        self.frame = frame
+        self.frame = frame if frame is not None else ""
         self.filename = os.path.basename(path)
         self.name = self.filename.split('.')[0]
         self.detection_result_path = detection_result_path
