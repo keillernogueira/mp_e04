@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 
 def create_admin_user():
     print('Creating admin user...')
-    user = User.objects.create_user('admin', '', 'admin')
+    user = User.objects.create_user('admin', '', 'admin', is_superuser=True, is_staff=True)
     return user
 
 
