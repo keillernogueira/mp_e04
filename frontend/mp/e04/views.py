@@ -646,6 +646,7 @@ def detailed_result(request, operation_id):
             return response
     else:
         img_sz = 70
+        f_resize = 0.5
         config_data = GeneralConfig.objects.filter(id=1)
         config_data = config_data[0] if len(config_data) else GeneralConfig()
 
@@ -660,22 +661,38 @@ def detailed_result(request, operation_id):
                       Operation.OpType.RETRIEVAL: ["ret"], Operation.OpType.DETECTION: ["det"]}
         
         processeds_list = Processed.objects.filter(operation__id=operation_id)
-        unique = set([prc.path for prc in processeds_list])
+        unique = set([(prc.path, prc.frame) for prc in processeds_list])
 
         formated_processed_list = {}
-
-        for i, img in enumerate(unique):
+        has_frame = False
+        for i, (img, frame) in enumerate(unique):
             # TODO isso nao funciona pra video - @Pedro
-            opimg = cv.imread(img)
-            formated_processed_list[img] = FullProcessed(f"{operation_id}_{i}", path=img, w=opimg.shape[1],
-                                                         h=opimg.shape[0], operation=operation_id,
+            filetype = os.path.basename(img).split('.')[-1]
+            if filetype in img_formats:
+                opimg = cv.imread(img)
+                h, w, _ = opimg.shape
+                iframe = None
+            elif filetype in vid_formats:
+                cap = cv.VideoCapture(img) #0 for camera
+                if cap.isOpened(): 
+                    w = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))    # float `width`
+                    h = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))   # float `height`
+                    iframe = frame
+            else:
+                raise Exception("Invalid file type")
+            # print("h:", h, " w:", w, frame)
+            if iframe is not None: has_frame = True
+
+            formated_processed_list[(img, frame)] = FullProcessed(f"{operation_id}_{i}", path=img, w=w, h=h,
+                                                         operation=operation_id, frame=iframe,
                                                          detection_result_path=os.path.join(config_data.save_path,
                                                                                             str(operation_id), 'results',
                                                                                             os.path.basename(img)),)
 
         for processed in processeds_list:
-            fprc = formated_processed_list[processed.path]
+            fprc = formated_processed_list[(processed.path, processed.frame)]
             fprc.related_prcs.append(processed.id)
+            vid_sz_mul = f_resize if fprc.frame is not None else 1
 
             outputs = Output.objects.filter(processed=processed)
 
@@ -690,13 +707,16 @@ def detailed_result(request, operation_id):
 
                 for lb, sc, bb in zip(lbl, scs, bbs):
                     rel_bb = eval(bb.value)
-                    rel_bb = [rel_bb[0]/fprc.w, rel_bb[1]/fprc.h, rel_bb[2]/fprc.w, rel_bb[3]/fprc.h]
+                    rel_bb = [rel_bb[0]/(fprc.w), rel_bb[1]/(fprc.h), 
+                              rel_bb[2]/(fprc.w), rel_bb[3]/(fprc.h)]
                     fprc.detections.append(FullProcessed.Detection(lb.value.replace("'", ""), eval(sc.value), rel_bb))
 
             # If face retrieval
             elif len(outputs) == 1:
                 bbx = eval(outputs[0].value)
-                rel_bbx = [bbx[0]/fprc.w, bbx[1]/fprc.h, bbx[2]/fprc.w, bbx[3]/fprc.h]
+                
+                rel_bbx = [bbx[0]/(fprc.w*vid_sz_mul), bbx[1]/(fprc.h*vid_sz_mul),
+                           bbx[2]/(fprc.w*vid_sz_mul), bbx[3]/(fprc.h*vid_sz_mul)]
                 face_id = len(fprc.faces)
                 fprc.faces.append(FullProcessed.Faces(face_id, rel_bbx))
                 face = fprc.faces[-1]
@@ -712,7 +732,7 @@ def detailed_result(request, operation_id):
         context = {'op': operation_id, 'processeds_list': processeds_list,
                    'formated_processed_list': formated_processed_list, 'operations': operations[op.type],
                    'tmp': static(os.path.join('tmp', str(operation_id), 'results')),
-                   'w': img_sz*16, 'h': img_sz*9}
+                   'w': img_sz*16, 'h': img_sz*9, 'has_frame': has_frame}
 
         return render(request, 'e04/detailed_result_v2.html',context)
 
@@ -752,7 +772,7 @@ def requestImagePath(request):
 
     if is_ajax and request.method == "POST":
         img_path = request.POST.get('path', '')
-
+        
         if img_path == '':
             return JsonResponse({"error": ""}, status=400)
 
@@ -763,12 +783,31 @@ def requestImagePath(request):
         tmp = Path(os.path.join(root, static('')[1:], 'tmp', 'images'))
         tmp.mkdir(parents=True, exist_ok=True)
 
-        if not os.path.exists(tmp/os.path.basename(img_path)):
-            shutil.copy(img_path, tmp/os.path.basename(img_path))
+        filetype = os.path.basename(img_path).split('.')[-1]
+
+        if filetype in img_formats:
+
+            if not os.path.exists(tmp/os.path.basename(img_path)):
+                shutil.copy(img_path, tmp/os.path.basename(img_path))
+
+        elif filetype in vid_formats:
+            frame_no = int(request.POST.get('frame', ''))
+
+            cap = cv.VideoCapture(img_path) 
+            cap.set(1,frame_no)                 # Where frame_no is the frame you want
+            ret, frame = cap.read()             # Read the frame
+
+            name = '.'.join(os.path.basename(img_path).split('.')[:-1])
+            img_path = f'{name}_frame_{frame_no}.png'
+
+            if not os.path.exists(tmp/os.path.basename(img_path)):
+                cv.imwrite(str(tmp/os.path.basename(img_path)), frame)
+
+        else:
+            raise Exception("Formato de arquivo invalido.")
 
         instance = {'tmp': static(os.path.join('tmp', 'images')),
                     'path': os.path.basename(img_path)}
-
         # send to client side.
         return JsonResponse({"instance": instance}, status=200)
 

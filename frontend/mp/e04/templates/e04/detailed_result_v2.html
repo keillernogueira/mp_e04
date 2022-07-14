@@ -8,7 +8,7 @@
 <div class="container">
     <div class="row flex-row d-flex" style="padding-bottom: 1em;">
         <div class="col-12"> <h2><b>Resultado {{op}}</b></h2>
-            Total de imagens analisados: {{formated_processed_list|length}}
+            Total de imagens{%if has_frame%}/vídeos{%endif%} analisados: {{formated_processed_list|length}}
         </div>
     </div>
     <div class="row flex-row d-flex">
@@ -152,6 +152,7 @@
                             </th>
                             <th style="border:none;padding:3px;background-color:#fbfbfb;" class=""></th>
                             <th class="align-middle">Lista de Imagens</th>
+                            {%if has_frame%} <th class="align-middle">Frame</th> {%endif%}
                             <th class="text-end">
                               Exportar:
                               <div class="btn-group shadow-0" role="group" aria-label="exportBtns">
@@ -167,15 +168,21 @@
                     </thead>
                     <tbody class="table-group-divider">
                         {% for img_path, processed in formated_processed_list.items %}
-
-                            <tr class="align-middle row-button" data-img-path="{{img_path}}">
+                            {% if processed.faces|length == 0 and processed.detections|length == 0%}
+                            {%else%}
+                            <tr class="align-middle row-button" data-img-path="{{img_path.0}}" data-img-frame="{{img_path.1}}">
                                 <th>
                                   <input class="form-check-input form-check-input2" type="checkbox" value="{{processed.related_prcs}}" id="check_{{processed.id}}" name="checkbox" checked/>
                                 </th>
                                 <th style="border:none;padding:3px;background-color:#fbfbfb;" class=""></th>
                                 <td data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" onclick="requestModalImg(this)">
-                                  <p class="p-button">{{img_path}}</p>
+                                  <p class="p-button">{{img_path.0}}</p>
                                 </td>
+                                {%if has_frame%} 
+                                <td data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" onclick="requestModalImg(this)">
+                                  <p class="p-button">{{processed.frame}}</p>
+                                </td> 
+                                {%endif%}
                                 <td data-mdb-toggle="modal" data-mdb-target="#modal_{{processed.id}}" onclick="requestModalImg(this)">
                                     {% for face in processed.faces %}
                                     {% if face.rankings|length >= 1 %}
@@ -198,6 +205,7 @@
                                     {% endfor %}
                                 </td>
                             </tr>
+                            {%endif%}
                         {% endfor %}
                     </tbody>
 
@@ -585,6 +593,7 @@
             type: 'POST',
             url: "{% url 'detailed_result_imgpath' %}",
             data: {'path': tr.getAttribute('data-img-path'),
+                   'frame': tr.getAttribute('data-img-frame'),
                   csrfmiddlewaretoken: '{{ csrf_token }}',
                   },
                   
