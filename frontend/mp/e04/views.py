@@ -611,15 +611,17 @@ def export_pdf(user, export_face_dict, export_detec_dict, total, t_img, t_videos
     pdf.output(os.path.join(save_path, 'report.pdf'), 'F')
     return os.path.join(save_path, 'report.pdf')
 
+
 @login_required
 def update_train_detail(request, operation_id):
     image_list = ImageDB.objects.filter(operation__id=operation_id)
     operation = Operation.objects.get(id=operation_id)
     database_images = ImageDB.objects.filter(operation__id=operation_id)[0].database
 
-    context = {'image_list':image_list,'operation':operation, 'database':database_images}
+    context = {'image_list': image_list, 'operation': operation, 'database': database_images}
 
-    return render(request,'e04/update_train_detail.html',context)
+    return render(request, 'e04/update_train_detail.html', context)
+
 
 @login_required
 def detailed_result(request, operation_id):
@@ -632,7 +634,8 @@ def detailed_result(request, operation_id):
         selected_prcs = request.POST.getlist('checkbox')
         selected_prcs = [int(x) for y in selected_prcs for x in eval(y)]
 
-        face_dict, detec_dict, total, t_img, t_videos = prepare_data_for_export(operation_id, num_ranks_saved, selected_prcs=selected_prcs)
+        face_dict, detec_dict, total, t_img, t_videos = prepare_data_for_export(operation_id, num_ranks_saved,
+                                                                                selected_prcs=selected_prcs)
 
         if request.POST.get("xls"):
             file = export_xls(request.user, face_dict, detec_dict, operation_id, config_data.save_path)
@@ -666,7 +669,6 @@ def detailed_result(request, operation_id):
         formated_processed_list = {}
         has_frame = False
         for i, (img, frame) in enumerate(unique):
-            # TODO isso nao funciona pra video - @Pedro
             filetype = os.path.basename(img).split('.')[-1]
             if filetype in img_formats:
                 opimg = cv.imread(img)
@@ -858,7 +860,8 @@ def train(request):
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
     return HttpResponseRedirect('/e04/train/face')
-    
+
+
 @login_required
 def train_face(request):
     if not request.user.is_superuser:
@@ -874,7 +877,7 @@ def train_face(request):
         if form.is_valid():
             data = form.cleaned_data
             print(data)
-            #dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71
+            # dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71
             model_name = 'curricularface'
             save_dir = ''
             dataset_path = ''
