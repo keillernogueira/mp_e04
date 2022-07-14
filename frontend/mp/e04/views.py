@@ -694,7 +694,7 @@ def detailed_result(request, operation_id):
         for processed in processeds_list:
             fprc = formated_processed_list[(processed.path, processed.frame)]
             fprc.related_prcs.append(processed.id)
-            vid_sz_mul = f_resize if fprc.frame is not None else 1
+            vid_sz_mul = f_resize if fprc.frame is not "" else 1
 
             outputs = Output.objects.filter(processed=processed)
 
