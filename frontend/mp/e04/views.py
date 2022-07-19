@@ -613,7 +613,7 @@ def export_pdf(user, export_face_dict, export_detec_dict, total, t_img, t_videos
 
 
 @login_required
-def update_train_detail(request, operation_id):
+def updateDB_detail(request, operation_id):
     image_list = ImageDB.objects.filter(operation__id=operation_id)
     operation = Operation.objects.get(id=operation_id)
     database_images = ImageDB.objects.filter(operation__id=operation_id)[0].database
@@ -631,6 +631,7 @@ def update_train_detail(request, operation_id):
     context = {'response':response,'operation':operation, 'database':database_images,'qtt_images':image_list.count}
 
     return render(request,'e04/updateDB_detail.html',context)
+
 
 @login_required
 def detailed_result(request, operation_id):
@@ -862,6 +863,12 @@ def config(request):
     
     context = {'form': form}
     return render(request, 'e04/config.html', context)
+
+@login_required
+def treino_detail(request,operation_id):
+    model = Model.objects.get(op_id=operation_id)
+    context = model
+    return render(request,'e04/train_detail.html',context)
 
 
 @login_required
