@@ -321,6 +321,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
                 f'Starting training for {epochs} epochs...')
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
+        t_epoch = time.time()
 
 
         # Update mosaic border
@@ -332,7 +333,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
             dataloader.sampler.set_epoch(epoch)
         pbar = enumerate(dataloader)
         logger.info(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'box', 'obj', 'cls', 'total', 'labels', 'img_size'))
-        progress_logger.info('INFO: epoch {}/{}'.format(epoch, epochs))
+        progress_logger.info('epoch {}/{}'.format(epoch+1, epochs))
         if rank in [-1, 0]:
             pbar = tqdm(pbar, total=nb)  # progress bar
         optimizer.zero_grad()
@@ -398,6 +399,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
 
             # end batch ------------------------------------------------------------------------------------------------
         # end epoch ----------------------------------------------------------------------------------------------------
+        progress_logger.info(f'Loss: {mloss[0].item()} Time: {int(time.time()-t_epoch)//60}m {int(time.time()-t_epoch) % 60}s')
 
         # Scheduler
         lr = [x['lr'] for x in optimizer.param_groups]  # for tensorboard
@@ -444,7 +446,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
             if fi > best_fitness:
                 best_fitness = fi
             wandb_logger.end_epoch(best_result=best_fitness == fi)
-            progress_logger.info("INFO: current best mAP: {}".format(best_fitness))
+            progress_logger.info("validation mAP: {}".format(best_fitness.item()))
 
             # Save model
             if (not opt.nosave) or (final_epoch):  # if save
@@ -505,6 +507,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
     else:
         dist.destroy_process_group()
     torch.cuda.empty_cache()
+    progress_looger.info('finishing training')
     return results
 
 

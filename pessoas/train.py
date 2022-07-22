@@ -170,7 +170,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
     for epoch in range(start_epoch, num_epoch+1):
         # train model
         #root_logger.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
-        logger.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
+        logger.info('Train Epoch: {}/{}'.format(epoch, num_epoch))
         net.train()
 
         train_total_loss = 0.0
@@ -203,7 +203,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
         if epoch % TEST_FREQ == 0 or epoch == num_epoch:
             features = extract_features(validate_dataloader, model=net, gpu=True, save_img_results=True)
             mAP = evaluate_dataset(features)
-            logger.info('INFO: validation mAP: {}'.format(mAP))
+            logger.info('validation mAP: {}'.format(mAP))
 
         # save model
         if epoch % SAVE_FREQ == 0 or epoch == num_epoch:

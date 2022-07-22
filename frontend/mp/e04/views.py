@@ -59,6 +59,63 @@ import threading
 # TODO tem uma flag debug do proprio django no seetings.py
 debug = False
 
+def read_train_log(op):
+  log_file = OpConfig.objects.get(op = op, parameter='LO').value
+  print(log_file)
+  
+  finished = False
+  max_epoch = 0
+  cur_epoch = 0
+  cur_loss = 0
+  cur_val = 0
+  ETA = 0
+  prev_time = None
+  with open(log_file, 'r') as f:
+    for line in f:
+      print(line)
+      info = line.split('|')[2].strip()
+      print(info)
+      
+      info.strip(' ')
+      if info.startswith('Train Epoch'):
+        e = info.split(':')[1]
+        epoch_info = e.split('/')
+        cur_epoch = int(epoch_info[0].strip())
+        max_epoch = int(epoch_info[1].strip())
+        finished = False
+        
+      elif info.startswith('Loss'):
+        loss_info = info.split(':')
+        cur_loss = float(loss_info[1].split()[0])
+        t = loss_info[2]
+        t = t.split(' ')
+        m = t[1][:-1]
+        s = t[2][:-1]
+        total = 60*int(m) + int(s)
+        
+        total = total * (max_epoch-cur_epoch)
+        
+        new_h = total//3600
+        
+        total = total-new_h*3600
+        
+        new_m = total//60
+        
+        total = total-new_m*60
+        
+        new_s = total
+        ETA = f'{new_h}h {new_m}m {new_s}s'
+        
+      elif info.startswith('validation mAP'):
+        cur_val = float(info.split(':')[1].strip())
+        
+      elif info.startswith('finishing training'):
+        finished = True
+        
+    print(finished, cur_epoch, cur_loss, cur_val, ETA)
+        
+    return finished, cur_epoch, cur_loss, cur_val, ETA
+  
 
 def extract_files_from_zip(zip_file, extract_path=Path('/tmp')):
     with ZipFile(zip_file, 'r') as zipObj:
@@ -895,10 +952,12 @@ def do_train_face(op, dataset_path, save_dir, model_name, preprocessing_method, 
               op.status = Operation.OpStatus.ERROR
               op.save()
               traceback.print_exc()
+              
 
       if op.status != Operation.OpStatus.ERROR:
           op.status = Operation.OpStatus.FINISHED
           op.save()
+      read_train_log(op)
       return
       
 
@@ -936,6 +995,7 @@ def do_train_obj(op, dataset_path, save_dir, model_name, resume_path, num_epoch,
       if op.status != Operation.OpStatus.ERROR:
           op.status = Operation.OpStatus.FINISHED
           op.save()
+      read_train_log(op)
       return
 @login_required
 def train_face(request):
