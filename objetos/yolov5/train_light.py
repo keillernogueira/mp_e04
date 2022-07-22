@@ -35,6 +35,7 @@ from .utils.loss import ComputeLoss
 from .utils.plots import plot_images, plot_labels, plot_results, plot_evolution
 from .utils.torch_utils import ModelEMA, select_device, intersect_dicts, torch_distributed_zero_first, de_parallel
 from .utils.wandb_logging.wandb_utils import WandbLogger, check_wandb_resume
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 # nosave, notest, cache_images, multi_scale, single_cls, sync_bn, local_rank, workers, save_period):
 
 def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/train/exp',
-          opt=defaultOptTrain(), tb_writer=None):
+          opt=defaultOptTrain(), tb_writer=None, log_dir = None):
     opt.hyp = hyp_path
     opt.data = data
     opt.output_path = output_path
@@ -54,6 +55,24 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
     if opt.global_rank in [-1, 0]:
         check_git_status()
         check_requirements(exclude=('pycocotools', 'thop'))
+        
+    model_name = os.path.basename(os.path.normpath(output_path))
+    if log_dir is not None:
+        handler = logging.FileHandler(log_dir, mode='a')
+        
+        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', 
+                                  '%m-%d-%Y %H:%M:%S')
+                                  
+        handler.setFormatter(formatter)
+           
+    
+        progress_logger = logging.getLogger(model_name + '_log')
+        progress_logger.setLevel(logging.INFO)
+        progress_logger.addHandler(handler)
+    else:
+        progress_logger = logging.getLogger()
+        progress_logger.setLvel(logging.INFO)
+        
 
     # Resume
     wandb_run = check_wandb_resume(opt)
@@ -66,6 +85,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
         opt.cfg, opt.weights, opt.resume, opt.batch_size, opt.global_rank, opt.local_rank = \
             '', ckpt, True, opt.total_batch_size, *apriori  # reinstate
         logger.info('Resuming training from %s' % ckpt)
+        progress_logger.info('Resuming training from %s' % ckpt)
     else:
         # opt.hyp = opt.hyp or ('hyp.finetune.yaml' if opt.weights else 'hyp.scratch.yaml')
         opt.data, opt.cfg, opt.hyp = check_file(opt.data), check_file(opt.cfg), check_file(opt.hyp)  # check files
@@ -312,6 +332,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
             dataloader.sampler.set_epoch(epoch)
         pbar = enumerate(dataloader)
         logger.info(('\n' + '%10s' * 8) % ('Epoch', 'gpu_mem', 'box', 'obj', 'cls', 'total', 'labels', 'img_size'))
+        progress_logger.info('INFO: epoch {}/{}'.format(epoch, epochs))
         if rank in [-1, 0]:
             pbar = tqdm(pbar, total=nb)  # progress bar
         optimizer.zero_grad()
@@ -423,6 +444,7 @@ def train(hyp_path='/hyp.scratch.yaml', data='dataset.yaml', output_path='runs/t
             if fi > best_fitness:
                 best_fitness = fi
             wandb_logger.end_epoch(best_result=best_fitness == fi)
+            progress_logger.info("INFO: current best mAP: {}".format(best_fitness))
 
             # Save model
             if (not opt.nosave) or (final_epoch):  # if save

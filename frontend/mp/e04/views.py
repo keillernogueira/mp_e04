@@ -52,6 +52,9 @@ from objetos.yolov5.utils.options import defaultOptTrain
 
 from pessoas.retrieval import img_formats, vid_formats
 
+import threading
+
+
 
 # TODO tem uma flag debug do proprio django no seetings.py
 debug = False
@@ -871,13 +874,69 @@ def treino_detail(request,operation_id):
     return render(request,'e04/train_detail.html',context)
 
 
+
 @login_required
 def train(request):
+    print(Model.objects.all().filter(type=Model.ModelType.FACE))
     if not request.user.is_superuser:
         return render(request, 'e04/permissiondenied.html')
     return HttpResponseRedirect('/e04/train/face')
+    
+def do_train_face(op, dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch, log_dir):
+      try:
+          print("Starting Thread for Training of model", model_name, "With", num_epoch, "Epochs")
+          val_acc, save_name = train_face_func(dataset_path, save_dir, 'curricularface', preprocessing_method, resume_path, num_epoch, log_dir = log_dir)
 
+          m = Model(op_id = op, type=Model.ModelType.FACE, name=model_name, model_path= save_name, val_acc = val_acc)
+          m.save()
+          print(Model.objects.all().filter(type=Model.ModelType.FACE))
+          print("model created with mAP =", m.val_acc)
+      except Exception:
+              op.status = Operation.OpStatus.ERROR
+              op.save()
+              traceback.print_exc()
 
+      if op.status != Operation.OpStatus.ERROR:
+          op.status = Operation.OpStatus.FINISHED
+          op.save()
+      return
+      
+
+def do_train_obj(op, dataset_path, save_dir, model_name, resume_path, num_epoch, new_model, path, log_dir):
+      try:
+          opt = defaultOptTrain()
+          opt.epochs = num_epoch
+          if not new_model:
+            opt.weights = resume_path + '/weights/best.pt'
+          print(save_dir)
+          val_acc = train_obj_func(opt = opt, hyp_path = os.path.join(sys.path[0], 'objetos', 'yolov5', 'hyp.scratch.yaml'), 
+                                  data=dataset_path, output_path=save_dir, log_dir=log_dir)
+          val_acc = val_acc[2]
+          
+          model_dir = ''
+          maxn = 0
+          for f in os.listdir(os.path.join(sys.path[0], 'objetos', 'train_model')):
+            if f.startswith(model_name):
+              print(f)
+              maxn += 1
+          model_dir = path + str(maxn)
+          print(model_dir)
+      
+          
+
+          m = Model(op_id = op, type=Model.ModelType.OBJECT, name=model_name, model_path=model_dir, val_acc = val_acc)
+          m.save()
+          print("model created with mAP =", m.val_acc)
+      except Exception:
+          op.status = Operation.OpStatus.ERROR
+          op.save()
+          traceback.print_exc()
+
+      # If in thread it will be different
+      if op.status != Operation.OpStatus.ERROR:
+          op.status = Operation.OpStatus.FINISHED
+          op.save()
+      return
 @login_required
 def train_face(request):
     if not request.user.is_superuser:
@@ -893,8 +952,8 @@ def train_face(request):
         if form.is_valid():
             data = form.cleaned_data
             print(data)
-            # dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71
-            model_name = 'curricularface'
+            #dataset_path, save_dir, model_name, preprocessing_method='sphereface', resume_path=None, num_epoch=71
+            model_name = ''
             save_dir = ''
             dataset_path = ''
             num_epoch = data['num_epoch']
@@ -906,6 +965,8 @@ def train_face(request):
             operation_config = OpConfig(op=op, parameter=OpConfig.ParameterOpt.TRAIN_EPOCH,
                                                value=num_epoch)
             operation_config.save()
+            
+            
 
             try:
                 preprocessing_method = GeneralConfig.objects.all()[0].ret_pre_process
@@ -939,37 +1000,38 @@ def train_face(request):
                     os.mkdir(path)
                 save_dir = path
                 print(save_dir)
+                model_name = data['model_name']
                 
             else:
                 save_dir = os.path.join(sys.path[0], 'pessoas', 'train_model', data['model_sel'])
                 resume_path = Model.objects.all().filter(name=data['model_sel'])[0].model_path
+                model_name = data['model_sel']
 
             try:
-                print("Aaa")
-                print(request.user)
-                print(train_face.__code__.co_varnames)
-                print(preprocessing_method)
-                val_acc, save_name = train_face_func(dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch)
-                print('a')
-
-                m = Model(op_id = op, type=Model.ModelType.FACE, name=data['model_name'], model_path= save_name, val_acc = val_acc)
-                m.save()
-                print("model created with mAP =", m.val_acc)
+            
+                log_dir = os.path.join(sys.path[0], 'pessoas', 'train_model', 'train_logs')
+                if not os.path.exists(log_dir):
+                    os.mkdir(log_dir)
+                log_dir = os.path.join(log_dir, model_name + '.txt')
+                
+                log_file = OpConfig(op=op, parameter=OpConfig.ParameterOpt.LOG_FILE,
+                                               value=log_dir)
+                log_file.save()
+                
+                thread = threading.Thread(target=do_train_face,args=[op,dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch, log_dir])
+                thread.start()
             except Exception:
                     op.status = Operation.OpStatus.ERROR
                     op.save()
                     traceback.print_exc()
 
             # If in thread it will be different
-            if op.status != Operation.OpStatus.ERROR:
-                op.status = Operation.OpStatus.FINISHED
-                op.save()
-            else:
-                messages.error(request, 'Falha no treino.')
+            if op.status == Operation.OpStatus.ERROR:
+                messages.error(request, 'Falha ao Iniciar Treino.')
                 return HttpResponseRedirect("/e04/train/face")
-
-            messages.success(request, 'Treino Iniciado com Sucesso')
-            return HttpResponseRedirect("/e04/train/face")
+            else:
+              messages.success(request, 'Treino Iniciado com Sucesso')
+              return HttpResponseRedirect("/e04/train/face")
         else:
             print('invalid')
             print(form.errors.as_data())
@@ -1042,44 +1104,29 @@ def train_object(request):
                 save_dir = path
 
             try:
-                opt = defaultOptTrain()
-                opt.epochs = num_epoch
-                if not data['new_model']:
-                  opt.weights = resume_path + '/weights/best.pt'
-                print(save_dir)
-                val_acc = train_obj_func(opt = opt, hyp_path = os.path.join(sys.path[0], 'objetos', 'yolov5', 'hyp.scratch.yaml'), 
-                                        data=dataset_path, output_path=save_dir)
-                val_acc = val_acc[2]
+                log_dir = os.path.join(sys.path[0], 'objetos', 'train_model', 'train_logs')
+                if not os.path.exists(log_dir):
+                    os.mkdir(log_dir)
+                log_dir = os.path.join(log_dir, model_name + '.txt')
                 
-                model_dir = ''
-                maxn = 0
-                for f in os.listdir(os.path.join(sys.path[0], 'objetos', 'train_model')):
-                  if f.startswith(model_name):
-                    print(f)
-                    maxn += 1
-                model_dir = path + str(maxn)
-                print(model_dir)
-            
-                
-
-                m = Model(op_id = op, type=Model.ModelType.OBJECT, name=data['model_name'], model_path=model_dir, val_acc = val_acc)
-                m.save()
-                print("model created with mAP =", m.val_acc)
+                log_file = OpConfig(op=op, parameter=OpConfig.ParameterOpt.LOG_FILE,
+                                               value=log_dir)
+                log_file.save()
+                thread = threading.Thread(target =do_train_obj, args = [op, dataset_path, save_dir, model_name, resume_path, num_epoch, data['new_model'], path, log_dir] )
+                thread.start()
             except Exception:
                     op.status = Operation.OpStatus.ERROR
                     op.save()
                     traceback.print_exc()
 
             # If in thread it will be different
-            if op.status != Operation.OpStatus.ERROR:
-                op.status = Operation.OpStatus.FINISHED
-                op.save()
-            else:
-                messages.error(request, 'Falha no treino.')
+            if op.status == Operation.OpStatus.ERROR:
+                messages.error(request, 'Falha ao Iniciar Treino.')
                 return HttpResponseRedirect("/e04/train/object")
-
-            messages.success(request, 'Treino Concluído com Sucesso')
-            return HttpResponseRedirect("/e04/train/object")
+            else:
+              messages.success(request, 'Treino Iniciado com Sucesso')
+              return HttpResponseRedirect("/e04/train/object")
+                
         else:
             print('invalid')
             print(form.errors.as_data())
@@ -1092,6 +1139,7 @@ def train_object(request):
 
     context = {'form': form}
     return render(request, 'e04/train_object.html', context)
+
 
 @login_required
 def login(request):

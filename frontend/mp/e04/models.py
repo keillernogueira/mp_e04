@@ -37,6 +37,7 @@ class OpConfig(models.Model):
         RET_CONF = 'RC', _('Retrieval Confidence')
         DET_CONF = 'DC', _('Detection Confidence')
         TRAIN_EPOCH = 'EP', _('Train Epoch')
+        LOG_FILE = 'LO', _('Log File')
     parameter = models.CharField(max_length=2, choices=ParameterOpt.choices)
 
     value = models.CharField(max_length=100)

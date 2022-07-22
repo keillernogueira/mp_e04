@@ -5,6 +5,7 @@ import urllib.request
 import tarfile
 import argparse
 import pathlib
+import sys
 
 import torch
 from torch import nn
@@ -19,7 +20,7 @@ from .processors.dataset_processor import extract_features, evaluate_dataset
 from .networks.load_network import load_net
 
 
-def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch):
+def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path, num_epoch, log_dir = None):
     """
     Train a model.
 
@@ -30,11 +31,34 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
     :param resume_path: Path to a previously trained model.
     :param num_epoch: number of epochs to train
     """
+    
     logging.basicConfig()
-    logging.getLogger().setLevel(logging.INFO)
+    #root_logger = logging.getLogger()
+    #root_logger.setLevel(logging.INFO)
+    
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
+        
+    save_name = os.path.basename(os.path.normpath(save_dir))
+    if log_dir is not None:
+        handler = logging.FileHandler(log_dir, mode='a')
+        
+        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', 
+                                  '%m-%d-%Y %H:%M:%S')
+                                  
+        handler.setFormatter(formatter)
+           
+    
+        logger = logging.getLogger(save_name + '_log')
+        logger.setLevel(logging.INFO)
+        logger.addHandler(handler)
+    else:
+        logger = logging.getLogger()
+        logger.setLvel(logging.INFO)
+        
 
     if model_name == "mobiface" or model_name == "shufflefacenet" or model_name == 'curricularface' \
-            or args.model_name == 'arcface' or args.model_name == 'cosface':
+            or model_name == 'arcface' or model_name == 'cosface':
         crop_size = (112, 112)
     elif model_name == "sphereface" or model_name == "mobilefacenet":
         crop_size = (96, 112)
@@ -47,7 +71,7 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
 
     # create dataset
     train_dataset = GenericDataLoader(dataset_path, preprocessing_method=preprocessing_method, crop_size=crop_size)
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=64,
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=8,
                                                    shuffle=True, num_workers=0, drop_last=False)
 
     # validation dataset
@@ -145,7 +169,8 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
 
     for epoch in range(start_epoch, num_epoch+1):
         # train model
-        logging.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
+        #root_logger.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
+        logger.info('Train Epoch: {}/{} ...'.format(epoch, num_epoch))
         net.train()
 
         train_total_loss = 0.0
@@ -171,22 +196,24 @@ def train(dataset_path, save_dir, model_name, preprocessing_method, resume_path,
 
         time_elapsed = time.time() - since
         loss_msg = 'Loss: {:.4f} time: {:.0f}m {:.0f}s'.format(train_total_loss, time_elapsed // 60, time_elapsed % 60)
-        logging.info(loss_msg)
+        #root_logger.info(loss_msg)
+        logger.info(loss_msg)
 
         # test model on lfw
         if epoch % TEST_FREQ == 0 or epoch == num_epoch:
             features = extract_features(validate_dataloader, model=net, gpu=True, save_img_results=True)
             mAP = evaluate_dataset(features)
+            logger.info('INFO: validation mAP: {}'.format(mAP))
 
         # save model
         if epoch % SAVE_FREQ == 0 or epoch == num_epoch:
+            logger.info('Saving checkpoint: {}'.format(epoch))
             logging.info('Saving checkpoint: {}'.format(epoch))
             net_state_dict = net.state_dict()
-            if not os.path.exists(save_dir):
-                os.mkdir(save_dir)
             save_name = os.path.join(save_dir, '%03d.ckpt' % epoch)
             torch.save({'epoch': epoch, 'net_state_dict': net_state_dict}, save_name)
-    logging.info('finishing training')
+    logger.info('finishing training')
+    #root_logger.info('finishing training')
     return mAP, save_name
 
 
