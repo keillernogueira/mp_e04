@@ -679,16 +679,8 @@ def updateDB_detail(request, operation_id):
     database_images = ImageDB.objects.filter(operation__id=operation_id)[0].database
 
 
-    paginator = Paginator(image_list,20)
-    page = request.GET.get('page')
-    try:
-        response = paginator.page(page)
-    except PageNotAnInteger:
-        response = paginator.page(1)
-    except EmptyPage:
-        response = paginator.page(paginator.num_pages)
 
-    context = {'response':response,'operation':operation, 'database':database_images,'qtt_images':image_list.count}
+    context = {'image_list':image_list,'operation':operation, 'database':database_images,'qtt_images':image_list.count}
 
     return render(request,'e04/updateDB_detail.html',context)
 
